@@ -2168,7 +2168,7 @@ sub _apply_order {
 	    # are we sorting numbers or text?
 	    # also don't complain about null values
 	    no warnings 'uninitialized';
-	    if ($val_a =~ /^\d+(\.\d+)?$/){
+	    if ($val_a =~ /^-?\d+(\.\d+)?$/){
 		$res = $res || ($val_a <=> $val_b);
 	    }
 	    else {
