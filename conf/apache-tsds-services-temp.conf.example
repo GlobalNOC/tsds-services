@@ -1,0 +1,10 @@
+Alias /tsds-services/temp /usr/share/grnoc/tsds-services/temp
+
+<Directory /usr/share/grnoc/tsds-services/temp/>
+        AddHandler perl-script .cgi
+        PerlResponseHandler ModPerl::Registry
+        Options ExecCGI FollowSymLinks
+        ExpiresActive On
+        ExpiresDefault A86400
+</Directory>
+

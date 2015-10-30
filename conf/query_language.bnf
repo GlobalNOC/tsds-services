@@ -1,0 +1,240 @@
+:default ::= action => ::first 
+lexeme default = forgiving => 1
+:start ::= query
+query ::=    
+    # Event queries do not use a by clause and have a different database nomenclature
+    get field_list between between_clause from event_database optional_where optional_limit_offset optional_order action => ::array
+    |
+
+    # Direct Database queries require a between clause
+    get field_list between between_clause optional_by from database optional_where optional_having optional_limit_offset optional_order action => ::array
+    |
+
+    # Higher level queries do not use a between clause 
+    # They can also include a 'with_details' extra clause
+    get field_list optional_by from subquery optional_with_details optional_where optional_having optional_limit_offset optional_order action => ::array	
+    
+
+field_list ::= field_term+ action => ::array separator => comma
+
+field_term  ::= field math number 'as' word action => ::array
+                |
+                field 'as' word   action => ::array
+                |
+                field math number action => ::array
+                |
+                field math field 'as' word action => ::array
+                |
+                field math field action => ::array
+                |
+                field action => ::array
+
+field  ::= average | 
+           percentile |
+           count |
+           min |
+           max |
+           sum |
+           histogram |
+           extrapolate |
+	   aggregate |
+           all |
+           word
+
+average ::= 'average' '(' field ')' action => remove_symbols
+	    | 
+	    'average' '(' field_word ')' action => remove_symbols
+    
+percentile ::= 'percentile' '(' field_word ',' number ')' action => remove_symbols
+	       | 
+	       'percentile' '(' field ',' number ')' action => remove_symbols	
+	       
+count ::= 'count' '(' field_word ')' action => remove_symbols
+          |
+	  'count' '(' field ')' action => remove_symbols
+
+min ::= 'min' '(' field_word ')' action => remove_symbols
+    	|
+	'min' '(' field ')' action => remove_symbols
+
+max ::= 'max' '(' field_word ')' action => remove_symbols
+    	|
+	'max' '(' field ')' action => remove_symbols
+
+sum ::= 'sum' '(' field_word ')' action => remove_symbols
+    	|
+	'sum' '(' field ')' action => remove_symbols
+
+histogram ::= 'histogram' '(' field_word ',' number ')' action => remove_symbols
+	      |
+	      'histogram' '(' field ',' number ')' action => remove_symbols
+
+extrapolate ::= 'extrapolate' '(' field_word ',' date ')' action => remove_symbols
+                |
+                'extrapolate' '(' field_word ',' number ')' action => remove_symbols
+		|
+		'extrapolate' '(' field ',' date ')' action => remove_symbols
+                |
+                'extrapolate' '(' field ',' number ')' action => remove_symbols
+
+all ::= 'all' '(' field_word ')' action => remove_symbols
+
+aggregate ::= 'aggregate' '(' field_word ',' number ',' aggregator_function ')' action => remove_symbols
+
+aggregator_function ::= 'average'
+		    	|
+			'max'
+			|
+			'min'
+			|
+			'histogram'
+			|
+			'percentile' '(' number ')' action => remove_symbols
+
+between_clause ::= '(' date ',' date ')' action => remove_symbols
+
+optional_by ::= by_clause*
+by_clause ::= by by_list action => ::array
+by_list ::= word+ action => ::array separator => comma
+
+subquery ::= '(' query ')' action => remove_symbols
+
+optional_where ::= where_clause* 
+where_clause ::= where where_list action => ::array
+
+where_list ::= '(' where_list ')' and_or where_list action => remove_symbols
+               |
+	       '(' where_list ')' action => remove_symbols
+	       |
+               where_term and_or where_list action => ::array
+               |
+	       where_term action => ::array
+
+where_term ::= word equals phrase action => flatten
+	       |
+	       word equals null action => parse_null
+	       |
+	       word not_equals phrase action => flatten
+	       |
+	       word not_equals null action => parse_null
+	       |
+	       word '>' date_or_number action => ::array
+	       |
+               word '>=' date_or_number action => ::array
+               |
+               word '<' date_or_number action => ::array
+	       |
+               word '<=' date_or_number action => ::array
+               |
+               word 'in' '(' phrase_list ')' action => remove_symbols
+               | 
+               word between '(' number ',' number ')' action => remove_symbols
+               |
+               word 'not like' phrase action => flatten
+               |
+               word 'like' phrase action => flatten
+               
+
+date_or_number ::= date | number
+
+#word_list ::= word+ action => ::array separator => comma
+phrase_list ::= phrase+ action => ::array separator => comma
+
+and_or ::= and | or
+
+optional_having ::= having_clause*
+having_clause ::= having where_list action => ::array
+
+optional_limit_offset ::= limit_clause*
+limit_clause ::= limit number offset number action => ::array
+
+optional_order ::= order_clause*
+order_clause ::= ordered_by order_list action => ::array
+
+order_list ::= order_term+ action => ::array separator => comma
+
+order_term ::= order_field order_direction action => ::array
+               |
+               order_field action => ::array
+
+order_field ::= field
+
+order_direction ::= asc | desc
+asc  ~ 'asc':i
+desc ~ 'desc':i
+
+date    ::= quote two_numbers '/' two_numbers '/' four_numbers two_numbers ':' two_numbers ':' two_numbers timezone quote action => make_date
+            |
+            quote two_numbers '/' two_numbers '/' four_numbers two_numbers ':' two_numbers ':' two_numbers quote action => make_date
+            |
+            quote two_numbers '/' two_numbers '/' four_numbers timezone quote action => make_date
+            |
+            quote two_numbers '/' two_numbers '/' four_numbers quote action => make_date
+
+timezone ::= alpha '/' alpha action => collapse
+	     | 
+	     alpha
+
+number ~ '-' integer '.' integer
+         |
+	 '-' integer 
+	 |
+	 integer '.' integer
+	 |
+	 integer
+
+optional_with_details ::= with_details*
+
+ordered_by ::= ordered by
+
+# This kind of sucks, there must be a better way to do
+# this. For some reason Marpa just refuses some characters
+# inside of the character class word_characters below
+word ::= word_characters action => collapse
+word_characters ~ [_\.a-zA-Z0-9@\-/:*]+
+
+
+# phrases can have fairly arbitrary characters in them, so we need
+# to handle this manually
+phrase ::= phrase_start optional_phrase_segment phrase_end action => parse_phrase
+phrase_start ~ '"'
+phrase_end ~ '"'
+optional_phrase_segment ::= phrase_segment*
+
+phrase_segment ~ [()\[\]_\.a-zA-Z0-9@\-/:'&|,\\ \t\n*<>;{}]+
+
+# event databases are like regular databases except they have
+# a ".event" at the end, such as "interface.event"
+event_database ::= database '.event' action => collapse
+
+# database names can only have alpha characters in them 
+# or underscores
+database ~ [a-zA-Z_]+
+
+field_word ~ [a-zA-Z.\-_]+
+
+with_details ~ 'with details'
+between ~ 'between'
+equals ~ '='
+not_equals ~ '!='
+quote ~ '"'
+by  ~ 'by'
+get ~ 'get' 
+from ~ 'from'
+where   ~ 'where'
+ordered ~ 'ordered'
+comma   ~ ','
+and  ~ 'and'
+or   ~ 'or'
+having ~ 'having'
+limit ~ 'limit'
+offset ~ 'offset'
+integer ~ [\d]+
+two_numbers ~ [\d][\d]
+four_numbers ~ [\d][\d][\d][\d]
+math ~ [\+\-\*\/]
+null ~ 'null'
+alpha ~ [a-zA-Z]+
+
+:discard ~ whitespace
+whitespace ~ [\s]+

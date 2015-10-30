@@ -1,0 +1,9 @@
+<sphinx:document id="[% id %]">
+[% FOREACH field IN fields.keys -%]
+[% IF not fields.$field.defined  -%]
+    <[% field %] xsi:nil="true"/>
+[% ELSE -%]
+    <[% field %]><![CDATA[[% fields.$field %]]]></[% field %]>
+[% END -%]
+[% END -%]
+</sphinx:document>

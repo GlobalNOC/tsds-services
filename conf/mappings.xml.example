@@ -1,0 +1,11 @@
+<mappings>
+
+  <map regexp="^\/constraint_view_1\/.*"
+       config_location="/etc/grnoc/tsds/services/config-1.xml"
+       logging_location="/etc/grnoc/tsds/services/logging-1.xml" />
+
+  <map regexp="^\/constraint_view_2\/.*"
+       config_location="/etc/grnoc/tsds/services/config-2.xml"
+       logging_location="/etc/grnoc/tsds/services/logging-2.xml" />
+
+</mappings>

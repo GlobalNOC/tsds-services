@@ -1,0 +1,20 @@
+{
+	"label" : "Temperature",
+	"meta_fields" : {
+		"name" : {
+			"required" : 1,
+			"ordinal" : 1
+		},
+		"node" : {
+			"required" : 1,
+			"ordinal" : 2
+		}
+	},
+	"values" : {
+		"temp" : {
+			"description" : "temp",
+			"units" : "temp",
+			"ordinal" : 1
+		}
+	}
+}

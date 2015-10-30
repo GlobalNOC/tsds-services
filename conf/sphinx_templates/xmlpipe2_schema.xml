@@ -1,0 +1,8 @@
+<sphinx:schema>
+[% FOREACH field IN fields -%]
+    <sphinx:field name="[% field %]"/>
+[% END -%]
+[% FOREACH attr IN attrs   -%]
+    <sphinx:attr name="[% attr.name %]" type="[% attr.type %]"/>
+[% END -%]
+</sphinx:schema>

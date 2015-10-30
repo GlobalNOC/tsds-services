@@ -1,0 +1,45 @@
+<config>
+
+    <!-- database to use while doing unit tests -->
+    <unit-test-database>tsdstest</unit-test-database>
+
+    <!-- how many concurrent processes should read and process messages off of the rabbit queue -->
+    <num-processes>1</num-processes>
+    
+    <!-- where should we write our pid file to -->
+    <pid-file>/tmp/tsds_receiver_test.pid</pid-file>
+ 
+    <!-- where do the report templates live -->
+    <report-root>/etc/grnoc/tsds/services/report_templates/</report-root>    
+
+    <!-- rabbitmq connection info -->
+    <rabbit host="127.0.0.1" port="5672" queue="tsds_test" />
+
+    <!-- mongodb connection info -->
+    <mongo host='127.0.0.1' port='27017'>
+        <root      user="root"    password="password"/>
+        <readonly  user="tsds_ro" password="password"/>
+        <readwrite user="tsds_rw" password="password"/>
+    </mongo>
+
+    <!-- memcached connection info -->
+    <memcache host='127.0.0.1' port='11211' />
+
+    <!-- redis connection info -->
+    <redis host='127.0.0.1' port='6379' />
+
+    <!-- users that are allowed to proxy requests to the webservices -->
+    <proxy-users>
+        <username>foo</username>
+        <username>bar</username>
+    </proxy-users>
+
+    <!-- list of databases we should ignore and not consider as having tsds data -->
+    <ignore-databases>
+        <database>admin</database>
+        <database>test</database>
+        <database>config</database>
+        <database>tsds_reports</database>
+    </ignore-databases>
+
+</config>

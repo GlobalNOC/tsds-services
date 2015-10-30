@@ -1,0 +1,6 @@
+<div id="[% container_id %]">
+
+<div id="[% container_id %]_dataexplorer"></div>
+<div id="[% container_id %]_chart_holder"></div>
+
+</div>

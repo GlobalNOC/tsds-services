@@ -1,0 +1,25 @@
+# do one-hour aggregates once every 15 minutes
+# */15 * * * * root /usr/bin/tsds_aggregate.pl --database interface --aggregate one_hour --quiet > /dev/null 2>&1
+# */15 * * * * root /usr/bin/tsds_aggregate.pl --database power --aggregate one_hour --quiet > /dev/null 2>&1
+# */15 * * * * root /usr/bin/tsds_aggregate.pl --database cpu --aggregate one_hour --quiet > /dev/null 2>&1
+# */15 * * * * root /usr/bin/tsds_aggregate.pl --database meta_tsds_db --aggregate one_hour --quiet > /dev/null 2>&1
+# */15 * * * * root /usr/bin/tsds_aggregate.pl --database meta_tsds_rabbit --aggregate one_hour --quiet > /dev/null 2>&1
+# */15 * * * * root /usr/bin/tsds_aggregate.pl --database meta_tsds_shard --aggregate one_hour --quiet > /dev/null 2>&1
+
+# do one-day aggregates once every hour
+# 0 * * * * root /usr/bin/tsds_aggregate.pl --database interface --aggregate one_day --quiet > /dev/null 2>&1
+# 0 * * * * root /usr/bin/tsds_aggregate.pl --database power --aggregate one_day --quiet > /dev/null 2>&1
+# 0 * * * * root /usr/bin/tsds_aggregate.pl --database cpu --aggregate one_day --quiet > /dev/null 2>&1
+# 0 * * * * root /usr/bin/tsds_aggregate.pl --database meta_tsds_db --aggregate one_day --quiet > /dev/null 2>&1
+# 0 * * * * root /usr/bin/tsds_aggregate.pl --database meta_tsds_rabbit --aggregate one_day --quiet > /dev/null 2>&1
+# 0 * * * * root /usr/bin/tsds_aggregate.pl --database meta_tsds_shard --aggregate one_day --quiet > /dev/null 2>&1
+
+# do all expirations once per day
+# 0 0 * * * /usr/bin/tsds_expire.pl > /dev/null 2>&1
+
+# do the tsds self measuring every 5 minutes
+# */5 * * * * root /usr/bin/tsds_meta.py > /dev/null 2>&1
+
+# sphinx delta indexer and merger
+# */5 * * * * root /usr/bin/indexer tsds_metadata_delta_index --rotate > /dev/null 2>&1
+# 1,31 * * * * root /usr/bin/indexer --merge tsds_metadata_index tsds_metadata_delta_index --rotate > /dev/null 2>&1

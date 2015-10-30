@@ -1,0 +1,48 @@
+<config>
+
+    <!-- how many concurrent processes should read and process messages off of the rabbit queue -->
+    <num-processes>4</num-processes>
+     
+    <!-- where should we write our pid file to -->
+    <pid-file>/var/run/tsds_writer.pid</pid-file>
+ 
+    <!-- where do the report templates live -->
+    <report-root>/etc/grnoc/tsds/services/report_templates/</report-root>    
+
+    <!-- rabbitmq connection info -->
+    <rabbit host="127.0.0.1" port="5672" queue="timeseries_data" />
+
+    <!-- mongodb connection info -->
+    <mongo host='127.0.0.1' port='27017'>
+        <root user="root" password="password"/>
+        <readonly  user="tsds_ro" password="password"/>
+        <readwrite user="tsds_rw" password="password"/>
+    </mongo>
+
+    <!-- redis connection info -->
+    <redis host='127.0.0.1' port='6379' />
+
+    <!-- memcache connection info -->
+    <memcache host='127.0.0.1' port='11211' />
+
+    <!-- users that are allowed to proxy requests to the webservices -->
+    <proxy-users>
+        <username>foo</username>
+        <username>bar</username>
+    </proxy-users>
+
+    <!-- sphinx mysql connection -->
+    <sphinx>
+        <mysql host='127.0.0.1' port="9306"/>
+    </sphinx>
+
+    <!-- list of databases we should ignore and not consider as having tsds data -->
+    <ignore-databases>
+        <database>admin</database>
+        <database>test</database>
+        <database>config</database>
+        <database>tsds_reports</database>
+        <database>tsds_version</database>
+    </ignore-databases>
+
+</config>
