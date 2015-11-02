@@ -62,7 +62,7 @@ Example init script and config files should have been installed with the grnoc-t
 /etc/mongos.conf
 ```
 
-Change the `configDB` line as needed to reference the correct location of all config servers running  It is important that all `mongos` instances specify the exact same set of config servers.  Typically only a single `mongos` instance is run per host.  ** You should also change the hostname from localhost to instead be the actual hostname or public IP address of the server.  **
+Change the `configDB` line as needed to reference the correct location of all config servers running  It is important that all `mongos` instances specify the exact same set of config servers.  Typically only a single `mongos` instance is run per host.  You should also change the hostname from localhost to instead be the actual hostname or public IP address of the server.
 
 Turning on `mongos` can be done by:
 
@@ -198,7 +198,7 @@ bye
 [root@tsds ~]#
 ```
 
-**From now on, when logging into mongo, you will either need to specify the the authenticationDatabase or log into the admin database like so**:
+From now on, when logging into mongo, you will either need to specify the the authenticationDatabase or log into the admin database like so:
 
 ```
 [root@tsds ~]# mongo -u root admin -p
@@ -215,34 +215,33 @@ MongoDB does not do any encryption by default and must be told to do so.  The fi
 The X.509 certificates can be created by doing the following:
 
 ```
-[root@tsds ~]# openssl genrsa 2048 > /etc/mongodca-key.pem
-[root@tsds ~]# openssl req -new -x509 -nodes -days 3650 -key ca-key.pem -out ca-cert.pem
-[root@tsds ~]# openssl req -newkey rsa:2048 -days 3650 -nodes -keyout server-key.pem -out server-req.pem
-[root@tsds ~]# openssl x509 -req -in server-req.pem -days 3650 -CA ca-cert.pem -CAkey ca-key.pem -set_serial 01 -out server-cert.pem
+[root@tsds ~]# certtool -p --outfile /etc/pki/tls/private/mongo-`hostname`.key
+[root@tsds ~]# certtool -s --load-privkey /etc/pki/tls/private/mongo-`hostname`.key --outfile /etc/pki/tls/certs/mongo-`hostname`.crt
 ```
+Once again, make sure to specify the proper hostname for the `Common name` option.
 
-This will generate certificates valid for 10 years.
-
-Each mongo instance will needs its corresponding config file updated to have the "net" section look like the following:
+Each `mongod` and `mongos` instance will need its corresponding config file updated to have the "net" section look like the following with the correct certificate file paths:
 
 ```
 net:
   port: <whatever port number was already here>
   ssl:
     mode: "preferSSL"
-    CAFile: "/path/to/CA.crt"
-    PEMKeyFile: "/path/to/file.pem"
-    clusterFile: "/path/to/file.pem"
-    clusterPassword: "<password on CA file>"
+    CAFile: "/etc/pki/tls/certs/mongo-hostname.crt"
+    PEMKeyFile: "/etc/pki/tls/private/mongo-hostname.key"
+    clusterFile: "/etc/pki/tls/private/mongo-hostname.key"
+    clusterPassword: "password used when creating certs"
 ```
 
-If you are using self-signed certificates, you will also need to include:
+If you are using self-signed certificates, you will also need to include the following in the "ssl" section:
 
 ```
 allowInvalidCertificates: "true"
 ```
 
-In the ssl section above.
+File ownership and permissions need to be set appropriately on the certificates:
+
+
 
 If performing an upgrade from an existing mongo stack, every piece will need to be stopped and this applied, then every piece restarted. It might be useful to do the next step about Authorization while the servers are all down, but it might also be useful to limit the moving pieces per step.
 
