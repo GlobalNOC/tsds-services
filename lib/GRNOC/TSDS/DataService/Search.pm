@@ -557,7 +557,6 @@ sub _get_search_result_data {
         push(@$value_queries, $avg_value_query);
 
         foreach my $have (@$having){
-            warn "EXAMINING " . Dumper($have);
             next unless ($have->{'field'} eq $value);
             my $func = $have->{'function'};
             my $having_get = "";
