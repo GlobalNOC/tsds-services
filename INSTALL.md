@@ -1,27 +1,25 @@
-This document covers installing MongoDB in a sharded environment along with setting up the TSDS services. The steps are presented
-in a logical order and should be followed as presented unless you are a super expert.
+# TSDS Services & MongoDB Install/Configuration Guide
 
-A note on ports - in a sharded environment every shard needs access to every other shard as well as the config servers. This means that
-if you are using a firewall such as iptables each participating machine will need to open all of its mongo related ports (except mongos) to each
-other participating machine in order for everything to function properly.
+This document covers installing MongoDB in a sharded environment, along with setting up TSDS services on top of it. The steps given below should be followed in the order they are listed unless you are sure you know what you are doing.  This document also assumes a RedHat Linux environment, or one of its derivatives.
 
+An important note about firewalls: in a sharded environment, every shard needs access to every other shard, as well as all of the config servers. This means that if you are using a firewall such as iptables, which is typically turned on and filtering traffic by default, then each participating machine will need to open all of its mongo related ports (except mongos) to every
+other participating machine in order for MongoDB to work properly.
 
-Installing MongoDB 
-------------------
-To install the MongoDB RPM packages, you will need to add the yum repository that MongoDB provides in order for it to do so.  Follow the docs on
-installing the [MongoDB Yum repo](http://docs.mongodb.org/manual/tutorial/install-mongodb-on-red-hat-centos-or-fedora-linux/).  You should be
-able to do a:
+## MongoDB Installation
 
+Adminstering a MongoDB cluster is much more involved than running many other databases.  It is strongly recommend to familiarize yourself with how MongoDB works, in particular about [sharding](https://docs.mongodb.org/manual/core/sharding-introduction/#sharding-introduction) across multiple machines, and also about redundancy via [replica sets](https://docs.mongodb.org/manual/core/replication-introduction/).  This guide will attempt to walk you through the steps necessary to stand up single-shard MongoDB from scratch, but knowledge about MongoDB will likely be required in order to successfully administer a production TSDS installation.
+
+To install the MongoDB RPM packages, first you will need to add the yum repository that MongoDB provides to your system in order for it to do so.  Follow the docs on installing the [MongoDB Yum Repository](http://docs.mongodb.org/manual/tutorial/install-mongodb-on-red-hat-centos-or-fedora-linux/) for RedHat, CentOS, or Fedora Linux.  Afterward, You should be able to do the following:
+
+```
 sudo yum install mongodb-org
+```
 
-Once their yum repository has been configured.
+This will install all mongodb-related components, including the mongod server as well as CLI based tools.
 
-### Setup config servers
+## MongoDB Config Server Configuration
 
-In a sharded environment Mongo requires what are called "config servers" to manage everything. These are just mongod instances that contain
-metadata about the sharding environment instead of data. 
-
-For more information see: http://docs.mongodb.org/manual/core/sharded-cluster-config-servers/
+In a sharded environment, MongoDB requires what are called [config servers](http://docs.mongodb.org/manual/core/sharded-cluster-config-servers/) to manage everything. These are just mongod instances that contain metadata about the sharding environment and not the actual user data stored in the database.  MongoDB typically recommends running three config servers on separate hosts for redundancy purposes in a production environment.  At least one config server must be available.
 
 Example init scripts and config files should have been installed with the grnoc-tsds-services package for the MongoDB config servers:
 
@@ -35,13 +33,15 @@ Example init scripts and config files should have been installed with the grnoc-
 
 If you're changing the directory path of the config servers, make sure to fix the directory permissions after creating it (chown mongod:mongod ...).
 
-Only one config server is technically required, but MongoDB recommends running all three for redundancy:
+Turning on the MongoDB config servers can be done
 
-# service mongod-config1 start
-# service mongod-config2 start
-# service mongod-config3 start
+```
+service mongod-config1 start
+service mongod-config2 start
+service mongod-config3 start
+```
 
-### Setup the mongos
+## MongoDB "mongos" Configuration
 
 The `mongos` utility is the service that clients can talk to in a sharded environment. It functions identically to connecting directly to a `mongod` instance in a non-sharded environment and hides all the messy details involved with talking to multiple servers. This is typically run on the default mongo port of 27017 so that everything's defaults "just work" out of the box, though it can be changed if desired.
 
