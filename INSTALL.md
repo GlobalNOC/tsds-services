@@ -23,6 +23,7 @@ In a sharded environment, MongoDB requires what are called [config servers](http
 
 Example init scripts and config files should have been installed with the `grnoc-tsds-services` package for the MongoDB config servers:
 
+```
 /etc/init.d/mongod-config1
 /etc/init.d/mongod-config2
 /etc/init.d/mongod-config3
@@ -30,6 +31,7 @@ Example init scripts and config files should have been installed with the `grnoc
 /etc/mongod-config1.conf
 /etc/mongod-config2.conf
 /etc/mongod-config3.conf
+```
 
 If you're changing the directory path of the config servers, make sure to fix the directory permissions after creating it (`chown mongod:mongod ...`).
 
@@ -55,8 +57,10 @@ The [mongos](http://docs.mongodb.org/manual/reference/program/mongos/) utility i
 
 Example init script and config files should have been installed with the grnoc-tsds-services package for mongos:
 
+```
 /etc/init.d/mongos
 /etc/mongos.conf
+```
 
 Change the `configDB` line as needed to reference the correct location of all config servers running  It is important that all `mongos` instances specify the exact same set of config servers.  Typically only a single `mongos` instance is run per host.  ** You should also change the hostname from localhost to instead be the actual hostname or public IP address of the server.  **
 
@@ -91,6 +95,7 @@ How many shards you need is very dependent on the number of things you are colle
 
 Example init scripts and config files should have been installed with the `grnoc-tsds-services` package for a MongoDB shard:
 
+```
 /etc/init.d/mongod-shard1
 /etc/init.d/mongod-shard2
 /etc/init.d/mongod-shard3
@@ -98,6 +103,7 @@ Example init scripts and config files should have been installed with the `grnoc
 /etc/mongod-shard1.conf
 /etc/mongod-shard2.conf
 /etc/mongod-shard3.conf
+```
 
 If you're changing the directory path of the shards, make sure to fix the directory permissions after creating it (`chown mongod:mongod ...`).
 
@@ -141,6 +147,7 @@ Mongo uses something called a "keyFile" to secure authorization between mongod i
 ```
 
 This file must be used by every instance of `mongod` and `mongos`.  The contents for each must be exactly the same, so copy it to all other servers.  MongoDB actually enforces permissions on this file, so be sure it is read only by the `mongod` user or it might refuse to start with some error in the logs about open permissions:
+
 ```
 [root@tsds ~]# chown mongod:mongod /etc/mongodb-keyfile
 [root@tsds ~]# chmod 600 /etc/mongodb-keyfile
