@@ -390,6 +390,8 @@ sub _process_tokens {
             symbols        => $temp_result
         );
 
+
+
         return if (! defined $final_results);
     }
 
@@ -402,7 +404,7 @@ sub _process_tokens {
 
     # If we were ordering by data we need to apply limit/offset if necessary to the
     # final sorted data
-    if (defined $limit && ($need_all || $from_field eq $self->temp_database())){
+    if (defined $limit && ($need_all || $from_field eq $self->temp_database()) && (keys %$having_fields) == 0){
 
         # if we're limiting as a result of being on an outer query with a limit
         # set our total to the current possible results now

@@ -99,15 +99,21 @@ sub search {
     my $meta_field_names   = $args{'meta_field_name'};
     my $meta_field_values  = $args{'meta_field_value'};
     my $meta_field_logics  = $args{'meta_field_logic'};
-    my $value_field_names  = $args{'meta_field_name'};
-    my $value_field_values = $args{'meta_field_value'};
-    my $value_field_logics = $args{'meta_field_logic'};
+    my $value_field_names  = $args{'value_field_name'};
+    my $value_field_values = $args{'value_field_value'};
+    my $value_field_logics = $args{'value_field_logic'};
+    my $value_field_functions = $args{'value_field_function'};
     my $group_by           = $args{'group_by'};
     my $types              = $args{'measurement_type'};
 
     # determine if we're skipping the sphinx search part
     my $skip_sphinx_search = 0;
     if(!defined($search) && !defined($meta_field_names)){
+        $skip_sphinx_search = 1;
+    }
+    # if we're going to be searching based on a value, we have to skip sphinx
+    # since values aren't shared across types
+    if(defined $value_field_names && @$value_field_names > 0){
         $skip_sphinx_search = 1;
     }
 
@@ -157,7 +163,7 @@ sub search {
     my $per_field_search_string;
     if(defined($meta_field_names) && defined($meta_field_values) && defined($meta_field_logics)){
         if( (@$meta_field_names != @$meta_field_values) || (@$meta_field_values != @$meta_field_logics) ){
-            $self->error('Must pass in the same number of meta_field_name, meta_field_value, and meta_field_logics.');
+            $self->error('Must pass in the same number of meta_field_name, meta_field_value, and meta_field_logic parameters.');
             return;
         }
         $per_field_search_string = $self->_create_per_field_search(
@@ -168,10 +174,19 @@ sub search {
         );
     }
 
+    # sanity check the search by value options if present
+    if(defined($value_field_names) && defined($value_field_values) && defined($value_field_logics) && defined($value_field_functions)){
+        if( (@$value_field_names != @$value_field_values) || (@$value_field_values != @$value_field_logics) || (@$value_field_values != @$value_field_functions) ){
+            $self->error('Must pass in the same number of value_field_name, value_field_value, value_field_logic, and value_field_function parameters.');
+            return;
+        }
+    }
+
     # don't allow the user to search in more than 1 measurement_type with a undef search term
     # this will cause a non-determisitic number of results when limit / offset is used
+    # also skipping sphinx if we need to search by value which is also limited to 1 type
     if($skip_sphinx_search && (@$types > 1)){
-        $self->error("You can not search on more than one measurement_type with an undefined search term");
+        $self->error("You can not search on more than one measurement_type with an undefined search term or when searching by values");
         return;
     }
     
@@ -278,6 +293,24 @@ sub search {
                 push(@and_fields, $meta_field_name.' '.$operator.' "'.$meta_field_value.'"');
             }
             push(@{$conditions_by_type->{$type}}, '( '.join(' and ',@and_fields).') ');
+        }
+    }
+
+    # If there are conditions on the values, we can add them here to the
+    # having clause. This is implicitly only valid for a single measurement
+    # type which is checked above so no need to examine each type
+    my $having = [];
+    if ($value_field_names && @$value_field_names){
+        for (my $i = 0; $i < @$value_field_names; $i++){
+            my $val_field = $value_field_names->[$i];
+            my $val_logic = $value_field_logics->[$i];
+            my $val_val   = $value_field_values->[$i];
+            my $val_func  = $value_field_functions->[$i];
+
+            push(@$having, {field => $val_field,
+                            logic => $val_logic,
+                            value => $val_val,
+                            function => $val_func});
         }
     }
 
@@ -391,7 +424,8 @@ sub search {
             total => \$total,
             order => $order,
             order_by => $order_by,
-            group_by => $group_by
+            group_by => $group_by,
+            having   => $having
         );
 
         # loop through each of our data_results building arrays of names and values for each
@@ -399,7 +433,8 @@ sub search {
             my $row = {
                 measurement_type => $type,
                 names  => [],
-                values => []
+                values => [],
+                search_values => []
             };
 
             # loop through each of our keys in our results
@@ -407,9 +442,18 @@ sub search {
                 my $v = $result->{$k};
                 # if it's the measurement_type leave it as is
                 next if($k eq 'measurement_type');
-
+                
+                # did we use this field in a search by value, document
+                # what the return val we got for it was
+                if ($k =~ /^searchvalue__(.+)/) {
+                    push(@{$row->{'search_values'}}, {
+                        name => $1,
+                        value => $v
+                         });
+                    
+                }
                 # it's a value field
-                if( $k =~ /(.*?)_value_(.*)/){
+                elsif( $k =~ /(.*?)_value_(.*)/){
                     my $name = $1;
                     my $type = $2;
 
@@ -432,11 +476,13 @@ sub search {
                     });
                     next;
                 }
-                # otherwise we're a name, do the name thing
-                push(@{$row->{'names'}}, {
-                    name  => $k,
-                    value => $v
-                });
+                else {
+                    # otherwise we're a name, do the name thing
+                    push(@{$row->{'names'}}, {
+                        name  => $k,
+                        value => $v
+                         });
+                }
             }
             # sort the meta field names by their ordinal values
             @{$row->{'names'}} = sort { 
@@ -488,6 +534,7 @@ sub _get_search_result_data {
     my $order            = $args{'order'};
     my $order_by         = $args{'order_by'};
     my $group_by         = $args{'group_by'};
+    my $having           = $args{'having'};
     my $ordinal_meta_fields  = $args{'ordinal_meta_fields'};
     my $required_meta_fields = $args{'required_meta_fields'};
 
@@ -508,6 +555,23 @@ sub _get_search_result_data {
         push(@$value_agg_names, $value_agg_name);
         my $avg_value_query = " $aggregator(" . $series_field . ') as '. $value_agg_name;
         push(@$value_queries, $avg_value_query);
+
+        foreach my $have (@$having){
+            warn "EXAMINING " . Dumper($have);
+            next unless ($have->{'field'} eq $value);
+            my $func = $have->{'function'};
+            my $having_get = "";
+            if ($func =~ /^percentile_(\d+)$/){
+                $having_get = "percentile(aggregate(values.$value, $step, $aggregator), $1)";
+            }
+            else {
+                $having_get = "$func(aggregate(values.$value, $step, $aggregator))";
+            }
+            my $rename = "searchvalue__$func$value";
+            $have->{'named_as'} = $rename;
+            $having_get .= " as $rename";
+            push(@$value_queries, $having_get);
+        }
     }
 
     my $meta_fields = defined($group_by) ? $group_by : $ordinal_meta_fields;
@@ -535,6 +599,15 @@ sub _get_search_result_data {
         push(@$wheres, $where);
     }
     $query .= ' where '.join(' and ', @$wheres). ' ' if(@$wheres);
+
+    if (@$having){
+        my @having_tmp;
+        foreach my $have (@$having){
+            push(@having_tmp, "$have->{'named_as'} $have->{'logic'} $have->{'value'}");
+        }
+        $query .= " having " . join(' and ', @having_tmp);
+    }
+
     
     # if no search term was entered apply the limit and offset here instead
     # of relying on sphinx
@@ -571,7 +644,7 @@ sub _get_search_result_data {
 
     # log the query when in debug mode
     log_debug("tsds query: '$query'");
-    
+
     # execute our query
     my $data_results = $self->parser()->evaluate($query, force_constraint => 1);
     if (!$data_results) {

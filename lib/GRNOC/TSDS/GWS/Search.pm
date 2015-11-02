@@ -139,19 +139,25 @@ sub _init_methods {
                                   pattern       => $NAME_ID,
                                   required      => 0,
                                   multiple      => 1,
-                                  description   => 'Defines a value field to filter on. Must have corresponding value_field_value and value_field_logic parameters.' );
+                                  description   => 'Defines a value field to filter on. Must have corresponding value_field_value, value_field_logic, and value_field_function parameters.' );
     
     $method->add_input_parameter( name          => 'value_field_value',
                                   pattern       => $NAME_ID,
                                   required      => 0,
                                   multiple      => 1,
-                                  description   => 'Defines the value of a value field to filter on. Must have corresponding value_field_name and value_field_logic parameters' );
+                                  description   => 'Defines the value of a value field to filter on. Must have corresponding value_field_name, value_field_logic, and value_field_function parameters' );
     
     $method->add_input_parameter( name          => 'value_field_logic',
                                   pattern       => '^(<|<=|=|!=|>=|>)$',
                                   required      => 0,
                                   multiple      => 1,
-                                  description   => 'Defines the logic of a value field to filter on. Must have corresponding value_field_name and value_field_value parameters' );
+                                  description   => 'Defines the logic of a value field to filter on. Must have corresponding value_field_name, value_field_value, and value_field_function parameters' );
+
+    $method->add_input_parameter( name          => 'value_field_function',
+                                  pattern       => '^(min|max|average|percentile_95)$',
+                                  required      => 0,
+                                  multiple      => 1,
+                                  description   => 'Defines the aggregation function of a value field to filter on. Must have corresponding value_field_name, value_field_value, and value_field_logic parameters' );
 
     # register the search() method
     $self->websvc()->register_method( $method );
