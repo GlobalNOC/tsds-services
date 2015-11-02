@@ -1,4 +1,4 @@
-# TSDS Services & MongoDB Install/Configuration Guide
+# TSDS Services & MongoDB Install Guide
 
 This document covers installing MongoDB in a sharded environment, along with setting up TSDS services on top of it. The steps given below should be followed in the order they are listed unless you are sure you know what you are doing.  This document also assumes a RedHat Linux environment, or one of its derivatives.
 
@@ -19,9 +19,9 @@ This will install all mongodb-related components, including the mongod server as
 
 ## MongoDB Config Server Configuration
 
-In a sharded environment, MongoDB requires what are called [config servers](http://docs.mongodb.org/manual/core/sharded-cluster-config-servers/) to manage everything. These are just mongod instances that contain metadata about the sharding environment and not the actual user data stored in the database.  MongoDB typically recommends running three config servers on separate hosts for redundancy purposes in a production environment.  At least one config server must be available.
+In a sharded environment, MongoDB requires what are called [config servers](http://docs.mongodb.org/manual/core/sharded-cluster-config-servers/) to manage everything. These are just `mongod` instances that contain metadata about the sharding environment and not the actual user data stored in the database.  MongoDB typically recommends running three config servers on separate hosts for redundancy purposes in a production environment.  At least one config server must be available.
 
-Example init scripts and config files should have been installed with the grnoc-tsds-services package for the MongoDB config servers:
+Example init scripts and config files should have been installed with the `grnoc-tsds-services` package for the MongoDB config servers:
 
 /etc/init.d/mongod-config1
 /etc/init.d/mongod-config2
@@ -31,81 +31,99 @@ Example init scripts and config files should have been installed with the grnoc-
 /etc/mongod-config2.conf
 /etc/mongod-config3.conf
 
-If you're changing the directory path of the config servers, make sure to fix the directory permissions after creating it (chown mongod:mongod ...).
+If you're changing the directory path of the config servers, make sure to fix the directory permissions after creating it (`chown mongod:mongod ...`).
 
-Turning on the MongoDB config servers can be done
+Turning on the MongoDB config servers can be done by:
 
 ```
-service mongod-config1 start
-service mongod-config2 start
-service mongod-config3 start
+[root@tsds ~]# service mongod-config1 start
+[root@tsds ~]# service mongod-config2 start
+[root@tsds ~]# service mongod-config3 start
+```
+
+Remember to enable them to start up upon boot:
+
+```
+[root@tsds ~]# chkconfig mongod-config1 on
+[root@tsds ~]# chkconfig mongod-config2 on
+[root@tsds ~]# chkconfig mongod-config3 on
 ```
 
 ## MongoDB "mongos" Configuration
 
-The `mongos` utility is the service that clients can talk to in a sharded environment. It functions identically to connecting directly to a `mongod` instance in a non-sharded environment and hides all the messy details involved with talking to multiple servers. This is typically run on the default mongo port of 27017 so that everything's defaults "just work" out of the box, though it can be changed if desired.
-
-For more information see: http://docs.mongodb.org/manual/reference/program/mongos/
+The [mongos](http://docs.mongodb.org/manual/reference/program/mongos/) utility is the service that clients or applications connect to in a sharded environment.  It functions identically to connecting directly to a `mongod` instance in a non-sharded environment and hides all details involved with talking to multiple servers.  This is typically run on the default mongo port of 27017 so that all defaults "just work" out of the box, though it can be changed if desired.
 
 Example init script and config files should have been installed with the grnoc-tsds-services package for mongos:
 
 /etc/init.d/mongos
 /etc/mongos.conf
 
-Change the `configDB` line as needed to reference the correct config servers. It is important that each mongos instance specify the same set of config servers.
+Change the `configDB` line as needed to reference the correct location of all config servers running  It is important that all `mongos` instances specify the exact same set of config servers.  Typically only a single `mongos` instance is run per host.  ** You should also change the hostname from localhost to instead be the actual hostname or public IP address of the server.  **
 
-** You should also change the hostname from localhost to instead be the actual hostname or public IP address of the server. **
+Turning on `mongos` can be done by:
 
-There is no need to run more than one `mongos` instance per server:
+```
+[root@tsds ~]# service mongos start
+```
 
-# service mongos start
+Remember to enable it to start up upon boot:
 
-You should now be able to connect using just the `mongo` command from the CLI. If you changed the default ports or anything you will need to specify that on the `mongo` command as well.
+```
+[root@tsds ~]# chkconfig mongos on
+```
 
-### Create some shards
+You should now be able to connect to `mongos` using just the `mongo` command from the CLI.  If you changed the default ports or anything you will need to specify that on the `mongo` command as well.
 
-Prior versions of MongoDB had shards which were single threaded, but it appears in 3.0 that shards are able to utilize multiple threads.  Running multiple shards on a server is therefore not
-needed to take advantage of multiple cores, but it can help performance when migrating data from one shard to another to run multiple shards.
-
-Each instance of `mongod` running that is not a config server represents a shard and will store a piece of the data in TSDS. These shards can be on the same machine or they can
-be on separate machines, or some combination of the two. It is generally a good idea to make shards on equivalent machines as MongoDB will attempt to equally balance between all available shards.
-If one machine has 1TB of disk space and 64G of memory and is writing to a writeback enabled striped RAID and another machine is a VM running on a 512M machine with a 20G 5400RPM drive performance
-will generally slow down to the weakest link.
-
-How many shards you need is very dependent on the number of things you are collecting on and how powerful the machines are both in terms of IO capacity and storage. Shards can be added or removed later as necessary so it is not necessary to get it exactly correct the first time.  As a general rule of thumb, we recommend running three shards per host.
-
-In the past, MongoDB versions prior to 3.0 had a significant performance when enabling the journal.  However, there no longer appears to be a significant performance penalty with the journal turned on,
-so we recommend keeping it on as it can help prevent data corruption.
-
-More information about journaling here: http://docs.mongodb.org/manual/core/journaling/
-
-Example init scripts and config files should have been installed with the grnoc-tsds-services package for a MongoDB shard:
-
-/etc/init.d/mongod-shard1
-/etc/mongod-shard1.conf
-
-Repeat as necessary for additional shards.
-
-If you're changing the directory path of the shards, make sure to fix the directory permissions after creating it (chown mongod:mongod ...).
-
-Add the shards via mongos. Replace with the appropriate hostname and port.
-
-```bash
-[root@np-dev2 ~]# mongo
-MongoDB shell version: 2.6.5
+```
+[root@tsds ~]# mongo
+MongoDB shell version: 3.0.7
 connecting to: test
-mongos> sh.addShard("np-dev2.grnoc.iu.edu:27025")
-{ "shardAdded" : "shard0000", "ok" : 1 }
 mongos>
 ```
 
+## MongoDB Sharding Configuration
+
+Prior versions of MongoDB had shards which were single threaded, but it appears in 3.0 that shards are able to utilize multiple threads.  Running multiple shards on a server is therefore not needed to take advantage of multiple cores, but it can help performance when migrating data from one shard to another to run multiple shards on a single host in order to reduce the amount of data being transferred.  It can also help with load distribution: a powerful server could run three shards, and a server with less cores or I/O throughput could run only two shards.
+
+Each instance of `mongod` running that is not a config server represents a shard and will store only a subset of all TSDS data.  These shards can be on the same machine or they can be on separate machines, or some combination of the two.  It is generally a good idea to make shards on equivalent machines as MongoDB will attempt to equally balance between all available shards.
+
+How many shards you need is very dependent on the number of things you are collecting on and how powerful the machines are both in terms of IO capacity and storage.  Shards can be added or removed later as necessary so it is not necessary to get it exactly correct the first time.  As a general rule of thumb, we recommend running three shards per host to help facilitate shard balancing in the future.
+
+Example init scripts and config files should have been installed with the `grnoc-tsds-services` package for a MongoDB shard:
+
+/etc/init.d/mongod-shard1
+/etc/init.d/mongod-shard2
+/etc/init.d/mongod-shard3
+
+/etc/mongod-shard1.conf
+/etc/mongod-shard2.conf
+/etc/mongod-shard3.conf
+
+If you're changing the directory path of the shards, make sure to fix the directory permissions after creating it (`chown mongod:mongod ...`).
+
+All shards need to be added to the cluster and known by the config servers via `mongos`.  Replace with the appropriate hostname and port if the defaults have changed.
+
+```
+[root@tsds ~]# mongo
+MongoDB shell version: 3.0.7
+connecting to: test
+mongos> sh.addShard("tsds.grnoc.iu.edu:27025")
+{ "shardAdded" : "shard0000", "ok" : 1 }
+mongos> sh.addShard("tsds.grnoc.iu.edu:27026")
+{ "shardAdded" : "shard0001", "ok" : 1 }
+mongos> sh.addShard("tsds.grnoc.iu.edu:27027")
+{ "shardAdded" : "shard0002", "ok" : 1 }
+mongos>
+```
+
+Remember to enable them to start up upon boot:
 Set everything to start on boot
-```mongo
-[root@np-dev2 ~]# chkconfig mongod-config1 on
-[root@np-dev2 ~]# chkconfig mongod-config2 on
-[root@np-dev2 ~]# chkconfig mongod-config3 on
-[root@np-dev2 ~]# chkconfig mongod-shard1 on
-[root@np-dev2 ~]# chkconfig mongos on
+```
+[root@tsds ~]# chkconfig mongod-config1 on
+[root@tsds ~]# chkconfig mongod-config2 on
+[root@tsds ~]# chkconfig mongod-config3 on
+[root@tsds ~]# chkconfig mongod-shard1 on
+[root@tsds ~]# chkconfig mongos on
 ```
 
 
