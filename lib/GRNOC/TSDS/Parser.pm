@@ -13,6 +13,7 @@ use Time::HiRes qw(gettimeofday tv_interval);
 use Clone qw(clone);
 use Math::Round qw( nlowmult );
 use Data::Dumper;
+use Sys::Hostname;
 
 use GRNOC::Log;
 
@@ -45,8 +46,9 @@ sub new {
     # create object
     my $self = {
 	bnf_file      => BNF_FILE,
-	temp_table    => '__workspace' . $$,
+	temp_table    => '__workspace',
 	temp_database => '__tsds_temp_space',
+        temp_id       => Sys::Hostname::hostname . $$,
 	@_
     };
 
@@ -140,6 +142,14 @@ sub temp_database {
     return $self->{'temp_database'};
 }
 
+sub temp_id {
+    my $self = shift;
+    my $name = shift;
+
+    $self->{'temp_id'} = $name if ($name);
+    return $self->{'temp_id'};
+}
+
 sub bnf {
     my $self = shift;
     my $bnf  = shift;
@@ -171,7 +181,7 @@ sub evaluate {
     $self->{'error'} = undef;
 
     # clear flag indicating use of temp table
-    $self->{'_used_temp_table'} = 0;
+    $self->_used_temp_table(0);
 
     # remove any totals from previous run
     $self->{'query_total'} = undef;
@@ -187,9 +197,17 @@ sub evaluate {
 
     return if (! defined $tokens);
 
-    my $res = $self->_process_tokens($tokens);
+    # Wrap process tokens in eval to avoid crashing
+    # if there are problems
+    my $res;
+    eval {
+        $res = $self->_process_tokens($tokens);
+    };
 
-    $self->_drop_temp_table() if ($self->{'_used_temp_table'});
+    # If we used a temporary table, clean it out
+    if ($self->_used_temp_table()){
+        $self->_clean_temp_table();
+    }
 
     return $res;
 }
@@ -228,6 +246,14 @@ return $tokens;
 }
 
 ### private methods ###
+
+sub _used_temp_table {
+    my $self = shift;
+    my $flag = shift;
+
+    $self->{'_used_temp_table'} = $flag if (defined $flag);
+    return $self->{'_used_temp_table'};
+}
 
 sub _process_tokens {
     my $self        = shift;
@@ -447,17 +473,17 @@ sub _write_temp_table {
 
     # make sure we get rid of everything already in there
     # if applicable
-    $self->_drop_temp_table() or return;
+    $self->_clean_temp_table() or return;
     
     # flag that something during this evaluation used a temp table
     # so we know whether or not we have to clean up at the end
-    $self->{'_used_temp_table'} = 1;
+    $self->_used_temp_table(1);
 
     # make sure that it will clean up after itself if something goes wrong or
     # we don't re-enter here
     my $temp_collection = $self->mongo_root()->get_collection($self->temp_database(),
-                                                              $self->temp_table(),
-                                                              create => 1);
+                                                              $self->temp_table());
+    
 
     if (! $temp_collection){
 	$self->error($self->mongo_rw()->error());
@@ -469,9 +495,12 @@ sub _write_temp_table {
     foreach my $result (@$results){
 	$self->_symbolize($result, \%symbols) or return;
 
+        # flag this doc as belonging to this process
+        $result->{'__tsds_temp_id'} = $self->temp_id();
+
 	eval {
-	    my $result = $temp_collection->insert($result);
-	    my $doc_id = $result->{'value'};
+	    my $res    = $temp_collection->insert($result);
+	    my $doc_id = $res->{'value'};
 	};
 
 	if ($@){
@@ -486,24 +515,15 @@ sub _write_temp_table {
     return \%symbols;
 }
 
-sub _drop_temp_table {
+sub _clean_temp_table {
     my $self = shift;
-
-    my $temp_table = $self->temp_table();
-
-    # since we're going to be doing drops and manipulations on this table, we have to be very very
-    # sure that we're not going to be touching a real table.
-    if ($self->temp_table() !~ /^__/){
-	$self->error("Temp table name must be prefixed with double underscore");
-	return;
-    }
 
     my $temp_collection = $self->mongo_rw()->get_collection($self->temp_database(),
                                                             $self->temp_table());
 
-    if ($temp_collection){
-	$temp_collection->drop();
-    }
+    my $res = $temp_collection->remove({"__tsds_temp_id" => $self->temp_id()});    
+
+    $self->_used_temp_table(0);
 
     return 1;
 }
@@ -1480,6 +1500,13 @@ sub _query_database {
         else {
             $self->_symbolize_where($where_fields, $doc_symbols);
 
+            # Make sure when doing a query into a temp database that we add our
+            # processes ID to the where clause
+            if ($where_fields && ! exists $where_fields->{'$and'}){
+                $where_fields = {'$and' => [$where_fields]};
+            }
+            push(@{$where_fields->{'$and'}}, {'__tsds_temp_id' => $self->temp_id()});
+
             log_debug("Where query after being symbolized: ", {filter => \&Data::Dumper::Dumper,
                                                                value  => $where_fields});
         }
@@ -1705,6 +1732,7 @@ sub _query_database {
         delete $doc->{'identifier'};
         delete $doc->{'start'};
         delete $doc->{'end'};
+        delete $doc->{'__tsds_temp_id'};
     }
 
     log_debug("Docs fetched in " . tv_interval($fetch_start, [gettimeofday]) . " seconds");

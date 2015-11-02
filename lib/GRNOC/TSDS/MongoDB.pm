@@ -383,7 +383,6 @@ sub enable_sharding {
 sub add_collection_shard {
     my ( $self, $db_name, $col_name, $shard_key ) = @_;
 
-    return 1;
     my $response_json = $self->_execute_mongo( 
         "sh.shardCollection(\"$db_name\.$col_name\", $shard_key)"
     ) or return;
@@ -402,7 +401,6 @@ sub add_collection_shard {
 sub add_event_shard {
     my ( $self, $db_name ) = @_;
 
-    return 1;
     my $response_json = $self->_execute_mongo( 
         "sh.shardCollection(\"$db_name\.event\", {'type': 1, 'start': 1, 'end': 1})"
     ) or return;
