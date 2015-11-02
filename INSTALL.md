@@ -101,7 +101,23 @@ Example init scripts and config files should have been installed with the `grnoc
 
 If you're changing the directory path of the shards, make sure to fix the directory permissions after creating it (`chown mongod:mongod ...`).
 
-All shards need to be added to the cluster and known by the config servers via `mongos`.  Replace with the appropriate hostname and port if the defaults have changed.
+Turning on the MongoDB shard servers can be done by:
+
+```
+[root@tsds ~]# service mongod-shard1 start
+[root@tsds ~]# service mongod-shard2 start
+[root@tsds ~]# service mongod-shard3 start
+```
+
+Remember to enable them to start up upon boot:
+
+```
+[root@tsds ~]# chkconfig mongod-shard1 on
+[root@tsds ~]# chkconfig mongod-shard2 on
+[root@tsds ~]# chkconfig mongod-shard3 on
+```
+
+All shards need to be added to the cluster and be known by the config servers via `mongos`.  Once again, connecting to `mongos` is done by using the `mongo` CLI client.  Replace with the appropriate hostname and port if the defaults have changed.
 
 ```
 [root@tsds ~]# mongo
@@ -116,27 +132,21 @@ mongos> sh.addShard("tsds.grnoc.iu.edu:27027")
 mongos>
 ```
 
-Remember to enable them to start up upon boot:
-Set everything to start on boot
-```
-[root@tsds ~]# chkconfig mongod-config1 on
-[root@tsds ~]# chkconfig mongod-config2 on
-[root@tsds ~]# chkconfig mongod-config3 on
-[root@tsds ~]# chkconfig mongod-shard1 on
-[root@tsds ~]# chkconfig mongos on
-```
+## MongoDB Authorization Configuration
 
-
-### Enabling Authorization
-Mongo uses something called a "keyFile" to secure authorization between mongod instances. This is really nothing more elaborate than a really long password in a file. An example of generating a keyfile:
+Mongo uses something called a "keyFile" to secure authorization between mongod instances. This is really nothing more elaborate than a really long password in a file.  An example of generating a keyfile:
 
 ```
-openssl rand -base64 741 > mongodb-keyfile
+[root@tsds ~]# openssl rand -base64 741 > /etc/mongodb-keyfile
 ```
 
-This file must be used by every instance of mongod/s. The contents for each must be exactly the same, so copy around to whatever servers need it. Mongo actually enforces permissions on this file, so be sure it is read only by the mongod user or it might refuse to start with some error in the logs about open permissions.
+This file must be used by every instance of `mongod` and `mongos`.  The contents for each must be exactly the same, so copy it to all other servers.  MongoDB actually enforces permissions on this file, so be sure it is read only by the `mongod` user or it might refuse to start with some error in the logs about open permissions:
+```
+[root@tsds ~]# chown mongod:mongod /etc/mongodb-keyfile
+[root@tsds ~]# chmod 600 /etc/mongodb-keyfile
+```
 
-As with the authentication between servers above, if upgrading, all mongod/mongos instances must be stopped, update each of the configs, and then start all instances again. The relevant bit for all mongod instances (shard and cfgsrv) is:
+The `mongod` config servers and shards should specify the following in their config files:
 
 ```
 security:
@@ -144,27 +154,25 @@ security:
    keyFile: "/path/to/mongodb/keyfile"
 ```
 
-
-For mongos instances it is just:
+For `mongos` instances, it is:
 
 ```
 security:
    keyFile: "/path/to/mongodb/keyfile"
 ```
 
-Fix permissions:
+All `mongod` config servers and shards, as well as all `mongos` instances must be stopped and restarted for authorization to be enabled.  Once running again, MongoDB runs now in what is called a [localhost exception](https://docs.mongodb.org/manual/core/security-users/#localhost-exception) mode.  Because no admin/root user has been created yet, MongoDB allows you to connect without any user or password specified to give you the opportunity to create one:
 
 ```
-chown mongod:mongod /path/to/mongodb/keyfile
-chmod 600 /path/to/mongodb/keyfile
+[root@tsds ~]# mongo
+MongoDB shell version: 3.0.7
+connecting to: test
+mongos> db.createUser({ user: 'root', pwd: 'put password here', roles: [ {role: 'root', db: 'admin'} ] });
 ```
-
-With everything started again successfully, mongo runs in what is called local exception mode. Basically there is a chicken and egg problem where authorization has been enabled but there aren't any users, so it will let you create an admin user. Do so like:
-
-db.createUser({ user: 'root', pwd: '<password>', roles: [ {role: 'root', db: 'admin'} ] });
 
 Verify this was successful by running the following and ensuring it returns this output:
 
+```
 mongos> db.getUsers()
 [
         {
@@ -178,25 +186,32 @@ mongos> db.getUsers()
                         }
                 ]
         },
+mongos> exit
+bye
+[root@tsds ~]#
+```
 
-
-Log out from Mongo. From now on, when logging into mongo you will either need to specify the the authenticationDatabase or log into the admin database like so...
-
-mongo -u root admin -p
-
-
-### Enabling SSL
-Mongo by default does not use encryption. This is bad, so you will need to configure a few things to fix this default state.
-
-The first step to this is creating x509 certificates that all of the servers can use to enable TLS communication between them. Depending on your needs a self signed CA is perfectly fine (and has been tested with TSDS). One key piece to keep in mind is that a requirement Mongo imposes is that the CN in each certificate -must- equal the hostname that that mongo instance is running on. The name of the file itself is irrelevant. Every mongo (mongod/s) instance running on the same host can share the same .pem file, but ones running on other hosts will require a separate .pem file and a copy of the CA .crt.
-
-The certificates can be created by doing the following:
+**From now on, when logging into mongo, you will either need to specify the the authenticationDatabase or log into the admin database like so**:
 
 ```
-openssl genrsa 2048 > ca-key.pem
-openssl req -new -x509 -nodes -days 3650 -key ca-key.pem -out ca-cert.pem
-openssl req -newkey rsa:2048 -days 3650 -nodes -keyout server-key.pem -out server-req.pem
-openssl x509 -req -in server-req.pem -days 3650 -CA ca-cert.pem -CAkey ca-key.pem -set_serial 01 -out server-cert.pem
+[root@tsds ~]# mongo -u root admin -p
+MongoDB shell version: 3.0.7
+Enter password:
+connecting to: admin
+mongos>
+```
+
+## MongoDB SSL Configuration
+
+MongoDB does not do any encryption by default and must be told to do so.  The first step to this is creating X.509 certificates that all of the servers must use to enable TLS communication between them.  Depending on your needs, a self-signed CA should work, and has been tested with TSDS.  One important bit to know that MongoDB imposes is that the CN in each certificate *must* match the hostname that that mongo instance is running on.  The name of the certificate file itself is irrelevant.  Every `mongod` and `mongos` instance running on the same host can share the same .pem file, but ones running on other hosts will require a separate .pem file and a copy of the CA .crt.
+
+The X.509 certificates can be created by doing the following:
+
+```
+[root@tsds ~]# openssl genrsa 2048 > /etc/mongodca-key.pem
+[root@tsds ~]# openssl req -new -x509 -nodes -days 3650 -key ca-key.pem -out ca-cert.pem
+[root@tsds ~]# openssl req -newkey rsa:2048 -days 3650 -nodes -keyout server-key.pem -out server-req.pem
+[root@tsds ~]# openssl x509 -req -in server-req.pem -days 3650 -CA ca-cert.pem -CAkey ca-key.pem -set_serial 01 -out server-cert.pem
 ```
 
 This will generate certificates valid for 10 years.
