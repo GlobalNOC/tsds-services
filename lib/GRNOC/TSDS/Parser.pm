@@ -3275,7 +3275,7 @@ sub _find_value {
 	foreach my $key (@words){
 
 	    if (! exists $set->{$key}){
-		$self->error("Unknown field \"$name\"");
+                log_debug("Unknown field \"$name\"");
 		return;
 	    }
 	    $set = $set->{$key};
