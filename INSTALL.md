@@ -374,20 +374,20 @@ Remember to enable it to start up upon boot:
 [root@tsds ~]# chkconfig tsds_writer on
 ```
 
-Enable Apache Locations
------------------------
+## Apache Configuration
 
-This package comes with a default apache configuration file in /etc/httpd/conf.d/grnoc/tsds-services.conf. This file must be Include'd in 
-the apache configuration so that the locations are defined. The package provides no authentication of its own so if you want to add something like basic authentication or your insitution's SSO you may add the relevant bits to the config file.
+The `grnoc-tsds-services` package comes with a default apache configuration file in `/etc/httpd/conf.d/grnoc/tsds-services.conf`.  This file must be `Include`d in the Apache configuration so that the `Location`s are available.  The package provides no authentication configuration of its own, so if you want to add something like basic authentication or your insitution's SSO, you will need to add the relevant bits to the config file.
 
-If you are running both the frontend and the services on the same machine ensure that `tsds-services.conf` is included BEFORE the 
-frontend's configuration as they use the same location prefix and may conflict with eachother otherwise.
+If you are running both the frontend and the services on the same machine, ensure that `tsds-services.conf` is included *BEFORE* the frontend's configuration as they use the same location prefix and may conflict with each other otherwise.
 
 In addition, to enable server-side graph generation, the following steps are required:
 
-- Another apache configuration file (/etc/httpd/conf.d/grnoc/tsds-services-temp.conf) must be configured so that the web path '/tsds-services/temp' is defined. It's very important that this location must be accessable via HTTP not HTTPS and must not be protected by any authentication systems. For example, the file myfile.html in this location must be accessed using the URL: http://host.com/tsds-services/temp/myfile.html directly.
-- GLUE and YUI must also be accessable via HTTP, in addition to the regular way with HTTPS/Cosign.
-- To make these happen, /etc/httpd/conf/httpd.conf should include (notice that all the Rewrite rules should be commented or removed):
+- Another apache configuration file, `/etc/httpd/conf.d/grnoc/tsds-services-temp.conf`, must be configured so that the web path `/tsds-services/temp` is defined.  It's very important that this location must be accessable via HTTP not HTTPS and must not be protected by any authentication systems. For example, the file myfile.html in this location must be accessed using the URL: `http://host.com/tsds-services/temp/myfile.html` directly.
+- GLUE and YUI must also be accessible via HTTP in addition to the standard HTTPS
+
+To do this, `/etc/httpd/conf/httpd.conf` should include the following (notice that all the Rewrite rules should be commented or removed):
+
+```
 <VirtualHost *:80>
         #RewriteEngine On
         #RewriteCond %{HTTPS} off
@@ -397,50 +397,27 @@ In addition, to enable server-side graph generation, the following steps are req
         INCLUDE conf.d/grnoc/glue.conf
         INCLUDE conf.d/grnoc/tsds-services-temp.conf
 </VirtualHost>
+```
 
+## TSDS Aggregate Configuration
 
-Enable Data Aggregation
------------------------
+By default, the TSDS bootstrap sets up measurement types with a predefined set of information on how to aggregate data up to lower resolutions and how to expire old data  These defaults are extremely liberal and may need to be adjusted.  The expiration time primarily impacts on how much disk space will be utilized--the longer you keep data around, the more
+disk space it takes up.  The aggregation windows help to make queries more efficient at larger time resolutions - being able to utilize one-hour pre-calculated averages makes a month query much faster than using 10-second raw samples.
 
-By default `grnoc-tsds-services` sets up measurement types with a predefined set of information on how to aggregate 
-data up to lower resolutions and how to expire old data. This defaults are extremely liberal and may need to be adjusted. 
-The expiration time primarily impacts on how much disk space will be utilized - the longer you keep data around the more
-space it takes up. The aggregation windows help to make queries more efficient at larger time resolutions - being able to utilize
-1h pre calculated averages makes a month query much faster than using 10s raw samples for examples.
+The `grnoc-tsds-services` package provides a `/etc/cron.d/tsds-services.cron` that will run the aggregation and expiration defaults.  These entries are commented out initially to give adminstrators a chance to configure them appropriately.
 
-This package puts a file in /etc/cron.d/tsds-services.cron that will run the aggregation and expiration defaults. These entries are 
-commented out initially to give people a chance to decide how to use it. If additional aggregation windows besides the default are desired
-a person very familiar with TSDS will need to assist with setting those up. Similar to the above Bootstrap section, a forthcoming addition
-will help with making this an easier experience.
+## Sphinx Search Configuration
 
+TSDS uses [Sphinx](http://sphinxsearch.com) to index the measurement documents for searching.  The `searchd` daemon must be configured to point to the indexer tool `/usr/bin/tsds_search_indexer.pl` installed by `grnoc-tsds-services`:
 
-Enable Meta Manager
--------------------
-The `grnoc-tsds-meta-manager` package is a tool which updates measurements in TSDS with additional metadata from external data source,
-such as setting the circuit information of a measurement by querying the CDS2 webservice.  Measurements that are no longer have data being
-submitted will also get decommissioned so that they no longer display in the UI.  After installing the package:
+```
+[root@tsds ~]# cp /etc/sphinx/sphinx.conf.tsds /etc/sphinx/sphinx.conf
+[root@tsds ~]# service searchd start
+[root@tsds ~]# /usr/bin/indexer tsds_metadata_index --rotate
+```
 
-- edit /etc/grnoc/tsds-meta-manager/config.xml setting the proper MongoDB and CDS credentials
-- if needed, add additional type entries to the config for any more databases that will need to be managed
-- enable them in cron by uncommenting them out in /etc/cron.d/tsds-meta-manager.cron
+Enable the delta index and merger in cron by uncommenting them out in `/etc/cron.d/tsds-services.cron`.  Remember to enable it to start up upon boot:
 
-
-Enable Meta Collections
------------------------
-
-`grnoc-tsds-services` provides a simple script called "tsds_meta.py" that periodically collects information about the timeservices system itself
-and stores it like any other measurement. To enable this uncomment the entry in /etc/cron.d/tsds-services.cron and every 5 minutes it should
-submit information for the meta measurements such as rabbit queue statistics, collection size, etc.
-
-
-Enable Search
--------------
-
-TSDS uses Sphinx (http://sphinxsearch.com) to index the measurement documents for searching.  The searchd daemon must be configured to point to
-the indexer tool (/usr/bin/tsds_search_indexer.pl) installed by `grnoc-tsds-services`:
-
-# cp /etc/sphinx/sphinx.conf.tsds /etc/sphinx/sphinx.conf
-# service searchd start
-# /usr/bin/indexer tsds_metadata_index --rotate
-
-- enable the delta index and merger in cron by uncommenting them out in /etc/cron.d/tsds-services.cron
+```
+[root@tsds ~]# chkconfig searchd on
+```
