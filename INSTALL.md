@@ -171,9 +171,9 @@ security:
 All `mongod` config servers and shards, as well as all `mongos` instances must be stopped and restarted for authorization to be enabled.  Once running again, MongoDB runs now in what is called a [localhost exception](https://docs.mongodb.org/manual/core/security-users/#localhost-exception) mode.  Because no admin/root user has been created yet, MongoDB allows you to connect without any user or password specified to give you the opportunity to create one:
 
 ```
-[root@tsds ~]# mongo
+[root@tsds ~]# mongo admin
 MongoDB shell version: 3.0.7
-connecting to: test
+connecting to: admin
 mongos> db.createUser({ user: 'root', pwd: 'put password here', roles: [ {role: 'root', db: 'admin'} ] });
 ```
 
