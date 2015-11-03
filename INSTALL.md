@@ -12,7 +12,7 @@ Adminstering a MongoDB cluster is much more involved than running many other dat
 To install the MongoDB RPM packages, first you will need to add the yum repository that MongoDB provides to your system in order for it to do so.  Follow the docs on installing the [MongoDB Yum Repository](http://docs.mongodb.org/manual/tutorial/install-mongodb-on-red-hat-centos-or-fedora-linux/) for RedHat, CentOS, or Fedora Linux.  Afterward, You should be able to do the following:
 
 ```
-sudo yum install mongodb-org
+[root@tsds ~]# yum install mongodb-org
 ```
 
 This will install all mongodb-related components, including the mongod server as well as CLI based tools.
@@ -252,10 +252,10 @@ Once again, all `mongod` config servers and shards, as well as all `mongos` inst
 
 ## TSDS Database Bootstrap
 
-Before beginning, make sure to change the mongo password placeholders with passwords of your choosing for the tsds_ro and tsds_rw users and enter the mongo root password for the root user in /etc/grnoc/tsds/services/config.xml.  The install script will create the tsds_ro and tsds_rw users for you with the correct privileges with these passwords.
+Before beginning, make sure to change the mongo password placeholders with passwords of your choosing for the `tsds_ro` and `tsds_rw` users and enter the mongo `root` password for the `root` user in /etc/grnoc/tsds/services/config.xml.  The install script will create the `tsds_ro` and `tsds_rw` users for you with the correct privileges with these passwords.
 
 The `grnoc-tsds-services` package comes with a bootstrapping script that will create, shard, and index a set of
-predefined collections based on the set of json files in /usr/share/doc/grnoc/tsds/install/.
+predefined collections based on the set of json files in `/usr/share/doc/grnoc/tsds/install/`.
 
 To perfrom the bootstrap, run the following:
 
@@ -265,8 +265,49 @@ To perfrom the bootstrap, run the following:
 
 This should create an initial set of example databases / measurement types.  Measurement types can be managed later in the admin section of the TSDS web interface.
 
-You'll need `memcached`, `redis`, and `rabbitmq-server` too, but they don't *have* to be on the same host. It is recommended for a standard 
-installation that they be on the same machine however, and the grnoc-tsds-services packages will install them for you.
+## Memcached Installation
+
+[memcached](http://memcached.org) is used by the TSDS writers to keep a cache of knowledge of the documents it has operated on to help avoid further MongoDB database queries.  Any host which will have a set of writers should also have a `memcached` installation they point to.  It is then okay to have multiple `memcached` installation across multiple hosts.  Installating `memcached` can be done by:
+
+```
+[root@tsds ~]# yum install memcached
+```
+
+Turning on the `memcached` server can be done by:
+
+```
+[root@tsds ~]# service memcached start
+```
+
+Remember to enable it to start up upon boot:
+
+```
+[root@tsds ~]# chkconfig memcached on
+```
+
+## Redis Installation
+
+[redis](http://redis.io) is used by the TSDS writers as a distributed lock service when operating on MongoDB documents.  This is needed because MongoDB does not support transactions, and sometimes multiple operations need to be performed on a document in an atomic fashion to prevent other writer processes from potentially overwriting changes and leading to lost updates.
+
+Unlike `memcached` where it is safe to have multiple instances across multiple hosts, **it is not safe to use multiple instances of `redis` for TSDS**.  Only a single centralized `redis` instance should be installed that all TSDS writers point to.  Installing `redis` can be done by:
+
+```
+[root@tsds ~]# yum install redis
+```
+
+Turning on the `redis` server can be done by:
+
+```
+[root@tsds ~]# service redis start
+```
+
+Remember to enable it to start up upon boot:
+
+```
+[root@tsds ~]# chkconfig redis on
+```
+
+## Memcached Installation
 
 The `rabbitmq_management` plugin is required for monitoring and is extremely useful for watching overall health of the rabbit
 queue system, so we need to ensure that that is enabled in `/etc/rabbitmq/enabled_plugins`.
