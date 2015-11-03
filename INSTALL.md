@@ -307,56 +307,72 @@ Remember to enable it to start up upon boot:
 [root@tsds ~]# chkconfig redis on
 ```
 
-## Memcached Installation
+## RabbitMQ Installation
+
+[RabbitMQ](https://www.rabbitmq.com) is used by TSDS to act as a messaging queue for incoming updates from external data collectors that need to be updated appropriately in MongoDB.  The TSDS writers continuously read messages off this queue and perform the necessary MongoDB updates.  Typically, only a single `rabbitmq-server` instance should be used on a single host, although more complex installations could make use of more.  Installing RabbitMQ can be done by:
+
+```
+[root@tsds ~]# yum install rabbitmq-server
+```
 
 The `rabbitmq_management` plugin is required for monitoring and is extremely useful for watching overall health of the rabbit
 queue system, so we need to ensure that that is enabled in `/etc/rabbitmq/enabled_plugins`.
 
-Additionally we will want to make a few small changes to the default rabbitmq configuration file in `/etc/rabbitmq/rabbitmq.config`. The first thing to change is the tcp_listeners section which by default will only listen on localhost. This is fine as long as you never want anything outside of this machine to be able to listen to a rabbit queue, but if you ever do or ever might you should change it to the below example. This is not able to be changed once the server is started.
-
-Additionally we will want to adjust the memory and disk free limit watermarks to be considerably higher than the defaults. Essentially what is going on here is that once rabbit detects that the system has surpassed its watchdog threshold it will start silently dropping messages in an attempt to reduce its impact on the machine and prevent it from crashing. The defaults are fairly conservative and the impact is that we lose data, so we want to make sure rabbit is able to aggressively queue messages in the event of an issue.
-
-For more detailed information see: http://www.rabbitmq.com/memory.html
-
-### Configure and start rabbitmq
-
-```bash
-[root@np-dev2 ~]# cat /etc/rabbitmq/enabled_plugins
+```
+[root@tsds ~]# cat /etc/rabbitmq/enabled_plugins
 [rabbitmq_management].
-[root@np-dev2 ~]# cat /etc/rabbitmq/rabbitmq.config
-[
-   {mnesia, [{dump_log_write_threshold, 1000}]},
-   {rabbit, [
-            {tcp_listeners, [5672]},
-            {hipe_compile, false},
-            {vm_memory_high_watermark, 0.75},
-            {vm_memory_high_watermark_paging_ratio, 0.75},
-            {disk_free_limit, 3000000000}
-            ]}
-
-].
-[root@np-dev2 ~]# service rabbitmq-server start
-Starting rabbitmq-server: SUCCESS
-rabbitmq-server.
-[root@np-dev2 ~]# chkconfig rabbitmq-server on
+[root@tsds ~]#
 ```
 
+Additionally, we will want to make changes to the default `rabbitmq-server` configuration file in `/etc/rabbitmq/rabbitmq.config`:
 
-### Configure and start memcached, redis, and the writer processes
+```
+[root@tsds ~]# cat /etc/rabbitmq/rabbitmq.config
+ [
+    {mnesia, [{dump_log_write_threshold, 1000}]},
+    {rabbit, [
+         {tcp_listeners, [5672]},
+     {hipe_compile, false},
+     {vm_memory_high_watermark, 0.75},
+     {vm_memory_high_watermark_paging_ratio, 0.75},
+     {disk_free_limit, 30000000}
+     ]}
 
-The tsds_writer processes use memcache as a shared memory source, and redis as a distributed locking system.
+ ].
+ [root@tsds ~]#
+ ```
+ 
+This will allow remote connections to port 5672 so that external hosts where collectors or TSDS writer instances live may communicate to it.  Additionally, we will want to adjust the memory and disk free limit watermarks to be considerably higher than the defaults. Essentially what is going on here is that once rabbit detects that the system has surpassed its watchdog threshold, it will start silently dropping messages in an attempt to reduce its impact on the machine and prevent it from crashing.  The defaults are fairly conservative and the impact is that we lose data, so we want to make sure rabbit is able to aggressively queue messages in the event of an issue.
 
-Start memcached and redis:
+For more detailed information, see the [RabbitMQ memory docs](http://www.rabbitmq.com/memory.html).
 
-# service memcached start
-# service redis start
+Turning on the `rabbitmq-server` can be done by:
 
-No configuration changes needed for either, set them to start on boot.
+```
+[root@tsds ~]# service rabbitmq-server start
+```
 
-The configuration file at /etc/grnoc/tsds/services/config.xml contains the information for the writer processes and how to connect to RabbitMQ. In a normal setup the defaults are all fine to leave here but they can be edited as necessary.
+Remember to enable it to start up upon boot:
 
-Ensure that the writers are running and are set to start on boot via their init script in `/etc/init.d/tsds_writer`
+```
+[root@tsds ~]# chkconfig rabbitmq-server on
+```
 
+## TSDS Writer Configuration
+
+The TSDS writers are reponsible for reading messages from collectors off of the RabbitMQ queue, coordinating with each other using Redis as MongoDB document locks, maintaining their Memcached data to keep track of prior documents they've handled before, and finally making the proper updates to MongoDB accordingly.  The configuration file at `/etc/grnoc/tsds/services/config.xml` contains the information for the writer processes and how to connect to the `rabbitmq-server`.  In a normal setup, the defaults are all fine to leave here but they can be edited as necessary.  Multiple writers may live on multiple hosts as necessary in order to be able to keep up with all the incoming messages to the RabbitMQ queue.
+
+Turning on the `tsds_writer` can be done by:
+
+```
+[root@tsds ~]# service tsds_writer start
+```
+
+Remember to enable it to start up upon boot:
+
+```
+[root@tsds ~]# chkconfig tsds_writer on
+```
 
 Enable Apache Locations
 -----------------------
