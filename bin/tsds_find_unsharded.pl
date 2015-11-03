@@ -46,7 +46,7 @@ foreach my $db_name (@$databases){
 
         $output = $output->{'output'};
 
-        if ($output =~ /not sharded/ || $output =~ /NaN/){
+        if ($output =~ /not sharded/){
             print " !!! $db_name.$collection not sharded\n";
         }
         else {
