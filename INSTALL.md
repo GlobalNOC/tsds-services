@@ -399,6 +399,18 @@ To do this, `/etc/httpd/conf/httpd.conf` should include the following (notice th
 </VirtualHost>
 ```
 
+Turning on `httpd` can be done by:
+
+```
+[root@tsds ~]# service httpd start
+```
+
+Remember to enable it to start up upon boot:
+
+```
+[root@tsds ~]# chkconfig httpd on
+```
+
 ## TSDS Aggregate Configuration
 
 By default, the TSDS bootstrap sets up measurement types with a predefined set of information on how to aggregate data up to lower resolutions and how to expire old data  These defaults are extremely liberal and may need to be adjusted.  The expiration time primarily impacts on how much disk space will be utilized--the longer you keep data around, the more
