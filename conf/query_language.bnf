@@ -114,6 +114,8 @@ where_term ::= word equals phrase action => flatten
 	       |
 	       word equals null action => parse_null
 	       |
+	       word equals number action => ::array
+	       |
 	       word not_equals phrase action => flatten
 	       |
 	       word not_equals null action => parse_null
