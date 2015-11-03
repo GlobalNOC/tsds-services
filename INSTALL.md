@@ -5,6 +5,21 @@ This document covers installing MongoDB in a sharded environment, along with set
 An important note about firewalls: in a sharded environment, every shard needs access to every other shard, as well as all of the config servers. This means that if you are using a firewall such as iptables, which is typically turned on and filtering traffic by default, then each participating machine will need to open all of its mongo related ports (except mongos) to every
 other participating machine in order for MongoDB to work properly.
 
+- [MongoDB Installation](#mongodb-installation)
+- [MongoDB Config Server Configuration](#mongodb-config-server-configuration)
+- [MongoDB mongos Configuration](#mongodb-mongos-configuration)
+- [MongoDB Sharding Configuration](#mongodb-sharding-configuration)
+- [MongoDB Authorization Configuration](#mongodb-authorization-configuration)
+- [MongoDB SSL Configuration](#mongodb-ssl-configuration)
+- [TSDS Database Bootstrap](#tsds-database-bootstrap)
+- [Memcached Installation](#memcached-installation)
+- [Redis Installation](#redis-installation)
+- [RabbitMQ Installation](#rabbitmq-installation)
+- [TSDS Writer Configuration](#tsds-writer-configuration)
+- [Apache Configuration](#apache-configuration)
+- [TSDS Aggregate Configuration](#tsds-aggregate-configuration)
+- [Sphinx Search Configuration](#sphinx-search-configuration)
+
 ## MongoDB Installation
 
 Adminstering a MongoDB cluster is much more involved than running many other databases.  It is strongly recommend to familiarize yourself with how MongoDB works, in particular about [sharding](https://docs.mongodb.org/manual/core/sharding-introduction/#sharding-introduction) across multiple machines, and also about redundancy via [replica sets](https://docs.mongodb.org/manual/core/replication-introduction/).  This guide will attempt to walk you through the steps necessary to stand up single-shard MongoDB from scratch, but knowledge about MongoDB will likely be required in order to successfully administer a production TSDS installation.
@@ -51,7 +66,7 @@ Remember to enable them to start up upon boot:
 [root@tsds ~]# chkconfig mongod-config3 on
 ```
 
-## MongoDB "mongos" Configuration
+## MongoDB mongos Configuration
 
 The [mongos](http://docs.mongodb.org/manual/reference/program/mongos/) utility is the service that clients or applications connect to in a sharded environment.  It functions identically to connecting directly to a `mongod` instance in a non-sharded environment and hides all details involved with talking to multiple servers.  This is typically run on the default mongo port of 27017 so that all defaults "just work" out of the box, though it can be changed if desired.
 
