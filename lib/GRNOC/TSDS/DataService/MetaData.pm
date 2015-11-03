@@ -261,9 +261,11 @@ sub get_measurement_type_schemas {
             next;
         }
         my $label = $metadata->find_one()->{'label'};
+        my $ignore_si = $metadata->find_one()->{'ignore_si'};
 
         $schemas->{$measurement_type} = {
             label => $label,
+            ignore_si => $ignore_si,
             meta => {
                 fields     => $meta_field_lookup,
                 required   => [map { $_->{'name'} } @$required_meta_fields],
