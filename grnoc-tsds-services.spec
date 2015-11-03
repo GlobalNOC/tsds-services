@@ -15,9 +15,6 @@ Requires: perl >= 5.8.8
 Requires: python >= 2.6.6
 Requires: gcc
 Requires: mod_perl
-Requires: memcached
-Requires: rabbitmq-server
-Requires: redis >= 2.8.19
 Requires: perl-rrdtool
 Requires: perl-boolean
 Requires: perl-GRNOC-Config >= 1.0.7
