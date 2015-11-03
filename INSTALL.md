@@ -342,9 +342,9 @@ Additionally, we will want to make changes to the default `rabbitmq-server` conf
  [root@tsds ~]#
  ```
  
-This will allow remote connections to port 5672 so that external hosts where collectors or TSDS writer instances live may communicate to it.  Additionally, we will want to adjust the memory and disk free limit watermarks to be considerably higher than the defaults. Essentially what is going on here is that once rabbit detects that the system has surpassed its watchdog threshold, it will start silently dropping messages in an attempt to reduce its impact on the machine and prevent it from crashing.  The defaults are fairly conservative and the impact is that we lose data, so we want to make sure rabbit is able to aggressively queue messages in the event of an issue.
+This will allow remote connections to port 5672 so that external hosts where collectors or TSDS writer instances live may communicate to it.  Additionally, we will want to adjust the memory and disk free limit watermarks to be considerably higher than the defaults. Essentially what is going on here is that once rabbit detects that the system has surpassed its watchdog threshold, it will start silently dropping messages in an attempt to reduce its impact on the machine and prevent it from crashing.  The defaults are fairly conservative and the impact is that we lose data, so we want to make sure rabbit is able to aggressively queue messages in the event of an issue.  For more detailed information, see the [RabbitMQ memory docs](http://www.rabbitmq.com/memory.html).
 
-For more detailed information, see the [RabbitMQ memory docs](http://www.rabbitmq.com/memory.html).
+**Note**: You may need to make sure an entry in `/etc/hosts` exists with the proper IP address and hostname in order for `rabbitmq-server` to start successfully.
 
 Turning on the `rabbitmq-server` can be done by:
 
