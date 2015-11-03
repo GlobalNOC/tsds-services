@@ -444,7 +444,7 @@ sub _execute_mongo {
 
     # if thing already exists consider it a success
     if($output =~ /already exists/){
-        return { ok => 1 };
+        return { ok => 1, output => $output };
     }
 
 
@@ -477,7 +477,7 @@ sub _execute_mongo {
     # when granting and revoking roles to a user, no output is returned
     # treat 0 json_lines as a success
     if(@json_lines == 0){
-        return { ok => 1 };
+        return { ok => 1, output => $output };
     }
     elsif(@json_lines == 1){
         ( $response_json ) = $json_lines[0] =~ /.*?({.*}).*/;
