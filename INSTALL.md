@@ -33,7 +33,7 @@ Example init scripts and config files should have been installed with the `grnoc
 /etc/mongod-config3.conf
 ```
 
-If you're changing the directory path of the config servers, make sure to fix the directory permissions after creating it (`chown mongod:mongod ...`).
+If you're changing the directory path of the config servers, make sure to fix the directory permissions after creating it (`chown mongod:mongod /new/path`).
 
 Turning on the MongoDB config servers can be done by:
 
@@ -105,7 +105,7 @@ Example init scripts and config files should have been installed with the `grnoc
 /etc/mongod-shard3.conf
 ```
 
-If you're changing the directory path of the shards, make sure to fix the directory permissions after creating it (`chown mongod:mongod ...`).
+If you're changing the directory path of the shards, make sure to fix the directory permissions after creating it (`chown mongod:mongod /new/path`).
 
 Turning on the MongoDB shard servers can be done by:
 
@@ -158,14 +158,14 @@ The `mongod` config servers and shards should specify the following in their con
 ```
 security:
    authorization: "enabled"
-   keyFile: "/path/to/mongodb/keyfile"
+   keyFile: "/etc/mongodb-keyfile"
 ```
 
 For `mongos` instances, it is:
 
 ```
 security:
-   keyFile: "/path/to/mongodb/keyfile"
+   keyFile: "/etc/mongodb-keyfile"
 ```
 
 All `mongod` config servers and shards, as well as all `mongos` instances must be stopped and restarted for authorization to be enabled.  Once running again, MongoDB runs now in what is called a [localhost exception](https://docs.mongodb.org/manual/core/security-users/#localhost-exception) mode.  Because no admin/root user has been created yet, MongoDB allows you to connect without any user or password specified to give you the opportunity to create one:
@@ -241,27 +241,29 @@ allowInvalidCertificates: "true"
 
 File ownership and permissions need to be set appropriately on the certificates:
 
+```
+[root@tsds ~]# chown mongod:mongod /etc/pki/tls/certs/mongo-hostname.crt
+[root@tsds ~]# chown mongod:mongod /etc/pki/tls/private/mongo-hostname.key
+[root@tsds ~]# chmod 400 /etc/pki/tls/certs/mongo-hostname.crt
+[root@tsds ~]# chmod 400 /etc/pki/tls/private/mongo-hostname.key
+```
 
+Once again, all `mongod` config servers and shards, as well as all `mongos` instances must be stopped and restarted for SSL to be enabled.
 
-If performing an upgrade from an existing mongo stack, every piece will need to be stopped and this applied, then every piece restarted. It might be useful to do the next step about Authorization while the servers are all down, but it might also be useful to limit the moving pieces per step.
+## TSDS Database Bootstrap
 
-It is strongly recommended that the .pem and .crt files be read only by the mongod user.
-
-
-Bootstrap the TSDS Database
----------------------------
-
-### IMPORTANT ####
-Before running the install script, change the mongo password placeholders with passwords of your choosing for the tsds_ro and tsds_rw users and enter the mongo root password for the root user in /etc/grnoc/tsds/services/config.xml. (The install script will create the tsds_ro and tsds_rw users for you with the correct privileges)
+Before beginning, make sure to change the mongo password placeholders with passwords of your choosing for the tsds_ro and tsds_rw users and enter the mongo root password for the root user in /etc/grnoc/tsds/services/config.xml.  The install script will create the tsds_ro and tsds_rw users for you with the correct privileges with these passwords.
 
 The `grnoc-tsds-services` package comes with a bootstrapping script that will create, shard, and index a set of
 predefined collections based on the set of json files in /usr/share/doc/grnoc/tsds/install/.
 
-This file is located at /usr/bin/tsds_install.pl and should be pretty self explanatory when run. It will output the set
-of actions that it is performing and will stop if any report errors.
+To perfrom the bootstrap, run the following:
 
-Addition of new measurement types for the time being needs to be handled by someone very familiar with TSDS. There will be a 
-forthcoming admin section and/or utility scripts to help manage this in a future version.
+```
+[root@tsds ~]# /usr/bin/tsds_install.pl
+```
+
+This should create an initial set of example databases / measurement types.  Measurement types can be managed later in the admin section of the TSDS web interface.
 
 You'll need `memcached`, `redis`, and `rabbitmq-server` too, but they don't *have* to be on the same host. It is recommended for a standard 
 installation that they be on the same machine however, and the grnoc-tsds-services packages will install them for you.
