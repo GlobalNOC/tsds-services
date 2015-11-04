@@ -26,6 +26,8 @@ conf/mongod-config1.conf
 conf/mongod-config2.conf
 conf/mongod-config3.conf
 conf/mongod-shard1.conf
+conf/mongod-shard2.conf
+conf/mongod-shard3.conf
 conf/mongos.conf
 conf/query_language.bnf
 conf/receiver_logging.conf
@@ -39,6 +41,8 @@ init.d/mongod-config1
 init.d/mongod-config2
 init.d/mongod-config3
 init.d/mongod-shard1
+init.d/mongod-shard2
+init.d/mongod-shard3
 init.d/mongos
 init.d/tsds_writer
 INSTALL.md
