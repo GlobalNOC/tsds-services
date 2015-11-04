@@ -41,7 +41,7 @@ init.d/mongod-config3
 init.d/mongod-shard1
 init.d/mongos
 init.d/tsds_writer
-INSTALL
+INSTALL.md
 lib/GRNOC/TSDS.pm
 lib/GRNOC/TSDS/Aggregate.pm
 lib/GRNOC/TSDS/Aggregate/Histogram.pm
