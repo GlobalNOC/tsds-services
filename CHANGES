@@ -1,4 +1,37 @@
 ============================================
+GRNOC TSDS Services 1.4.2 -- Wed Nov 04 2015
+============================================
+
+Features:
+
+ * ISSUE=12142 now open sourced on GitHub: https://github.com/GlobalNOC/tsds-services
+ * ISSUE=11649 added ability to set the classifier flag on non hierarchical meta fields
+ * ISSUE=12085 added ability to not use SI notation on a per measurement type basis
+ * ISSUE=12129 added support for an optional "having" clause in queries to post-filter results
+ * ISSUE=12129 added ability to perform math on get fields, such as average(values.input) - average(values.output)
+ * ISSUE=12129 support arbitrary nested aggregation operations instead of just two layers
+ * ISSUE=12131 support ability to search/filter by value
+ * ISSUE=12133 added ability for the user to define which fields the query is grouped by in the TSDS browse section's advanced search
+ * ISSUE=12135 added ability to only take the first unique pairing when doing a group by, allowing queries to specify uniqueness without
+               doubling up data such as in the case of circuits with two endpoints
+ * ISSUE=12149 addressed issues in INSTALL doc and converted it to use markdown syntax for GitHub
+ * ISSUE=12232 added script to fix overlapping measurement documents
+ * ISSUE=12241 added index on "identifier" in measurement collection to improve writer lookups on cache misses
+ * ISSUE=12355 added "tsds_find_unsharded.pl" script to help with identifying bootstrapping issues on some collections that have been deployed
+ * ISSUE=12362 moved unknown field warning messages down to debug level
+
+Bugs:
+
+ * ISSUE=12027 fixed issue where event query for one day didn't include events whose start and end are not on the same date in the result
+ * ISSUE=12111 fixed bug where writer would fail when it encountered a measurement type without a valid metadata collection & document
+ * ISSUE=12145 removed problematic code that tried to optimize messages with > 100 data points
+ * ISSUE=12304 added missing indexes on start and end in measurements collection to upgrade script
+ * ISSUE=12319 moved temporary workspace over to a single, shared, sharded collection to prevent a MongoDB deadlock bug
+ * ISSUE=12343 fixed problem where aggregate processes were stacking on top of one another ignoring existing lock files
+ * ISSUE=12363 fixed issued where aggregate data collections weren't getting sharded and added unit tests to verify necessary collections are
+
+
+============================================
 GRNOC TSDS Services 1.4.1 -- Tue Sep 29 2015
 ============================================
 
@@ -14,28 +47,28 @@ GRNOC TSDS Services 1.4.0 -- Fri Sep 25 2015
 
 Features:
 
-* ISSUE=10785 added new metadata management webservice API that will be used in a future frontend release
-* ISSUE=12026 allow configuration for sphinx search instances that reside on remote servers
-* ISSUE=11900 several INSTALL documentation updates and improvements
-* ISSUE=11495 added support for different constrained views of the data configured at separate URLs
-* ISSUE=11951 changed default parallel processes used when aggregating data from 32 to 4
-* ISSUE=11369 added new global search API using sphinx for backend indexing
-* ISSUE=11801 global search query support from browse section
+ * ISSUE=10785 added new metadata management webservice API that will be used in a future frontend release
+ * ISSUE=12026 allow configuration for sphinx search instances that reside on remote servers
+ * ISSUE=11900 several INSTALL documentation updates and improvements
+ * ISSUE=11495 added support for different constrained views of the data configured at separate URLs
+ * ISSUE=11951 changed default parallel processes used when aggregating data from 32 to 4
+ * ISSUE=11369 added new global search API using sphinx for backend indexing
+ * ISSUE=11801 global search query support from browse section
 
 Bugs:
 
-* ISSUE=11556 data aggregation and expiration rules are now maintained separately
-* ISSUE=11793 added support for angle, square, and curly brackets in the query language
-* ISSUE=12042 fixed issue where search section was only sorting the current page
-* ISSUE=12060 provide index hints for MongoDB queries to try and address performance problems
-* ISSUE=12019 only allow lowercase a-z and underscore characters for measurement type and meta field names
-* ISSUE=11936 writer will now re-activate decom'd measurements
-* ISSUE=11896 greatly improved performance by not processing existing data points of a document being updated
-* ISSUE=11881 fix bug where we were holding onto all the memory of every document being updated in a single message update
-* ISSUE=11814 fix bug to be able to clear ordinal field on value types
-* ISSUE=11802 continuously attempt to reconnect to rabbit in case of connection failure
-* ISSUE=12091 fixed issue where queries with a limit and a sort may not be returned in the proper order
-* ISSUE=12102 make sure values stored in mongo don't get stringified
+ * ISSUE=11556 data aggregation and expiration rules are now maintained separately
+ * ISSUE=11793 added support for angle, square, and curly brackets in the query language
+ * ISSUE=12042 fixed issue where search section was only sorting the current page
+ * ISSUE=12060 provide index hints for MongoDB queries to try and address performance problems
+ * ISSUE=12019 only allow lowercase a-z and underscore characters for measurement type and meta field names
+ * ISSUE=11936 writer will now re-activate decom'd measurements
+ * ISSUE=11896 greatly improved performance by not processing existing data points of a document being updated
+ * ISSUE=11881 fix bug where we were holding onto all the memory of every document being updated in a single message update
+ * ISSUE=11814 fix bug to be able to clear ordinal field on value types
+ * ISSUE=11802 continuously attempt to reconnect to rabbit in case of connection failure
+ * ISSUE=12091 fixed issue where queries with a limit and a sort may not be returned in the proper order
+ * ISSUE=12102 make sure values stored in mongo don't get stringified
 
 
 ============================================
