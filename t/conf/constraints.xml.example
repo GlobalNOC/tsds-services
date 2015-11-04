@@ -1,0 +1,12 @@
+<config>
+    <!-- measurement metadata constraints -->
+
+    <constraint database="tsdstest">
+      <metadata field="node" regex="^rtr" />
+      <metadata query='{"$or": [{"node": "rtr.chic"}, {"node": "rtr.newy"}]}' />
+    </constraint>
+
+    <constraint database="bogus">
+      <metadata field="lol" value="noob" />
+    </constraint>
+</config>
