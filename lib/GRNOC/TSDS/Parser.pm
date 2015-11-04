@@ -13,6 +13,7 @@ use Time::HiRes qw(gettimeofday tv_interval);
 use Clone qw(clone);
 use Math::Round qw( nlowmult );
 use Data::Dumper;
+use Sys::Hostname;
 
 use GRNOC::Log;
 
@@ -45,8 +46,9 @@ sub new {
     # create object
     my $self = {
 	bnf_file      => BNF_FILE,
-	temp_table    => '__workspace' . $$,
+	temp_table    => '__workspace',
 	temp_database => '__tsds_temp_space',
+        temp_id       => Sys::Hostname::hostname . $$,
 	@_
     };
 
@@ -140,6 +142,14 @@ sub temp_database {
     return $self->{'temp_database'};
 }
 
+sub temp_id {
+    my $self = shift;
+    my $name = shift;
+
+    $self->{'temp_id'} = $name if ($name);
+    return $self->{'temp_id'};
+}
+
 sub bnf {
     my $self = shift;
     my $bnf  = shift;
@@ -171,7 +181,7 @@ sub evaluate {
     $self->{'error'} = undef;
 
     # clear flag indicating use of temp table
-    $self->{'_used_temp_table'} = 0;
+    $self->_used_temp_table(0);
 
     # remove any totals from previous run
     $self->{'query_total'} = undef;
@@ -187,9 +197,20 @@ sub evaluate {
 
     return if (! defined $tokens);
 
-    my $res = $self->_process_tokens($tokens);
+    # Wrap process tokens in eval to avoid crashing
+    # if there are problems
+    my $res;
+    eval {
+        $res = $self->_process_tokens($tokens);
+    };
+    if ($@){
+        $self->error($@);
+    }
 
-    $self->_drop_temp_table() if ($self->{'_used_temp_table'});
+    # If we used a temporary table, clean it out
+    if ($self->_used_temp_table()){
+        $self->_clean_temp_table();
+    }
 
     return $res;
 }
@@ -228,6 +249,14 @@ return $tokens;
 }
 
 ### private methods ###
+
+sub _used_temp_table {
+    my $self = shift;
+    my $flag = shift;
+
+    $self->{'_used_temp_table'} = $flag if (defined $flag);
+    return $self->{'_used_temp_table'};
+}
 
 sub _process_tokens {
     my $self        = shift;
@@ -402,7 +431,7 @@ sub _process_tokens {
 
     # If we were ordering by data we need to apply limit/offset if necessary to the
     # final sorted data
-    if (defined $limit && ($need_all || $from_field eq $self->temp_database())){
+    if (defined $limit && ($need_all || $from_field eq $self->temp_database()) && (keys %$having_fields) == 0){
 
         # if we're limiting as a result of being on an outer query with a limit
         # set our total to the current possible results now
@@ -445,17 +474,17 @@ sub _write_temp_table {
 
     # make sure we get rid of everything already in there
     # if applicable
-    $self->_drop_temp_table() or return;
+    $self->_clean_temp_table() or return;
     
     # flag that something during this evaluation used a temp table
     # so we know whether or not we have to clean up at the end
-    $self->{'_used_temp_table'} = 1;
+    $self->_used_temp_table(1);
 
     # make sure that it will clean up after itself if something goes wrong or
     # we don't re-enter here
     my $temp_collection = $self->mongo_root()->get_collection($self->temp_database(),
-                                                              $self->temp_table(),
-                                                              create => 1);
+                                                              $self->temp_table());
+    
 
     if (! $temp_collection){
 	$self->error($self->mongo_rw()->error());
@@ -467,9 +496,12 @@ sub _write_temp_table {
     foreach my $result (@$results){
 	$self->_symbolize($result, \%symbols) or return;
 
+        # flag this doc as belonging to this process
+        $result->{'__tsds_temp_id'} = $self->temp_id();
+
 	eval {
-	    my $result = $temp_collection->insert($result);
-	    my $doc_id = $result->{'value'};
+	    my $res    = $temp_collection->insert($result);
+	    my $doc_id = $res->{'value'};
 	};
 
 	if ($@){
@@ -484,24 +516,15 @@ sub _write_temp_table {
     return \%symbols;
 }
 
-sub _drop_temp_table {
+sub _clean_temp_table {
     my $self = shift;
-
-    my $temp_table = $self->temp_table();
-
-    # since we're going to be doing drops and manipulations on this table, we have to be very very
-    # sure that we're not going to be touching a real table.
-    if ($self->temp_table() !~ /^__/){
-	$self->error("Temp table name must be prefixed with double underscore");
-	return;
-    }
 
     my $temp_collection = $self->mongo_rw()->get_collection($self->temp_database(),
                                                             $self->temp_table());
 
-    if ($temp_collection){
-	$temp_collection->drop();
-    }
+    my $res = $temp_collection->remove({"__tsds_temp_id" => $self->temp_id()});    
+
+    $self->_used_temp_table(0);
 
     return 1;
 }
@@ -1133,8 +1156,22 @@ sub _query_database {
     }
 
     # If we're going to be grouping by something we need it in the output
-    foreach my $by_field (@$by_fields){
-        $queried_field_names->{$by_field} = 1;
+    foreach my $by_field (@$by_fields){        
+
+        # a by with some uniqueness on subfield selection
+        if (ref $by_field eq 'ARRAY'){
+            # the original field we're doing the by on
+            $queried_field_names->{$by_field->[0]} = 1;
+
+            # also need to ask for the subfields
+            foreach my $sub_by (@{$by_field->[2]}){
+                $queried_field_names->{$sub_by} = 1;
+            }
+        }
+        # simple by field
+        else {
+            $queried_field_names->{$by_field} = 1;
+        }
     }
 
     # Get a reference to our database
@@ -1149,7 +1186,7 @@ sub _query_database {
     if ($db_name eq $self->temp_database()){
 
         # if it's a temp table, just find everything from mongo
-        undef %$queried_field_names
+        undef %$queried_field_names;
     }
     else {
         if (! $between_fields){
@@ -1228,7 +1265,7 @@ sub _query_database {
                                                          offset      => $offset,
                                                          by          => $by_fields,
                                                          order       => $order_fields);
-        
+
         my $meta_end = [gettimeofday];
 
         log_warn("Time for meta limit: " . tv_interval($meta_start, $meta_end));
@@ -1478,6 +1515,13 @@ sub _query_database {
         else {
             $self->_symbolize_where($where_fields, $doc_symbols);
 
+            # Make sure when doing a query into a temp database that we add our
+            # processes ID to the where clause
+            if ($where_fields && ! exists $where_fields->{'$and'}){
+                $where_fields = {'$and' => [$where_fields]};
+            }
+            push(@{$where_fields->{'$and'}}, {'__tsds_temp_id' => $self->temp_id()});
+
             log_debug("Where query after being symbolized: ", {filter => \&Data::Dumper::Dumper,
                                                                value  => $where_fields});
         }
@@ -1703,6 +1747,7 @@ sub _query_database {
         delete $doc->{'identifier'};
         delete $doc->{'start'};
         delete $doc->{'end'};
+        delete $doc->{'__tsds_temp_id'};
     }
 
     log_debug("Docs fetched in " . tv_interval($fetch_start, [gettimeofday]) . " seconds");
@@ -1846,34 +1891,53 @@ sub _get_meta_limit_result {
 
     my $group_clause = {};
 
+    my %unique_by;
+
     # make sure we only query document where that field is even set
     foreach my $field (@$by_fields){
-        $group_clause->{$field} = '$' . $field;
+        my @sub_by_fields;
 
-        # if the where clause already had this field in it,
-        # we need to ensure our limit query contains both $exists
-        # and whatever the original filter on that field was
-        if (exists $limit_query->{$field}){
-            my $new_field = [{$field => {'$exists' => 1}},
-                             {$field => $limit_query->{$field}}];
-
-            delete $limit_query->{$field};
-            
-            if (exists $limit_query->{'$and'}){
-                push(@{$limit_query->{'$and'}}, @$new_field);
-            }
-            else {
-                $limit_query->{'$and'} = $new_field;
+        if (ref $field eq 'ARRAY'){
+            push(@sub_by_fields, $field->[0]);
+            foreach my $sub_by_field (@{$field->[2]}){
+                push(@sub_by_fields, $sub_by_field);
             }
         }
-        # if the original where clause did not specify this field,
-        # we simply need to stick in a $exists qualifier
         else {
-            $limit_query->{$field} = {'$exists' => 1};
+            push(@sub_by_fields, $field);
+        }
+
+        foreach my $by_field (@sub_by_fields){
+
+            $unique_by{$by_field} = 1;
+
+            $group_clause->{$by_field} = '$' . $by_field;
+            
+            # if the where clause already had this field in it,
+            # we need to ensure our limit query contains both $exists
+            # and whatever the original filter on that field was
+            if (exists $limit_query->{$by_field}){
+                my $new_field = [{$by_field => {'$exists' => 1}},
+                                 {$by_field => $limit_query->{$by_field}}];
+                
+                delete $limit_query->{$by_field};
+                
+                if (exists $limit_query->{'$and'}){
+                    push(@{$limit_query->{'$and'}}, @$new_field);
+                }
+                else {
+                    $limit_query->{'$and'} = $new_field;
+                }
+            }
+            # if the original where clause did not specify this field,
+            # we simply need to stick in a $exists qualifier
+            else {
+                $limit_query->{$by_field} = {'$exists' => 1};
+            }
         }
     }
 
-    log_debug("Doing inner limit query, key is " . join(", ", @$by_fields) . " and query is ", {filter => \&Data::Dumper::Dumper, value  => $limit_query});
+    log_debug("Doing inner limit query, key is " . Dumper($by_fields) . " and query is ", {filter => \&Data::Dumper::Dumper, value  => $limit_query});
 
 
     # query
@@ -1888,7 +1952,8 @@ sub _get_meta_limit_result {
         # total matches, so we end up doing limit / offset ourselves later
 
         # Figure out which fields we might need to unwind if they are arrays
-        my @unwind = $self->_get_unwind_operations($metadata, $by_fields, {});
+        my @unique_by_keys = keys %unique_by;
+        my @unwind = $self->_get_unwind_operations($metadata, \@unique_by_keys, {});
 
         # If we're unwinding, we need to match the unwound documents as well
         # to ensure that we're only matching the unwound parts and not all of them
@@ -2205,23 +2270,41 @@ sub _apply_by {
 
     my %bucket;
 
-    log_debug("Grouping by " . join(', ', @$tokens));
+    log_debug("Grouping by " . Dumper(@$tokens));
 
-    my %group_all;
+    my $group_all = $self->_get_preserve_all_fields($get_fields);
 
     # If there is an all(foo.bar) in the get fields we need
     # to preserve them when doing the document merges
-    foreach my $get_field (@$get_fields){
-        if ($get_field->[0] eq 'all'){
-            $group_all{$get_field->[1]} = 1;
-        }
-        elsif ($self->_is_aggregation_function($get_field->[0]) && $get_field->[1] eq 'all'){
-            $group_all{$get_field->[2]} = 1;
-        }
-    }
 
     log_debug("Preserving all fields for ", {filter => \&Data::Dumper::Dumper,
-                                             value  => \%group_all});
+                                             value  => $group_all});
+
+
+    # figure out all the actual grouping clauses and what they mean
+    my %seen;
+
+    # If any of these group bys are doing uniqueness,
+    # make sure we have the data sorted correctly so we find
+    # the right occurrence
+    my @sort_keys;
+    foreach my $token (@$tokens){
+        if (ref $token eq 'ARRAY'){
+            foreach my $subtoken (@{$token->[2]}){
+                push(@sort_keys, $subtoken);
+            }
+        }
+    }
+    if (@sort_keys){
+        log_debug("In group by, sorting data by " . join(", ", @sort_keys) . " to ensure group by uniqueness");
+        @$data = sort { 
+            my $sort_res = 0;
+            foreach my $key (@sort_keys){
+                    $sort_res = $sort_res || ($a->{$key} cmp $b->{$key});
+            }
+                return $sort_res;
+        } @$data;
+    }    
 
     # Step one is to determine each document's "group_value" key, which is
     # basically just a string that is the combination of that document's
@@ -2231,19 +2314,40 @@ sub _apply_by {
 	my $doc = $data->[$i];
 	my $group_value = "";
 
+        my $keep = 1;
+
 	foreach my $token (@$tokens){
             my $value;            
+            # nothing given, group everything together
             if ($token eq DEFAULT_GROUPING){
                 $value = "";
             }
-            else {                
+            # complex by clause, have to limit to unique entries
+            elsif (ref $token eq 'ARRAY'){
+                my $field1   = $token->[0];
+                $value       = $self->_find_value($field1, $doc) || "";
+                my $uniq_val = "";
+                foreach my $other_field (@{$token->[2]}){
+                    $uniq_val .= $self->_find_value($other_field, $doc) || "";
+                }
+
+                # If we've already seen this unique group by before but this
+                # wasn't the series we saw it in, don't use it
+                $seen{$value} = $uniq_val if (! exists $seen{$value});
+
+                if ($seen{$value} ne $uniq_val){
+                    $keep = 0;
+                }
+            }
+            # simply by clause token, just find it
+            else { 
                 $value = $self->_find_value($token, $doc) || "";
             }
             
             $group_value .= $value;	    
 	}
 
-	push(@{$bucket{$group_value}}, $doc);
+	push(@{$bucket{$group_value}}, $doc) if ($keep);
     }
 
     my @result;
@@ -2258,7 +2362,7 @@ sub _apply_by {
 
             # Convert the "all" entries into arrays if they aren't already
             # so that they can all be represented
-            foreach my $group_all_key (keys %group_all){
+            foreach my $group_all_key (keys %$group_all){
                 if (ref $doc->{$group_all_key} ne 'ARRAY'){
                     $doc->{$group_all_key} = [$self->_find_value($group_all_key, $doc)];
                 }
@@ -3245,7 +3349,7 @@ sub _find_value {
 	foreach my $key (@words){
 
 	    if (! exists $set->{$key}){
-		$self->error("Unknown field \"$name\"");
+                log_debug("Unknown field \"$name\"");
 		return;
 	    }
 	    $set = $set->{$key};
@@ -3624,6 +3728,30 @@ sub _combine_histograms {
     $aggregated_hist->bins( $bin_counts );
 
     return $aggregated_hist;
+}
+
+sub _get_preserve_all_fields {
+    my $self   = shift;
+    my $tokens = shift;
+    my $found  = shift;
+
+    $found = {} if (! defined $found);
+
+    return $found if (ref $tokens ne 'ARRAY');
+
+    warn "LOOKING AT " . Dumper($tokens);
+
+    if ($tokens->[0] eq 'all'){
+        warn "FOUND SOMETHING";
+        $found->{$tokens->[1]} = 1;
+        next;
+    }
+    
+    foreach my $field (@$tokens){
+        $self->_get_preserve_all_fields($field, $found);        
+    }
+
+    return $found;
 }
 
 sub update_constraints_file {

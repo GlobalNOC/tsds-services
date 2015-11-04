@@ -261,9 +261,11 @@ sub get_measurement_type_schemas {
             next;
         }
         my $label = $metadata->find_one()->{'label'};
+        my $ignore_si = $metadata->find_one()->{'ignore_si'};
 
         $schemas->{$measurement_type} = {
             label => $label,
+            ignore_si => $ignore_si,
             meta => {
                 fields     => $meta_field_lookup,
                 required   => [map { $_->{'name'} } @$required_meta_fields],
@@ -563,6 +565,7 @@ sub add_measurement_type {
 
     my $measurement_type  = $args{'name'};
     my $label = $args{'label'};
+    my $ignore_si = $args{'ignore_si'} || 0;
     my $required_meta_fields = $args{'required_meta_field'};
     my $search_weight;
     $search_weight = $self->parse_int($args{'search_weight'}) if(exists($args{'search_weight'}));
@@ -648,6 +651,7 @@ sub add_measurement_type {
     # insert meta data into the metadata collections
     $db->get_collection( 'metadata' )->insert({ 
         label         => $label,
+        ignore_si     => $ignore_si,
         meta_fields   => $meta_fields,
         search_weight => $search_weight
     });
@@ -798,6 +802,7 @@ sub update_measurement_types {
 
     my $set = {};
     $set->{'label'} = $args{'label'} if(exists($args{'label'}));
+    $set->{'ignore_si'} = $args{'ignore_si'} if(exists($args{'ignore_si'}));
     $set->{'data_doc_limit'} = $self->parse_int($args{'data_doc_limit'}) if(exists($args{'data_doc_limit'}));
     $set->{'event_limit'}    = $self->parse_int($args{'event_limit'})    if(exists($args{'event_limit'}));
     $set->{'search_weight'}  = $self->parse_int($args{'search_weight'})  if(exists($args{'search_weight'}));

@@ -95,7 +95,14 @@ between_clause ::= '(' date ',' date ')' action => remove_symbols
 
 optional_by ::= by_clause*
 by_clause ::= by by_list action => ::array
-by_list ::= word+ action => ::array separator => comma
+by_list ::= by_term+ action => ::array separator => comma
+
+by_term ::= word_first
+            |
+            word 
+
+word_first ::= word 'first' '(' inner_word_first ')' action => remove_symbols
+inner_word_first ::= word+ action => ::array separator => comma
 
 subquery ::= '(' query ')' action => remove_symbols
 
@@ -113,6 +120,8 @@ where_list ::= '(' where_list ')' and_or where_list action => remove_symbols
 where_term ::= word equals phrase action => flatten
 	       |
 	       word equals null action => parse_null
+	       |
+	       word equals number action => ::array
 	       |
 	       word not_equals phrase action => flatten
 	       |
