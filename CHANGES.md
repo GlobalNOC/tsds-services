@@ -7,8 +7,8 @@
  * ISSUE=12142 now open sourced on GitHub: https://github.com/GlobalNOC/tsds-services
  * ISSUE=11649 added ability to set the classifier flag on non hierarchical meta fields
  * ISSUE=12085 added ability to not use SI notation on a per measurement type basis
- * ISSUE=12129 added support for an optional "having" clause in queries to post-filter results
- * ISSUE=12129 added ability to perform math on get fields, such as average(values.input) - average(values.output)
+ * ISSUE=12129 added support for an optional `having` clause in queries to post-filter results
+ * ISSUE=12129 added ability to perform math on get fields, such as `average(values.input) - average(values.output)`
  * ISSUE=12129 support arbitrary nested aggregation operations instead of just two layers
  * ISSUE=12131 support ability to search/filter by value
  * ISSUE=12133 added ability for the user to define which fields the query is grouped by in the TSDS browse section's advanced search
@@ -17,7 +17,7 @@
  * ISSUE=12149 addressed issues in INSTALL doc and converted it to use markdown syntax for GitHub
  * ISSUE=12232 added script to fix overlapping measurement documents
  * ISSUE=12241 added index on "identifier" in measurement collection to improve writer lookups on cache misses
- * ISSUE=12355 added "tsds_find_unsharded.pl" script to help with identifying bootstrapping issues on some collections that have been deployed
+ * ISSUE=12355 added `tsds_find_unsharded.pl` script to help with identifying bootstrapping issues on some collections that have been deployed
  * ISSUE=12362 moved unknown field warning messages down to debug level
 
 ### Bugs:
