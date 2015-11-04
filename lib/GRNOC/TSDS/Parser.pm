@@ -3739,10 +3739,8 @@ sub _get_preserve_all_fields {
 
     return $found if (ref $tokens ne 'ARRAY');
 
-    warn "LOOKING AT " . Dumper($tokens);
-
     if ($tokens->[0] eq 'all'){
-        warn "FOUND SOMETHING";
+
         $found->{$tokens->[1]} = 1;
         next;
     }
