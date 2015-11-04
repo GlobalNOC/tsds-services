@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 8;
+use Test::More tests => 9;
 
 use GRNOC::Config;
 use GRNOC::TSDS::MongoDB;
@@ -89,6 +89,12 @@ foreach my $collection_name ( @$sharded_collections ) {
 
     ok( $sharded, "$collection_name is sharded" );
 }
+
+# make sure temp database/collection is sharded too
+my $output = $mongo->_execute_mongo( "db.getSiblingDB( \"__tsds_temp_space\" ).getCollection( \"__workspace\" ).stats()" );
+my $sharded = $output->{'sharded'};
+
+ok( $sharded, "__tsds_temp_space is sharded" );
 
 # initialize rabbit queue
 my $rabbit_host = $config->get( '/config/rabbit/@host' );
