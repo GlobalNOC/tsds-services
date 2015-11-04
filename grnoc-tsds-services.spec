@@ -25,6 +25,7 @@ Requires: perl-GRNOC-WebService >= 1.2.8
 Requires: perl-GRNOC-WebService-Client >= 1.2.2
 Requires: perl-GRNOC-CLI
 Requires: perl-GRNOC-Log
+Requires: perl-GRNOC-LockFile >= 1.0.1
 Requires: ImageMagick-perl
 Requires: perl-JSON
 Requires: perl-JSON-XS
