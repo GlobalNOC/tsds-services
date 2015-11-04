@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 2;
+use Test::More tests => 8;
 
 use GRNOC::Config;
 use GRNOC::TSDS::MongoDB;
@@ -78,6 +78,17 @@ my $tsds_install = GRNOC::TSDS::Install->new(
 
 my $installed = $tsds_install->install();
 ok($installed, "Install Succeeded");
+
+# ISSUE=12363 verify sharding
+my $sharded_collections = [ 'data', 'data_300', 'data_3600', 'data_86400', 'event', 'measurements' ];
+
+foreach my $collection_name ( @$sharded_collections ) {
+
+    my $output = $mongo->_execute_mongo( "db.getSiblingDB( \"$unit_test_db\" ).getCollection( \"$collection_name\" ).stats()" );
+    my $sharded = $output->{'sharded'};
+
+    ok( $sharded, "$collection_name is sharded" );
+}
 
 # initialize rabbit queue
 my $rabbit_host = $config->get( '/config/rabbit/@host' );
