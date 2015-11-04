@@ -79,6 +79,12 @@ sub _init_methods {
                                   required      => 0,
                                   multiple      => 0,
                                   description   => 'A positive "search weight" integer that determines the order in which measurement type search results are returned' );
+
+    $method->add_input_parameter( name          => 'ignore_si',
+                                  pattern       => '^([1|0])$',
+                                  required      => 0,
+                                  multiple      => 0,
+                                  description   => 'Boolean (1|0) to determine if SI notation should be used.' );
     
     $self->websvc()->register_method( $method );
     
@@ -204,6 +210,12 @@ sub _init_methods {
                                   required      => 0,
                                   multiple      => 0,
                                   description   => 'A positive "search weight" integer that determines the order in which measurement type search results are returned' );
+
+    $method->add_input_parameter( name          => 'ignore_si',
+                                  pattern       => '^([1|0])$',
+                                  required      => 0,
+                                  multiple      => 0,
+                                  description   => 'Boolean (1|0) to determine if SI notation should be used.' );
 
 
     $self->websvc()->register_method( $method );

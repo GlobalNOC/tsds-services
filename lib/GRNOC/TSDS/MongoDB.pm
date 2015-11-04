@@ -383,7 +383,6 @@ sub enable_sharding {
 sub add_collection_shard {
     my ( $self, $db_name, $col_name, $shard_key ) = @_;
 
-    return 1;
     my $response_json = $self->_execute_mongo( 
         "sh.shardCollection(\"$db_name\.$col_name\", $shard_key)"
     ) or return;
@@ -402,7 +401,6 @@ sub add_collection_shard {
 sub add_event_shard {
     my ( $self, $db_name ) = @_;
 
-    return 1;
     my $response_json = $self->_execute_mongo( 
         "sh.shardCollection(\"$db_name\.event\", {'type': 1, 'start': 1, 'end': 1})"
     ) or return;
@@ -446,7 +444,7 @@ sub _execute_mongo {
 
     # if thing already exists consider it a success
     if($output =~ /already exists/){
-        return { ok => 1 };
+        return { ok => 1, output => $output };
     }
 
 
@@ -479,7 +477,7 @@ sub _execute_mongo {
     # when granting and revoking roles to a user, no output is returned
     # treat 0 json_lines as a success
     if(@json_lines == 0){
-        return { ok => 1 };
+        return { ok => 1, output => $output };
     }
     elsif(@json_lines == 1){
         ( $response_json ) = $json_lines[0] =~ /.*?({.*}).*/;

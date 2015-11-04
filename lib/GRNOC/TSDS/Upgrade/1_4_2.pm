@@ -18,6 +18,35 @@ sub upgrade {
 
     my $mongo = $upgrade->mongo_root;
 
+    my $tsds_mongo = GRNOC::TSDS::MongoDB->new(config_file => $upgrade->config_file(),
+                                               privilege   => 'root');
+
+    if (! $tsds_mongo){
+        $upgrade->error("Unable to make TSDS MongoDB object");
+        return;
+    }
+    if ($tsds_mongo->error()){
+        $upgrade->error("Unable to make TSDS MongoDB object: ". $tsds_mongo->error());
+        return;
+    }
+
+    # ISSUE=12319 create and shard the new temporary workspace
+    print "Creating temp workspace...\n";
+    $tsds_mongo->get_database("__tsds_temp_space", create => 1 )->run_command({"create" => "__workspace"});
+
+    print "Sharding temp workspace database...\n";
+    if (! $tsds_mongo->enable_sharding("__tsds_temp_space")){
+        $upgrade->error("Error sharding temp space: " . $tsds_mongo->error());
+        return;
+    }
+
+    print "Sharding temp workspace collection...\n";
+    if (! $tsds_mongo->add_collection_shard("__tsds_temp_space", "__workspace", "{'_id': 1}")){
+        $upgrade->error("Error sharding temp space collection: " . $tsds_mongo->error());
+        return;
+    }
+
+
     # ISSUE=12241
     # Add index on identifier in measurements
     my @all_databases = $mongo->database_names;
@@ -40,6 +69,7 @@ sub upgrade {
             $collection->ensure_index({end => 1});
         }
     }
+
 
     ### END UPGRADE CODE ###
 
