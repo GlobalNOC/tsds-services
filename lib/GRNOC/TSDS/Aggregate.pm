@@ -8,6 +8,7 @@ use GRNOC::TSDS::Constants;
 use GRNOC::Config;
 use GRNOC::CLI;
 use GRNOC::Log;
+use GRNOC::LockFile;
 
 use boolean;
 use MongoDB;
@@ -17,7 +18,7 @@ use Math::Round qw( nlowmult nhimult );
 use JSON::XS;
 use Parallel::ForkManager;
 use List::MoreUtils qw( natatime );
-use LockFile::Simple;
+use Try::Tiny;
 
 use Data::Dumper;
 
@@ -72,8 +73,6 @@ has json => ( is => 'rwp' );
 
 has is_automatic_run => ( is => 'rwp' );
 
-has locker => ( is => 'rwp' );
-
 ### constructor builder ###
 
 sub BUILD {
@@ -96,11 +95,6 @@ sub BUILD {
     my $json = JSON::XS->new();
 
     $self->_set_json( $json );
-
-    # create and store lock file object
-    my $locker = LockFile::Simple->make( -max => 1 );
-
-    $self->_set_locker( $locker );
 
     # connect to mongo
     $self->_mongo_connect();
@@ -272,15 +266,21 @@ sub _aggregate {
     if ( $self->is_automatic_run ) {
 
         # create lock for this database + aggregate
-        $lock = $database->{'name'} . "_" . $aggregate->{'name'} . "_aggregate" . ".lock";
-        my $locked = $self->locker->lock( $lock, $self->lock_dir . $lock );
+	try {
+
+	    my $lock_file = $self->lock_dir . $database->{'name'} . "_" . $aggregate->{'name'} . "_aggregate" . ".lock";
+	    my $locker = GRNOC::LockFile->new( file => $lock_file );
+	    
+	    $lock = $locker->lock();
+	}
 
         # unable to grab lock
-        if ( !$locked ) {
+	catch {
 
             $self->logger->warn( "Unable to get lock file for aggregate $aggregate->{'name'} in database $database->{'name'}." );
-            return;
-        }
+	};
+	    
+	return if !$lock;
     }
 
     # get the aggregate attributes
@@ -358,7 +358,7 @@ sub _aggregate {
 
     # only fetch the necessary hires data for one single bucket at a time
     for ( my $i = $end; $i > $start; $i -= $aggregate_seconds ) {
-        #warn "on $i/$start";
+
         $num_done++;
 
         # we need to know the start and end of this bucket time period
@@ -404,102 +404,111 @@ sub _aggregate {
                 $forker->start() and next;
             }
 
-            # we'll need a brand new connection to mongo since we're in a new process
-            $self->_mongo_connect() if $forker;
+	    try {
 
-            $database = $self->mongo_rw()->get_database( $database->{'name'} );
+		# we'll need a brand new connection to mongo since we're in a new process
+		$self->_mongo_connect() if $forker;
 
-            # get ahold of the hires data collection
-            my $hires_collection = $database->get_collection( 'data' );
+		$database = $self->mongo_rw()->get_database( $database->{'name'} );
 
-            # get ahold of the aggregate collection
-            my $aggregate_data_collection = $database->get_collection( $collection_name );
+		# get ahold of the hires data collection
+		my $hires_collection = $database->get_collection( 'data' );
+		
+		# get ahold of the aggregate collection
+		my $aggregate_data_collection = $database->get_collection( $collection_name );
+		
+		my $found_bulk = 0;
+		my $bulk = $aggregate_data_collection->initialize_unordered_bulk_op();
+		
+		# handle each identifier one at a time in this child process
+		foreach my $identifier ( @chunk ) {
+		    
+		    my $query = Tie::IxHash->new( identifier => $identifier,
+						  start => $doc_start,
+						  end => $doc_end );
+		    
+		    # get all the highres values for this bucket time period
+		    my $hires_values = $self->_get_bucket_hires_values( identifier => $identifier,
+									start => $current_start,
+									end => $current_end,
+									collection => $hires_collection );
+		    
+		    # no data found during this time period
+		    next if ( keys( %$hires_values ) == 0 );
+		    
+		    my $bucket_entry = $self->_get_bucket_entry( aggregate => $aggregate,
+								 values => $hires_values,
+								 measurement => $measurements->{$identifier} );
+		    
+		    my @types = keys( %$bucket_entry );
+		    
+		    # retrieve the old aggregate document (if any)
+		    my $existing_document = $self->_get_aggregate_document( collection => $aggregate_data_collection,
+									    identifier => $identifier,
+									    start => $doc_start,
+									    end => $doc_end );
+		    
+		    # document doesn't exist?
+		    if ( !defined( $existing_document ) ) {
+			
+			$self->logger->debug( "Creating new aggregate document identifier: $identifier start: $doc_start end: $doc_end" );
+			
+			# insert new document since it doesn't exist
+			my $doc = $self->_generate_aggregate_document( collection => $aggregate_data_collection,
+								       identifier => $identifier,
+								       start => $doc_start,
+								       end => $doc_end,
+								       types => \@types,
+								       updated => time(),
+								       interval => $aggregate_seconds );
+			
+			$aggregate_data_collection->insert( $doc ) if !$self->pretend;
+		    }
+		    
+		    # make sure all of our types exist in the existing document
+		    else {
+			
+			foreach my $type ( @types ) {
+			    
+			    # is this type missing from the old doc?
+			    if ( !defined( $existing_document->{'values'}{$type} ) ) {
+				
+				$self->logger->debug( "Creating new type $type in aggregate document identifier: $identifier start: $doc_start end: $doc_end" );
+				
+				my $array = $self->_create_aggregate_array();
+				
+				$bulk->find( $query )->update( {'$set' => {"values.$type" => $array}} );
+				$found_bulk = 1;
+			    }
+			}
+		    }
+		    
+		    # at which indicies in the array is this bucket?
+		    my ( $x, $y, $z ) = $self->_get_indexes( start => $doc_start,
+							     time => $current_start,
+							     interval => $aggregate_seconds );
+		    
+		    # handle every type of data within this measurement
+		    foreach my $type ( @types ) {
+			
+			my $data_entry = $bucket_entry->{$type};
+			
+			# set the bucket data for this type
+			$bulk->find( $query )->update( {'$set' => {"values.$type.$x.$y.$z" => $data_entry}} );
+			$found_bulk = 1;
+		    }
+		}
+		
+		$bulk->execute() if ( !$self->pretend && $found_bulk );
+		$forker->finish() if $forker;
+	    }
 
-            my $found_bulk = 0;
-            my $bulk = $aggregate_data_collection->initialize_unordered_bulk_op();
-
-            # handle each identifier one at a time in this child process
-            foreach my $identifier ( @chunk ) {
-
-                my $query = Tie::IxHash->new( identifier => $identifier,
-                                              start => $doc_start,
-                                              end => $doc_end );
-
-                # get all the highres values for this bucket time period
-                my $hires_values = $self->_get_bucket_hires_values( identifier => $identifier,
-                                                                    start => $current_start,
-                                                                    end => $current_end,
-                                                                    collection => $hires_collection );
-
-                # no data found during this time period
-                next if ( keys( %$hires_values ) == 0 );
-
-                my $bucket_entry = $self->_get_bucket_entry( aggregate => $aggregate,
-                                                             values => $hires_values,
-                                                             measurement => $measurements->{$identifier} );
-
-                my @types = keys( %$bucket_entry );
-
-                # retrieve the old aggregate document (if any)
-                my $existing_document = $self->_get_aggregate_document( collection => $aggregate_data_collection,
-                                                                        identifier => $identifier,
-                                                                        start => $doc_start,
-                                                                        end => $doc_end );
-
-                # document doesn't exist?
-                if ( !defined( $existing_document ) ) {
-
-                    $self->logger->debug( "Creating new aggregate document identifier: $identifier start: $doc_start end: $doc_end" );
-
-                    # insert new document since it doesn't exist
-                    my $doc = $self->_generate_aggregate_document( collection => $aggregate_data_collection,
-                                                                   identifier => $identifier,
-                                                                   start => $doc_start,
-                                                                   end => $doc_end,
-                                                                   types => \@types,
-                                                                   updated => time(),
-                                                                   interval => $aggregate_seconds );
-
-                    $aggregate_data_collection->insert( $doc ) if !$self->pretend;
-                }
-
-                # make sure all of our types exist in the existing document
-                else {
-
-                    foreach my $type ( @types ) {
-
-                        # is this type missing from the old doc?
-                        if ( !defined( $existing_document->{'values'}{$type} ) ) {
-
-                            $self->logger->debug( "Creating new type $type in aggregate document identifier: $identifier start: $doc_start end: $doc_end" );
-
-                            my $array = $self->_create_aggregate_array();
-
-                            $bulk->find( $query )->update( {'$set' => {"values.$type" => $array}} );
-                            $found_bulk = 1;
-                        }
-                    }
-                }
-
-                # at which indicies in the array is this bucket?
-                my ( $x, $y, $z ) = $self->_get_indexes( start => $doc_start,
-                                                         time => $current_start,
-                                                         interval => $aggregate_seconds );
-
-                # handle every type of data within this measurement
-                foreach my $type ( @types ) {
-
-                    my $data_entry = $bucket_entry->{$type};
-
-                    # set the bucket data for this type
-                    $bulk->find( $query )->update( {'$set' => {"values.$type.$x.$y.$z" => $data_entry}} );
-                    $found_bulk = 1;
-                }
-            }
-
-            $bulk->execute() if ( !$self->pretend && $found_bulk );
-            $forker->finish() if $forker;
-        }
+	    catch {
+		
+		$self->logger->error( $_ );
+		$forker->finish() if $forker;
+	    };
+	}
 
         $self->logger->debug( 'Waiting for all child worker processes to exit.' );
 
@@ -509,7 +518,7 @@ sub _aggregate {
         $self->logger->debug( 'All child workers have exited.' );
 
         $cli->update_progress( $num_done ) if !$self->quiet;
-    }
+    }    
 
     # was this an automated 'full run' of this aggregate and not a manual custom timeframe or element?
     if ( $self->is_automatic_run ) {
@@ -526,7 +535,15 @@ sub _aggregate {
                                        {'$set' => {'last_run' => $last_run}} );
 
         # remove our lock for this aggregate
-        $self->locker->unlock( $lock );
+	try {
+
+	    $lock->unlock();
+	}
+
+	catch {
+
+	    $self->logger->warn( "Unable to release lock file for aggregate $aggregate->{'name'} in database $database->{'name'}." );	    
+	};
     }
 
     return 1;

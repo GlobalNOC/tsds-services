@@ -15,9 +15,6 @@ Requires: perl >= 5.8.8
 Requires: python >= 2.6.6
 Requires: gcc
 Requires: mod_perl
-Requires: memcached
-Requires: rabbitmq-server
-Requires: redis >= 2.8.19
 Requires: perl-rrdtool
 Requires: perl-boolean
 Requires: perl-GRNOC-Config >= 1.0.7
@@ -25,6 +22,7 @@ Requires: perl-GRNOC-WebService >= 1.2.8
 Requires: perl-GRNOC-WebService-Client >= 1.2.2
 Requires: perl-GRNOC-CLI
 Requires: perl-GRNOC-Log
+Requires: perl-GRNOC-LockFile >= 1.0.1
 Requires: ImageMagick-perl
 Requires: perl-JSON
 Requires: perl-JSON-XS
@@ -112,7 +110,7 @@ make pure_install
 %{__install} -d -p %{buildroot}/usr/share/grnoc/tsds-services/temp
 
 %{__install} CHANGES %{buildroot}/usr/share/doc/grnoc/tsds/CHANGES
-%{__install} INSTALL %{buildroot}/usr/share/doc/grnoc/tsds/INSTALL
+%{__install} INSTALL.md %{buildroot}/usr/share/doc/grnoc/tsds/INSTALL.md
 
 %{__install} conf/config.xml.example %{buildroot}/etc/grnoc/tsds/services/config.xml
 %{__install} conf/mappings.xml.example %{buildroot}/etc/grnoc/tsds/services/mappings.xml
@@ -202,7 +200,7 @@ rm -rf $RPM_BUILD_ROOT
 /etc/grnoc/tsds/services/sphinx_templates/xmlpipe2_schema.xml
 
 /usr/share/doc/grnoc/tsds/CHANGES
-/usr/share/doc/grnoc/tsds/INSTALL
+/usr/share/doc/grnoc/tsds/INSTALL.md
 /usr/share/doc/grnoc/tsds/query_language.bnf
 
 /usr/share/doc/grnoc/tsds/install/interface.json
