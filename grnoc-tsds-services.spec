@@ -109,6 +109,8 @@ make pure_install
 %{__install} -d -p %{buildroot}/var/lib/mongo/config2
 %{__install} -d -p %{buildroot}/var/lib/mongo/config3
 %{__install} -d -p %{buildroot}/var/lib/mongo/shard1
+%{__install} -d -p %{buildroot}/var/lib/mongo/shard2
+%{__install} -d -p %{buildroot}/var/lib/mongo/shard3
 %{__install} -d -p %{buildroot}/usr/share/grnoc/tsds-services/temp
 
 %{__install} CHANGES %{buildroot}/usr/share/doc/grnoc/tsds/CHANGES
@@ -129,6 +131,8 @@ make pure_install
 %{__install} conf/mongod-config2.conf %{buildroot}/etc/mongod-config2.conf
 %{__install} conf/mongod-config3.conf %{buildroot}/etc/mongod-config3.conf
 %{__install} conf/mongod-shard1.conf %{buildroot}/etc/mongod-shard1.conf
+%{__install} conf/mongod-shard2.conf %{buildroot}/etc/mongod-shard2.conf
+%{__install} conf/mongod-shard3.conf %{buildroot}/etc/mongod-shard3.conf
 %{__install} conf/mongos.conf %{buildroot}/etc/mongos.conf
 %{__install} conf/sphinx_templates/xmlpipe2_schema.xml %{buildroot}/etc/grnoc/tsds/services/sphinx_templates
 %{__install} conf/sphinx_templates/xmlpipe2_document.xml %{buildroot}/etc/grnoc/tsds/services/sphinx_templates
@@ -155,6 +159,8 @@ make pure_install
 %{__install} init.d/mongod-config2 %{buildroot}/etc/init.d/mongod-config2
 %{__install} init.d/mongod-config3 %{buildroot}/etc/init.d/mongod-config3
 %{__install} init.d/mongod-shard1 %{buildroot}/etc/init.d/mongod-shard1
+%{__install} init.d/mongod-shard2 %{buildroot}/etc/init.d/mongod-shard2
+%{__install} init.d/mongod-shard3 %{buildroot}/etc/init.d/mongod-shard3
 %{__install} init.d/mongos %{buildroot}/etc/init.d/mongos
 %{__install} init.d/tsds_writer %{buildroot}/etc/init.d/tsds_writer
 
@@ -195,6 +201,8 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) /etc/mongod-config2.conf
 %config(noreplace) /etc/mongod-config3.conf
 %config(noreplace) /etc/mongod-shard1.conf
+%config(noreplace) /etc/mongod-shard2.conf
+%config(noreplace) /etc/mongod-shard3.conf
 %config(noreplace) /etc/mongos.conf
 /etc/sphinx/sphinx.conf.tsds
 
@@ -285,6 +293,8 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) /etc/init.d/mongod-config2
 %config(noreplace) /etc/init.d/mongod-config3
 %config(noreplace) /etc/init.d/mongod-shard1
+%config(noreplace) /etc/init.d/mongod-shard2
+%config(noreplace) /etc/init.d/mongod-shard3
 %config(noreplace) /etc/init.d/mongos
 /etc/init.d/tsds_writer
 
@@ -299,6 +309,8 @@ rm -rf $RPM_BUILD_ROOT
 %dir /var/lib/mongo/config2
 %dir /var/lib/mongo/config3
 %dir /var/lib/mongo/shard1
+%dir /var/lib/mongo/shard2
+%dir /var/lib/mongo/shard3
 
 %defattr(755, apache, apache, -)
 
