@@ -1,8 +1,8 @@
-============================================
-GRNOC TSDS Services 1.4.2 -- Wed Nov 04 2015
-============================================
 
-Features:
+## GRNOC TSDS Services 1.4.2 -- Wed Nov 04 2015
+
+
+### Features:
 
  * ISSUE=12142 now open sourced on GitHub: https://github.com/GlobalNOC/tsds-services
  * ISSUE=11649 added ability to set the classifier flag on non hierarchical meta fields
@@ -20,7 +20,7 @@ Features:
  * ISSUE=12355 added "tsds_find_unsharded.pl" script to help with identifying bootstrapping issues on some collections that have been deployed
  * ISSUE=12362 moved unknown field warning messages down to debug level
 
-Bugs:
+### Bugs:
 
  * ISSUE=12027 fixed issue where event query for one day didn't include events whose start and end are not on the same date in the result
  * ISSUE=12111 fixed bug where writer would fail when it encountered a measurement type without a valid metadata collection & document
@@ -31,21 +31,17 @@ Bugs:
  * ISSUE=12363 fixed issued where aggregate data collections weren't getting sharded and added unit tests to verify necessary collections are
 
 
-============================================
-GRNOC TSDS Services 1.4.1 -- Tue Sep 29 2015
-============================================
+## GRNOC TSDS Services 1.4.1 -- Tue Sep 29 2015
 
-Bugs: 
+### Bugs: 
 
  * ISSUE=12126 Fixed issue where the search API was not respecting the order of the ordinal fields set on value fields
  * ISSUE=11369 add missing last_updated index to measurements collection
 
 
-============================================
-GRNOC TSDS Services 1.4.0 -- Fri Sep 25 2015
-============================================
+## GRNOC TSDS Services 1.4.0 -- Fri Sep 25 2015
 
-Features:
+### Features:
 
  * ISSUE=10785 added new metadata management webservice API that will be used in a future frontend release
  * ISSUE=12026 allow configuration for sphinx search instances that reside on remote servers
@@ -55,7 +51,7 @@ Features:
  * ISSUE=11369 added new global search API using sphinx for backend indexing
  * ISSUE=11801 global search query support from browse section
 
-Bugs:
+### Bugs:
 
  * ISSUE=11556 data aggregation and expiration rules are now maintained separately
  * ISSUE=11793 added support for angle, square, and curly brackets in the query language
@@ -71,11 +67,9 @@ Bugs:
  * ISSUE=12102 make sure values stored in mongo don't get stringified
 
 
-============================================
-GRNOC TSDS Services 1.3.0 -- Wed Aug 05 2015
-============================================
+## GRNOC TSDS Services 1.3.0 -- Wed Aug 05 2015
 
-Features:
+### Features:
 
  * ISSUE=11681 Added authentication support. This change is not backwards compatible with
 existing clusters running in no-auth mode and requires upgrading them. The upgrade script
@@ -85,7 +79,7 @@ existing clusters running in no-auth mode and requires upgrading them. The upgra
  * ISSUE=11368 improved bootstrap/install unit tests
  * ISSUE=9627 starting working on global search support (not yet available)
 
-Bug Fixes:
+### Bug Fixes:
 
  * ISSUE=11635 fall through to use aggregate data if no high res docs exist
  * ISSUE=11633 fix document expiration algorithm to match what aggregations do (based upon policy eval position)
@@ -93,30 +87,24 @@ Bug Fixes:
  * ISSUE=11429 disallow dashes in measurement type names (MongoDB doesn't like them)
 
 
-============================================
-GRNOC TSDS Services 1.2.2 -- Thu Jun 18 2015
-============================================
+## GRNOC TSDS Services 1.2.2 -- Thu Jun 18 2015
 
-Bug Fixes:
+### Bug Fixes:
 
  * ISSUE=11390 allow null end timestamps for events
 
 
-============================================
-GRNOC TSDS Services 1.2.1 -- Tue Jun 09 2015
-============================================
+## GRNOC TSDS Services 1.2.1 -- Tue Jun 09 2015
 
-Bug Fixes:
+### Bug Fixes:
 
  * ISSUE=11281 Fixed typo in tsds_writer init script where chkconfig would not recognize it
  * ISSUE=11290 Improve performance by specifying index hints and not fetching the same high res docs multiple times when aggregating
 
 
-============================================
-GRNOC TSDS Services 1.2.0 -- Wed May 27 2015
-============================================
+## GRNOC TSDS Services 1.2.0 -- Wed May 27 2015
 
-Features:
+### Features:
 
   * ISSUE=10949 always store 1000 data points inside data documents based upon provided interval instead of 2 hour long documents
   * ISSUE=11070 increase aggregate doc data points from 100 to 1000 and store them as three dimensional arrays
@@ -130,7 +118,7 @@ Features:
   * ISSUE=10697 automatically set ordinal values for the required metadata fields when adding new measurement types
   * ISSUE=10708 added ability to set the maximum number of documents and the maximum number of events a query can return
 
-Bug Fixes:
+### Bug Fixes:
 
   * ISSUE=10944 prevent writer from crashing when handling invalid/malformed data
   * ISSUE=10925 fix issue where the writer wasn't requeueing messages to try again later when MongoDB was unavailable
@@ -141,33 +129,27 @@ Bug Fixes:
   * ISSUE=10700 fix bug where eval position for aggregate rules was being calculated incorrectly when changed
 
 
-============================================
-GRNOC TSDS Services 1.1.2 -- Tue Mar 31 2015
-============================================
+## GRNOC TSDS Services 1.1.2 -- Tue Mar 31 2015
 
-Features:
+### Features:
 
   * ISSUE=10703 Moved TSDS SNAPP Migrator into its own package out of grnoc-tsds-services
 
-Bug Fixes: 
+### Bug Fixes: 
 
   * ISSUE=10701 fix tsds_expire.pl script
 
 
-============================================
-GRNOC TSDS Services 1.1.1 -- Thu Mar 26 2015
-============================================
+## GRNOC TSDS Services 1.1.1 -- Thu Mar 26 2015
 
-Bug Fixes: 
+### Bug Fixes: 
 
   * ISSUE=10691 Including missing aggregation.cgi and admin.cgi files
 
 
-============================================
-GRNOC TSDS Services 1.1.0 -- Tue Mar 24 2015
-============================================
+## GRNOC TSDS Services 1.1.0 -- Tue Mar 24 2015
 
-Features:
+### Features:
 
   * ISSUE=7992 support migrating data from old SNAPP
   * ISSUE=9992 added temperature bootstrapping data to install
@@ -178,7 +160,7 @@ Features:
   * ISSUE=10520 added backend changes for data retention methods
   * ISSUE=10528 added event support in perl tsds_writer
 
-Bug Fixes:
+### Bug Fixes:
 
   * ISSUE=9951 properly handle case when no measurements exist when aggregating data
   * ISSUE=10429 improve parallelization for data aggregation, lock file support, improved performance, and fixed file permissions
@@ -188,28 +170,24 @@ Bug Fixes:
   * ISSUE=10525 fix problem where _execute_mongo() got confused with any warning messages from the mongo CLI
 
 
-============================================
-GRNOC TSDS Services 1.0.1 -- Wed Feb 25 2015
-============================================
+## GRNOC TSDS Services 1.0.1 -- Wed Feb 25 2015
 
-Features:
+### Features:
   * ISSUE=10247 Added generalized support for "events" in TSDS in both the writer processes
 and in the query parsing engine.
   * ISSUE=10355 Added aggregation and expiration policy definition webservice support.
   * ISSUE=10254 Initial version of server side get_chart method to allow rendering of charts on the server instead of the client.
 
-Bug Fixes:
+### Bug Fixes:
   * ISSUE=10022 Fix bootstrap issues with new versions of MongoDB 3.0
   * ISSUE=10141 Changed collection existence check to use listCollections for performance reasons.
   * ISSUE=10201 Fixed writer processers to attempt to auto reconnect to MongoDB instead of dieing
   * ISSUE=10429 Fix issue where aggregator would attempt to issue a blank bulk query if nothing to do for a document and generate errors.
   
 
-============================================
-GRNOC TSDS Services 1.0.0 -- Fri Nov 15 2014
-============================================
+## GRNOC TSDS Services 1.0.0 -- Fri Nov 15 2014
 
-Features:
+### Features:
  * Initial release of TSDS Services. This package provides a Domain Specific Language and REST interface
 to data stored in a MongoDB timeseries database. It allows for pushing data into the system as well as retrieval
 of data out. It also includes scripts to help manage aggregation and expiration of the data as well as
