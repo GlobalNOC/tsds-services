@@ -416,8 +416,6 @@ sub _process_tokens {
             symbols        => $temp_result
         );
 
-
-
         return if (! defined $final_results);
     }
 
@@ -1155,8 +1153,22 @@ sub _query_database {
     }
 
     # If we're going to be grouping by something we need it in the output
-    foreach my $by_field (@$by_fields){
-        $queried_field_names->{$by_field} = 1;
+    foreach my $by_field (@$by_fields){        
+
+        # a by with some uniqueness on subfield selection
+        if (ref $by_field eq 'ARRAY'){
+            # the original field we're doing the by on
+            $queried_field_names->{$by_field->[0]} = 1;
+
+            # also need to ask for the subfields
+            foreach my $sub_by (@{$by_field->[2]}){
+                $queried_field_names->{$sub_by} = 1;
+            }
+        }
+        # simple by field
+        else {
+            $queried_field_names->{$by_field} = 1;
+        }
     }
 
     # Get a reference to our database
@@ -1171,7 +1183,7 @@ sub _query_database {
     if ($db_name eq $self->temp_database()){
 
         # if it's a temp table, just find everything from mongo
-        undef %$queried_field_names
+        undef %$queried_field_names;
     }
     else {
         if (! $between_fields){
@@ -1250,7 +1262,7 @@ sub _query_database {
                                                          offset      => $offset,
                                                          by          => $by_fields,
                                                          order       => $order_fields);
-        
+
         my $meta_end = [gettimeofday];
 
         log_warn("Time for meta limit: " . tv_interval($meta_start, $meta_end));
@@ -1876,34 +1888,53 @@ sub _get_meta_limit_result {
 
     my $group_clause = {};
 
+    my %unique_by;
+
     # make sure we only query document where that field is even set
     foreach my $field (@$by_fields){
-        $group_clause->{$field} = '$' . $field;
+        my @sub_by_fields;
 
-        # if the where clause already had this field in it,
-        # we need to ensure our limit query contains both $exists
-        # and whatever the original filter on that field was
-        if (exists $limit_query->{$field}){
-            my $new_field = [{$field => {'$exists' => 1}},
-                             {$field => $limit_query->{$field}}];
-
-            delete $limit_query->{$field};
-            
-            if (exists $limit_query->{'$and'}){
-                push(@{$limit_query->{'$and'}}, @$new_field);
-            }
-            else {
-                $limit_query->{'$and'} = $new_field;
+        if (ref $field eq 'ARRAY'){
+            push(@sub_by_fields, $field->[0]);
+            foreach my $sub_by_field (@{$field->[2]}){
+                push(@sub_by_fields, $sub_by_field);
             }
         }
-        # if the original where clause did not specify this field,
-        # we simply need to stick in a $exists qualifier
         else {
-            $limit_query->{$field} = {'$exists' => 1};
+            push(@sub_by_fields, $field);
+        }
+
+        foreach my $by_field (@sub_by_fields){
+
+            $unique_by{$by_field} = 1;
+
+            $group_clause->{$by_field} = '$' . $by_field;
+            
+            # if the where clause already had this field in it,
+            # we need to ensure our limit query contains both $exists
+            # and whatever the original filter on that field was
+            if (exists $limit_query->{$by_field}){
+                my $new_field = [{$by_field => {'$exists' => 1}},
+                                 {$by_field => $limit_query->{$by_field}}];
+                
+                delete $limit_query->{$by_field};
+                
+                if (exists $limit_query->{'$and'}){
+                    push(@{$limit_query->{'$and'}}, @$new_field);
+                }
+                else {
+                    $limit_query->{'$and'} = $new_field;
+                }
+            }
+            # if the original where clause did not specify this field,
+            # we simply need to stick in a $exists qualifier
+            else {
+                $limit_query->{$by_field} = {'$exists' => 1};
+            }
         }
     }
 
-    log_debug("Doing inner limit query, key is " . join(", ", @$by_fields) . " and query is ", {filter => \&Data::Dumper::Dumper, value  => $limit_query});
+    log_debug("Doing inner limit query, key is " . Dumper($by_fields) . " and query is ", {filter => \&Data::Dumper::Dumper, value  => $limit_query});
 
 
     # query
@@ -1918,7 +1949,8 @@ sub _get_meta_limit_result {
         # total matches, so we end up doing limit / offset ourselves later
 
         # Figure out which fields we might need to unwind if they are arrays
-        my @unwind = $self->_get_unwind_operations($metadata, $by_fields, {});
+        my @unique_by_keys = keys %unique_by;
+        my @unwind = $self->_get_unwind_operations($metadata, \@unique_by_keys, {});
 
         # If we're unwinding, we need to match the unwound documents as well
         # to ensure that we're only matching the unwound parts and not all of them
@@ -2235,7 +2267,7 @@ sub _apply_by {
 
     my %bucket;
 
-    log_debug("Grouping by " . join(', ', @$tokens));
+    log_debug("Grouping by " . Dumper(@$tokens));
 
     my %group_all;
 
@@ -2253,6 +2285,32 @@ sub _apply_by {
     log_debug("Preserving all fields for ", {filter => \&Data::Dumper::Dumper,
                                              value  => \%group_all});
 
+
+    # figure out all the actual grouping clauses and what they mean
+    my %seen;
+
+    # If any of these group bys are doing uniqueness,
+    # make sure we have the data sorted correctly so we find
+    # the right occurrence
+    my @sort_keys;
+    foreach my $token (@$tokens){
+        if (ref $token eq 'ARRAY'){
+            foreach my $subtoken (@{$token->[2]}){
+                push(@sort_keys, $subtoken);
+            }
+        }
+    }
+    if (@sort_keys){
+        log_debug("In group by, sorting data by " . join(", ", @sort_keys) . " to ensure group by uniqueness");
+        @$data = sort { 
+            my $sort_res = 0;
+            foreach my $key (@sort_keys){
+                    $sort_res = $sort_res || ($a->{$key} cmp $b->{$key});
+            }
+                return $sort_res;
+        } @$data;
+    }    
+
     # Step one is to determine each document's "group_value" key, which is
     # basically just a string that is the combination of that document's
     # values for each grouping field
@@ -2261,19 +2319,40 @@ sub _apply_by {
 	my $doc = $data->[$i];
 	my $group_value = "";
 
+        my $keep = 1;
+
 	foreach my $token (@$tokens){
             my $value;            
+            # nothing given, group everything together
             if ($token eq DEFAULT_GROUPING){
                 $value = "";
             }
-            else {                
+            # complex by clause, have to limit to unique entries
+            elsif (ref $token eq 'ARRAY'){
+                my $field1   = $token->[0];
+                $value       = $self->_find_value($field1, $doc) || "";
+                my $uniq_val = "";
+                foreach my $other_field (@{$token->[2]}){
+                    $uniq_val .= $self->_find_value($other_field, $doc) || "";
+                }
+
+                # If we've already seen this unique group by before but this
+                # wasn't the series we saw it in, don't use it
+                $seen{$value} = $uniq_val if (! exists $seen{$value});
+
+                if ($seen{$value} ne $uniq_val){
+                    $keep = 0;
+                }
+            }
+            # simply by clause token, just find it
+            else { 
                 $value = $self->_find_value($token, $doc) || "";
             }
             
             $group_value .= $value;	    
 	}
 
-	push(@{$bucket{$group_value}}, $doc);
+	push(@{$bucket{$group_value}}, $doc) if ($keep);
     }
 
     my @result;
