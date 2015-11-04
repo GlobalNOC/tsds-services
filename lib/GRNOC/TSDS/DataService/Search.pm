@@ -388,6 +388,8 @@ sub search {
             $ordinal_meta_fields  = $schema->{'meta'}{'ordinal'};
         }
 
+        my $base_required_meta_fields = $schema->{'meta'}{'required'};
+
         # create a ordinal meta field map for sorting the meta_field results later
         my $ordinal_meta_field_map = {};
         my $order_meta_fields = ($group_by) ? $group_by : $ordinal_meta_fields;
@@ -414,6 +416,7 @@ sub search {
             end_time => $end_time,
             step => $step,
             aggregator => $aggregator,
+            base_required_meta_fields => $base_required_meta_fields,
             required_meta_fields => $required_meta_fields,
             ordinal_meta_fields  => $ordinal_meta_fields,
             value_fields => $value_fields,
@@ -467,6 +470,7 @@ sub search {
                             last;
                         }
                     }
+
                     next if($found_value);
 
                     # otherwise add the new value to our values array
@@ -537,24 +541,29 @@ sub _get_search_result_data {
     my $having           = $args{'having'};
     my $ordinal_meta_fields  = $args{'ordinal_meta_fields'};
     my $required_meta_fields = $args{'required_meta_fields'};
-
+    my $base_required_meta_fields = $args{'base_required_meta_fields'};
     # generate our value fields 
     my $value_agg_names = [];
     my $value_queries   = [];
+    my $outer_value_queries = [];
 
     # build the tsds strings needed for each of our oridinal values
     foreach my $value (@$value_fields) {
         # create the series values
         my $series_field = ' aggregate(values.' . $value . ", $step, $aggregator)";
-        my $values_query = " $series_field as "
-            . $value . '_value_series';
+        my $values_rename = $value . '_value_series';
+        my $values_query = " $series_field as $values_rename";
         push(@$value_queries, $values_query);
+        push(@$outer_value_queries, $values_rename);
 
         # create the aggregate value
         my $value_agg_name = $value.'_value_aggregate';
-        push(@$value_agg_names, $value_agg_name);
         my $avg_value_query = " $aggregator(" . $series_field . ') as '. $value_agg_name;
         push(@$value_queries, $avg_value_query);
+        my $outer_agg_value_query = "sum(all($value_agg_name)) as $value_agg_name";
+        push(@$value_agg_names, $value_agg_name);
+
+        push(@$outer_value_queries, $outer_agg_value_query);
 
         foreach my $have (@$having){
             next unless ($have->{'field'} eq $value);
@@ -570,20 +579,14 @@ sub _get_search_result_data {
             $have->{'named_as'} = $rename;
             $having_get .= " as $rename";
             push(@$value_queries, $having_get);
+            push(@$outer_value_queries, $rename);
         }
     }
 
     my $meta_fields = defined($group_by) ? $group_by : $ordinal_meta_fields;
-    my $by_fields   = defined($group_by) ? $group_by : $required_meta_fields;
+    my $inner_by_fields   = $base_required_meta_fields;
+    my $outer_by_fields   = defined($group_by) ? $group_by : $required_meta_fields;
 
-    # create our tsds query
-    my $query = 'get ';
-    $query .= join(', ', @$meta_fields) . ', ';
-    $query .= join(', ', @$value_queries);
-    $query .= ' between  ("'.$start_time.'","'.$end_time.'") ';
-    $query .= ' by ';
-    $query .= join(', ', @$by_fields);
-    $query .= " from $measurement_type ";
 
     my $wheres = [];
     # if a search term was entered apply the appropriate where clause
@@ -597,24 +600,17 @@ sub _get_search_result_data {
         my $where = '( '.join(' and ', @$conditions).' )';
         push(@$wheres, $where);
     }
-    $query .= ' where '.join(' and ', @$wheres). ' ' if(@$wheres);
 
+    my @having_strings;
     if (@$having){
-        my @having_tmp;
         foreach my $have (@$having){
-            push(@having_tmp, "$have->{'named_as'} $have->{'logic'} $have->{'value'}");
+            push(@having_strings, "$have->{'named_as'} $have->{'logic'} $have->{'value'}");
         }
-        $query .= " having " . join(' and ', @having_tmp);
     }
-
     
-    # if no search term was entered apply the limit and offset here instead
-    # of relying on sphinx
-    $query .= " limit $limit offset $offset " if($meta_ids eq 'ALL');
-
     # if order by fields were passed in parse them and apply them to our query
+    my $ordered_by_strings = [];
     if($order_by){
-        my $ordered_by_strings = [];
         foreach my $order_by_field (@$order_by){
             if($order_by_field =~ /(name|value)_(\d+)/){
                 my $field;
@@ -635,14 +631,80 @@ sub _get_search_result_data {
                 $self->error('order_by fields must be in format (value|name)_\d+');
                 return;
             }
-        }
-        if(@$ordered_by_strings > 0){
-            $query .= " ordered by ".join(', ', @$ordered_by_strings).' ';
-        }
+        }   
     }
+
+
+    # we first need to do a query based on the outer by fields to figure out the first $limit / $offset
+    # set of them. Since on the inner query we're doing a by on the base required fields, the limit/offset/grouping
+    # doesn't actually work as expected since it'll find the first $limit say interfaces, not pops.
+    # This part is aimed to find the first $limit pops and amend the where clause to reflect that.
+    my $where_query = "get ";
+    $where_query   .= join(", ", @$outer_by_fields);
+    $where_query   .= " between(\"$start_time\", \"$end_time\") ";
+    $where_query   .= " by ";
+    $where_query   .= join(", ", @$outer_by_fields);
+    $where_query   .= " from $measurement_type ";
+    $where_query   .= ' where '.join(' and ', @$wheres). ' ' if(@$wheres);
+    $where_query   .= " limit $limit offset $offset " if($meta_ids eq 'ALL');
+    $where_query   .= " ordered by ".join(', ', @$ordered_by_strings).' ' if (@$ordered_by_strings);
+
+    my $where_results = $self->parser()->evaluate($where_query, force_constraint => 1);
+    if (!$where_results) {
+        $self->error( "Error parsing pre-search data where results: ".$self->parser()->error());
+        return;
+    }
+
+    
+    # if we don't have a search term we need to calculate our total here 
+    # instead of relying on sphinx to return it.
+    # Since this was the query that determined the later "by" clause it actually
+    # has the total we want to expose upwards, not the queries below
+    ${$total} += $self->parser()->total() if($meta_ids eq 'ALL');
+
+    my @additional_wheres;
+    foreach my $where_result (@$where_results){
+        my @arr;
+        foreach my $key (keys %$where_result){
+            if (defined $where_result->{$key}){
+                push(@arr, " $key = \"" . $where_result->{$key} . "\" ");
+            }
+            else {
+                push(@arr, " $key = null");
+            }
+        }
+        my $str = "(" . join(" and ", @arr) . ")";
+        push(@additional_wheres, $str);
+    }
+
+    push(@$wheres, join(" or ", @additional_wheres));
+
+    # create our tsds query
+    my $inner_query = 'get ';
+    $inner_query .= join(', ', @$meta_fields) . ', ';
+    $inner_query .= join(', ', @$value_queries);
+    $inner_query .= ' between  ("'.$start_time.'","'.$end_time.'") ';
+    $inner_query .= ' by ';
+    $inner_query .=  join(', ', @$inner_by_fields);
+    $inner_query .= " from $measurement_type ";
+    $inner_query .= ' where '.join(' and ', @$wheres). ' ' if(@$wheres);
+    $inner_query .= " having " . join(' and ', @having_strings) if (@having_strings);
+    $inner_query .= " ordered by ".join(', ', @$ordered_by_strings).' ' if (@$ordered_by_strings);
+
+    my $query = 'get ';
+    $query  .= join(', ', @$meta_fields) . ', ';
+    $query  .= join(', ', @$outer_value_queries);
+    $query  .= " by " ;
+    $query  .= join(', ', @$outer_by_fields);
+    $query  .= " from ( $inner_query ) ";
+    # if no search term was entered apply the limit and offset here instead
+    # of relying on sphinx
+    $query .= " limit $limit offset $offset " if($meta_ids eq 'ALL');
+    $query  .= " ordered by ".join(', ', @$ordered_by_strings).' ' if (@$ordered_by_strings);
 
     # log the query when in debug mode
     log_debug("tsds query: '$query'");
+
 
     # execute our query
     my $data_results = $self->parser()->evaluate($query, force_constraint => 1);
@@ -650,10 +712,6 @@ sub _get_search_result_data {
         $self->error( "Error parsing search data results: ".$self->parser()->error());
         return;
     }
-
-    # if we don't have a search term we need to calculate our total here 
-    # instead of relying on sphinx to return it
-    ${$total} += $self->parser()->total() if($meta_ids eq 'ALL');
 
     return $data_results;
 }

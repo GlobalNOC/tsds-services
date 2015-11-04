@@ -203,6 +203,9 @@ sub evaluate {
     eval {
         $res = $self->_process_tokens($tokens);
     };
+    if ($@){
+        $self->error($@);
+    }
 
     # If we used a temporary table, clean it out
     if ($self->_used_temp_table()){
@@ -2269,21 +2272,13 @@ sub _apply_by {
 
     log_debug("Grouping by " . Dumper(@$tokens));
 
-    my %group_all;
+    my $group_all = $self->_get_preserve_all_fields($get_fields);
 
     # If there is an all(foo.bar) in the get fields we need
     # to preserve them when doing the document merges
-    foreach my $get_field (@$get_fields){
-        if ($get_field->[0] eq 'all'){
-            $group_all{$get_field->[1]} = 1;
-        }
-        elsif ($self->_is_aggregation_function($get_field->[0]) && $get_field->[1] eq 'all'){
-            $group_all{$get_field->[2]} = 1;
-        }
-    }
 
     log_debug("Preserving all fields for ", {filter => \&Data::Dumper::Dumper,
-                                             value  => \%group_all});
+                                             value  => $group_all});
 
 
     # figure out all the actual grouping clauses and what they mean
@@ -2367,7 +2362,7 @@ sub _apply_by {
 
             # Convert the "all" entries into arrays if they aren't already
             # so that they can all be represented
-            foreach my $group_all_key (keys %group_all){
+            foreach my $group_all_key (keys %$group_all){
                 if (ref $doc->{$group_all_key} ne 'ARRAY'){
                     $doc->{$group_all_key} = [$self->_find_value($group_all_key, $doc)];
                 }
@@ -3733,6 +3728,30 @@ sub _combine_histograms {
     $aggregated_hist->bins( $bin_counts );
 
     return $aggregated_hist;
+}
+
+sub _get_preserve_all_fields {
+    my $self   = shift;
+    my $tokens = shift;
+    my $found  = shift;
+
+    $found = {} if (! defined $found);
+
+    return $found if (ref $tokens ne 'ARRAY');
+
+    warn "LOOKING AT " . Dumper($tokens);
+
+    if ($tokens->[0] eq 'all'){
+        warn "FOUND SOMETHING";
+        $found->{$tokens->[1]} = 1;
+        next;
+    }
+    
+    foreach my $field (@$tokens){
+        $self->_get_preserve_all_fields($field, $found);        
+    }
+
+    return $found;
 }
 
 sub update_constraints_file {
