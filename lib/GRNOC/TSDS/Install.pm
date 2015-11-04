@@ -459,11 +459,17 @@ sub _create_databases {
     # create the empty reports database
     $self->mongo_root()->get_database("tsds_reports", create => 1 )->run_command({"create" => "reports"});
 
-    # create the temp database
-    # Since there are no permanent collections in here we have to create one to make the database
-    # "stick" in Mongo, otherwise it will get deleted and since the users it uses don't have create
-    # database permissions it causes problems down the line
-    $self->mongo_root()->get_database("__tsds_temp_space", create => 1 )->run_command({"create" => "dummy"});
+    # create the temp workspace database
+    $self->mongo_root()->get_database("__tsds_temp_space", create => 1 )->run_command({"create" => "__workspace"});
+    if (! $self->mongo_root()->enable_sharding("__tsds_temp_space")){
+        $self->error("Error sharding temp space: " . $self->mongo_root()->error());
+        return;
+    }
+    
+    if (! $self->mongo_root()->add_collection_shard("__tsds_temp_space", "__workspace", "{'_id': 1}")){
+        $self->error("Error sharding temp space collection: " . $self->mongo_root()->error());
+        return;
+    }
 
     # find all .json files we'll need to create databases for
     my $ret = opendir( my $fh, $self->{'install_dir'} );

@@ -53,6 +53,7 @@ sub new {
     # get/store all of the data services we need
     $self->mongo_ro( GRNOC::TSDS::MongoDB->new( @_, privilege => 'ro' ) );
     $self->mongo_rw( GRNOC::TSDS::MongoDB->new( @_, privilege => 'rw' ) );
+    $self->mongo_root( GRNOC::TSDS::MongoDB->new( @_, privilege => 'root' ) );
     $self->parser( GRNOC::TSDS::Parser->new( @_ ) );
 
     return $self;
@@ -305,7 +306,7 @@ sub add_aggregation {
     }
 
     # create the data_[interval] collection
-    if(!$self->mongo_rw()->add_collection_shard( $measurement_type, "data_$interval" , $GRNOC::TSDS::MongoDB::DATA_SHARDING )){
+    if(!$self->mongo_root()->add_collection_shard( $measurement_type, "data_$interval" , $GRNOC::TSDS::MongoDB::DATA_SHARDING )){
         $self->error( "Error adding collection shard for data_$interval measurement_type: ".$self->mongo_rw()->error() );
         return;
     }
