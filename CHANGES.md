@@ -19,6 +19,7 @@
  * ISSUE=12241 added index on "identifier" in measurement collection to improve writer lookups on cache misses
  * ISSUE=12355 added `tsds_find_unsharded.pl` script to help with identifying bootstrapping issues on some collections that have been deployed
  * ISSUE=12362 moved unknown field warning messages down to debug level
+ * ISSUE=12315 added --noconfirm option to tsds_upgrade.pl to allow for unattended upgrades if desired. The default is still interactive.
 
 ### Bugs:
 
