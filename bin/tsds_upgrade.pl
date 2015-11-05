@@ -16,13 +16,16 @@ use constant DEFAULT_CONFIG_FILE => '/etc/grnoc/tsds/services/config.xml';
 
 my $config_file = DEFAULT_CONFIG_FILE;
 my $help;
+my $noconfirm = 0;
 
-GetOptions( 'config=s' => \$config_file,
-            'help|h|?' => \$help ) or usage();
+GetOptions( 'config=s'  => \$config_file,
+            'noconfirm' => \$noconfirm,
+            'help|h|?'  => \$help ) or usage();
 
 usage() if $help;
 
-my $upgrader = GRNOC::TSDS::Upgrade->new( config_file => $config_file );
+my $upgrader = GRNOC::TSDS::Upgrade->new( config_file => $config_file,
+                                          unattended  => $noconfirm);
 
 $upgrader->upgrade() or die( $upgrader->error );
 
