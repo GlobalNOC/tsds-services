@@ -697,9 +697,6 @@ sub _get_search_result_data {
     $query  .= " by " ;
     $query  .= join(', ', @$outer_by_fields);
     $query  .= " from ( $inner_query ) ";
-    # if no search term was entered apply the limit and offset here instead
-    # of relying on sphinx
-    $query .= " limit $limit offset $offset " if($meta_ids eq 'ALL');
     $query  .= " ordered by ".join(', ', @$ordered_by_strings).' ' if (@$ordered_by_strings);
 
     # log the query when in debug mode
