@@ -721,7 +721,7 @@ sub _get_search_result_data {
 
 
     # execute our query
-    my $data_results = $self->parser()->evaluate($query, force_constraint => 1);
+    my $data_results = $self->parser()->evaluate($query, force_constraint => 0);
     if (!$data_results) {
         $self->error( "Error parsing search data results: ".$self->parser()->error());
         return;
