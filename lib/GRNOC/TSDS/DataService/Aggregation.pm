@@ -157,11 +157,13 @@ sub update_aggregations {
     }
     
     # reorder eval positions
-    my $position_res = $self->_update_eval_positions(
-        collection => $agg_col, 
-        name => $name,
-        eval_position => $eval_position
-    );
+    if(defined($eval_position)){
+        my $position_res = $self->_update_eval_positions(
+            collection => $agg_col, 
+            name => $name,
+            eval_position => $eval_position
+        );
+    }
     
     my $set = {};
     my $id;
@@ -222,11 +224,13 @@ sub update_expirations {
     }
     
     # reorder eval positions
-    my $position_res = $self->_update_eval_positions(
-        collection => $exp_col,
-        name => $name,
-        eval_position => $eval_position
-    );
+    if(defined($eval_position)){
+        my $position_res = $self->_update_eval_positions(
+            collection => $exp_col,
+            name => $name,
+            eval_position => $eval_position
+        );
+    }
 
     
     # figure out which fields were modifying for the expire record
