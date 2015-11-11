@@ -602,7 +602,9 @@ sub _get_search_result_data {
     }
 
     my @having_strings;
+    my $order_by_val = 0;
     if (@$having){
+        $order_by_val = 1;
         foreach my $have (@$having){
             push(@having_strings, "$have->{'named_as'} $have->{'logic'} $have->{'value'}");
         }
@@ -616,9 +618,10 @@ sub _get_search_result_data {
                 my $field;
                 # order by value
                 if($1 eq 'value'){
+                    $order_by_val = 1;
                     # subtract one since the webservice parameters are 1 indexed and
                     # our array is 0 indexed
-                    $field = $value_agg_names->[($2 - 1)] || next;
+                    $field = $value_agg_names->[($2 - 1)] || next;                    
                 }
                 # otherwise its order by name 
                 else {
@@ -634,50 +637,59 @@ sub _get_search_result_data {
         }   
     }
 
-
     # we first need to do a query based on the outer by fields to figure out the first $limit / $offset
     # set of them. Since on the inner query we're doing a by on the base required fields, the limit/offset/grouping
     # doesn't actually work as expected since it'll find the first $limit say interfaces, not pops.
     # This part is aimed to find the first $limit pops and amend the where clause to reflect that.
-    my $where_query = "get ";
-    $where_query   .= join(", ", @$outer_by_fields);
-    $where_query   .= " between(\"$start_time\", \"$end_time\") ";
-    $where_query   .= " by ";
-    $where_query   .= join(", ", @$outer_by_fields);
-    $where_query   .= " from $measurement_type ";
-    $where_query   .= ' where '.join(' and ', @$wheres). ' ' if(@$wheres);
-    $where_query   .= " limit $limit offset $offset " if($meta_ids eq 'ALL');
-    $where_query   .= " ordered by ".join(', ', @$ordered_by_strings).' ' if (@$ordered_by_strings);
+    # This whole part isn't relevant if ordering by value
+    if (! $order_by_val){
+        log_debug("Performing inner search");
 
-    my $where_results = $self->parser()->evaluate($where_query, force_constraint => 1);
-    if (!$where_results) {
-        $self->error( "Error parsing pre-search data where results: ".$self->parser()->error());
-        return;
-    }
-
-    
-    # if we don't have a search term we need to calculate our total here 
-    # instead of relying on sphinx to return it.
-    # Since this was the query that determined the later "by" clause it actually
-    # has the total we want to expose upwards, not the queries below
-    ${$total} += $self->parser()->total() if($meta_ids eq 'ALL');
-
-    my @additional_wheres;
-    foreach my $where_result (@$where_results){
-        my @arr;
-        foreach my $key (keys %$where_result){
-            if (defined $where_result->{$key}){
-                push(@arr, " $key = \"" . $where_result->{$key} . "\" ");
-            }
-            else {
-                push(@arr, " $key = null");
-            }
+        my $where_query = "get ";
+        $where_query   .= join(", ", @$outer_by_fields);
+        $where_query   .= " between(\"$start_time\", \"$end_time\") ";
+        $where_query   .= " by ";
+        $where_query   .= join(", ", @$outer_by_fields);
+        $where_query   .= " from $measurement_type ";
+        $where_query   .= ' where '.join(' and ', @$wheres). ' ' if(@$wheres);
+        $where_query   .= " limit $limit offset $offset " if($meta_ids eq 'ALL');
+        $where_query   .= " ordered by ".join(', ', @$ordered_by_strings).' ' if (@$ordered_by_strings);
+        
+        my $where_results = $self->parser()->evaluate($where_query, force_constraint => 1);
+        if (!$where_results) {
+            $self->error( "Error parsing pre-search data where results: ".$self->parser()->error());
+            return;
         }
-        my $str = "(" . join(" and ", @arr) . ")";
-        push(@additional_wheres, $str);
-    }
+        
+        # if we don't have a search term we need to calculate our total here 
+        # instead of relying on sphinx to return it.
+        # Since this was the query that determined the later "by" clause it actually
+        # has the total we want to expose upwards, not the queries below
+        ${$total} += $self->parser()->total() if($meta_ids eq 'ALL');
+        
+        my @additional_wheres;
+        foreach my $where_result (@$where_results){
+            my @arr;
+            foreach my $key (keys %$where_result){
+                if (defined $where_result->{$key}){
+                    push(@arr, " $key = \"" . $where_result->{$key} . "\" ");
+                }
+                else {
+                    push(@arr, " $key = null");
+                }
+            }
+            my $str = "(" . join(" and ", @arr) . ")";
+            push(@additional_wheres, $str);
+            
+        }
+        
+        if (! @additional_wheres){
+            log_debug("Aborting inner search early due to no where bits found");
+            return [];
+        }
 
-    push(@$wheres, join(" or ", @additional_wheres));
+        push(@$wheres, join(" or ", @additional_wheres));
+    }
 
     # create our tsds query
     my $inner_query = 'get ';
@@ -697,9 +709,11 @@ sub _get_search_result_data {
     $query  .= " by " ;
     $query  .= join(', ', @$outer_by_fields);
     $query  .= " from ( $inner_query ) ";
-    # if no search term was entered apply the limit and offset here instead
-    # of relying on sphinx
-    $query .= " limit $limit offset $offset " if($meta_ids eq 'ALL');
+
+    if ($order_by_val && $meta_ids eq 'ALL'){
+        $query   .= " limit $limit offset $offset ";
+    }
+
     $query  .= " ordered by ".join(', ', @$ordered_by_strings).' ' if (@$ordered_by_strings);
 
     # log the query when in debug mode
@@ -707,10 +721,18 @@ sub _get_search_result_data {
 
 
     # execute our query
-    my $data_results = $self->parser()->evaluate($query, force_constraint => 1);
+    my $data_results = $self->parser()->evaluate($query, force_constraint => 0);
     if (!$data_results) {
         $self->error( "Error parsing search data results: ".$self->parser()->error());
         return;
+    }
+
+    # if we don't have a search term we need to calculate our total here 
+    # instead of relying on sphinx to return it.
+    # If we did NOT order by value then we will have already grabbed
+    # the total above. If we DID order by value we need to do it here
+    if ($order_by_val){
+        ${$total} += $self->parser()->total() if($meta_ids eq 'ALL');
     }
 
     return $data_results;
