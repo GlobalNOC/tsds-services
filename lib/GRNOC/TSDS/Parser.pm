@@ -3742,7 +3742,7 @@ sub _get_preserve_all_fields {
     if ($tokens->[0] eq 'all'){
 
         $found->{$tokens->[1]} = 1;
-        next;
+        return;
     }
     
     foreach my $field (@$tokens){
