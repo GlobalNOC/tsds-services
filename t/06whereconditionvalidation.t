@@ -25,19 +25,19 @@ sub validate_results{
     is($length,$len,"Count variable match with total number of output values returned by query");
 
     # validate the random values
-    # # result =Multi Dimensional Array :::  index -> [interval at index 0] and [value at index 1 ] . Use index 1 for fetching value
-    my $value= $result->[0]->[1]; # column 1 is for getting value
-    is($value, 1, " First row fetched by query is valid ");
+    # # result =Multi Dimensional Array :::  index -> [interval at index 0] and [value at index 1 ] . Use index 1 for fetching value    
+    ok($result->[0]->[1] < $result->[1]->[1] &&
+       $result->[0]->[0] < $result->[1]->[0], "First row is less than later row");
 
     # Random row selection and validation .Random Seed generator
     # https://www.ccsf.edu/Pub/Perl/perlfunc/srand.html
     srand(time ^ $$ ^ unpack "%L*", `ps axww | gzip`);
-    my $randnum = rand($length);
-    $value= $result->[$randnum]->[1];
-    is($value, int($randnum + 1) , " random row fetched by query is valid ");
-
-    $value= $result->[$length-1]->[1];
-    is($value,$len, " Last row fetched by query is valid");
+    my $randnum = rand($length - 1);
+    my $value  = $result->[$randnum]->[1];
+    my $value2 = $result->[$randnum+1]->[1];
+    is($value2, $value + 1, " random row of query array result is valid ");
+    $value=$result->[$length-1]->[1];
+    ok($value >= $value2,"last row fetched of query array result is valid");
 }
 
 # Using IN operator with where condition

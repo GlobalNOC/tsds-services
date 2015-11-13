@@ -99,6 +99,10 @@ foreach my $node ( @nodes ) {
 }
 
 # handle all measurements
+
+my $i=0;
+my $j=0;   
+
 foreach my $node ( @nodes ) {
 
     my @intfs = keys( %{$measurements->{$node}} );
@@ -107,8 +111,6 @@ foreach my $node ( @nodes ) {
 
         my $messages = [];
         my $time = 0;
-        my $i=0;
-        my $j=0;
 
         for ( 1 .. NUM_DATA_POINTS ) {
 
