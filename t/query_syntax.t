@@ -7,7 +7,7 @@ use FindBin;
 use GRNOC::Log; 
 use GRNOC::TSDS::Parser;
 
-use Test::More tests => 64;
+use Test::More tests => 66;
 
 use Data::Dumper;
 
@@ -88,6 +88,10 @@ my @basic_queries = (
     'get min(average(values.input)) + 5  between("01/02/2014", "01/03/2014") by meta.intf, meta.node from collection where x > 7 and (y < 3 or y > 8) and z > 10 ordered by foo, bar',  
     'get min(average(values.input)) / 12.5 as bar between("01/02/2014", "01/03/2014") by meta.intf, meta.node from collection where x > 7 and (y < 3 or y > 8) and z > 10 ordered by foo, bar',  
     'get min(average(aggregate(values.input, 3600, average))) as foo between("01/02/2014", "01/03/2014") by meta.intf, meta.node from collection where x > 7 and (y < 3 or y > 8) and z > 10 ordered by foo, bar',  
+
+    # by first()
+    'get name as foo between("01/02/2014", "01/03/2014") by meta.node first(meta.intf) from collection where x > 7 and (y < 3 or y > 8) and z > 10 ordered by foo, bar',  
+    'get name as foo between("01/02/2014", "01/03/2014") by meta.node first(meta.intf, meta.node) from collection where x > 7 and (y < 3 or y > 8) and z > 10 ordered by foo, bar',  
     );
 
 
