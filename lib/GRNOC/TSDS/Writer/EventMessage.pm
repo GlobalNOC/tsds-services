@@ -1,7 +1,9 @@
 package GRNOC::TSDS::Writer::EventMessage;
 
 use Moo;
+
 use Types::Standard qw( Str Int HashRef Object Maybe );
+use Types::XSD::Lite qw( NonNegativeInteger );
 
 use GRNOC::TSDS::Event;
 
@@ -24,11 +26,11 @@ has 'text' => ( is => 'ro',
                 required => 1 );
 
 has 'start' => ( is => 'ro',
-                 isa => Int,
+                 isa => NonNegativeInteger,
                  required => 1 );
 
 has 'end' => ( is => 'ro',
-               isa => Maybe[Int],
+               isa => Maybe[NonNegativeInteger],
                required => 1 );
 
 has 'identifier' => ( is => 'ro',
