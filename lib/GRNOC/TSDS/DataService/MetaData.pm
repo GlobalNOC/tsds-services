@@ -103,13 +103,15 @@ sub get_measurement_types {
         my $data_doc_limit = $fields->{'data_doc_limit'};
         my $event_limit    = $fields->{'event_limit'};
         my $search_weight  = $fields->{'search_weight'};
+        my $ignore_si      = $fields->{'ignore_si'};
 
         my $measurement_type = {
             'name' => $type,
             'label'=> $label,
             'event_limit' => $event_limit,
             'data_doc_limit' => $data_doc_limit,
-            'search_weight' => $search_weight
+            'search_weight' => $search_weight,
+            'ignore_si' => $ignore_si
         };
         # add count if flag was passed in
         if($args{'show_measurement_count'}){

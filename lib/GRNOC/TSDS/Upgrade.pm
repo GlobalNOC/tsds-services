@@ -17,6 +17,9 @@ use Sort::Versions;
 has config_file => ( is => 'ro',
                      required => 1 );
 
+has unattended => ( is => 'ro',
+                    required => 1 );                   
+
 ### internal attributes ###
 
 has cli => ( is => 'ro',
@@ -90,14 +93,13 @@ sub upgrade {
 
     print "\n";
     
-    my $sure = $self->cli->get_input( 'Are you sure you want to perform these upgrades? [y/N]',
-                                      default => 'N',
-                                      required => 0,
-                                      pattern => 'y|N' );
-    
-    # they weren't sure
-    return if ( $sure =~ /n/i );
-    
+    if (! $self->unattended()){
+        if (! $self->cli->confirm( 'Are you sure you want to perform these upgrades? [y/N]' )){
+            $self->_set_error("Aborting upgrade on user input");
+            return;
+        }
+    }
+
     # dynamically load and execute each necessary upgrade module
     foreach my $upgrade ( @upgrades ) {
 	
