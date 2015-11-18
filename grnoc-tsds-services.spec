@@ -54,6 +54,7 @@ Requires: perl-Moo
 Requires: perl-Net-AMQP-RabbitMQ
 Requires: perl-LockFile-Simple
 Requires: perl-Type-Tiny
+Requires: perl-Types-XSD-Lite
 Requires: perl-Redis
 Requires: perl-Redis-DistLock
 Requires: perl-Cache-Memcached-Fast

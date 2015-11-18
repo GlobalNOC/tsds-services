@@ -1,7 +1,9 @@
 package GRNOC::TSDS::Writer::DataMessage;
 
 use Moo;
+
 use Types::Standard qw( Str Int HashRef Object );
+use Type::XSD::Lite qw( PositiveInteger NonNegativeInteger );
 
 use GRNOC::TSDS::DataPoint;
 
@@ -14,11 +16,11 @@ has 'data_type' => ( is => 'ro',
                      required => 1 );
 
 has 'time' => ( is => 'ro',
-                isa => Int,
+                isa => NonNegativeInteger,
                 required => 1 );
 
 has 'interval' => ( is => 'ro',
-                    isa => Int,
+                    isa => PositiveInteger,
                     required => 1 );
 
 has 'values' => ( is => 'ro',
