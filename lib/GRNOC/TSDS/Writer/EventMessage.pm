@@ -3,7 +3,7 @@ package GRNOC::TSDS::Writer::EventMessage;
 use Moo;
 
 use Types::Standard qw( Str Int HashRef Object Maybe );
-use Type::XSD::Lite qw( NonNegativeInteger );
+use Types::XSD::Lite qw( NonNegativeInteger );
 
 use GRNOC::TSDS::Event;
 

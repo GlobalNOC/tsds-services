@@ -3,7 +3,7 @@ package GRNOC::TSDS::Writer::DataMessage;
 use Moo;
 
 use Types::Standard qw( Str Int HashRef Object );
-use Type::XSD::Lite qw( PositiveInteger NonNegativeInteger );
+use Types::XSD::Lite qw( PositiveInteger NonNegativeInteger );
 
 use GRNOC::TSDS::DataPoint;
 
