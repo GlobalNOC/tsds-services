@@ -110,7 +110,11 @@ sub BUILD {
 ### public methods ###
 
 sub index_metadata {
+
     my ( $self ) = @_;
+
+    # ISSUE=12500 properly handle unicode characters
+    binmode( STDOUT, ":utf8" );
 
     my $start_time = time;
     log_info('starting sphinx xmlpipe2 generation...');
