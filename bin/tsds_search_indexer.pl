@@ -1,4 +1,5 @@
 #!/usr/bin/perl
+
 use strict;
 use warnings;
 
@@ -11,7 +12,7 @@ use GRNOC::TSDS::SearchIndexer;
 
 use constant DEFAULT_CONFIG_FILE   => '/etc/grnoc/tsds/services/config.xml';
 use constant DEFAULT_LOGGING_FILE  => '/etc/grnoc/tsds/services/logging.conf';
-use constant DEFAULT_TEMPLATE_DIR  => '/etc/grnoc/tsds/services';
+use constant DEFAULT_TEMPLATE_DIR  => '/etc/grnoc/tsds/services/sphinx_templates/';
 
 ### command line options ###
 
