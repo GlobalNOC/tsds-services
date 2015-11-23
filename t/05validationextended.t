@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 178;
+use Test::More tests => 184;
 
 # testing multiple where operators
 use GRNOC::Config;
@@ -81,11 +81,18 @@ ok( defined($result) , " query to fetch values of output fields (values.output) 
 validate_results($result,4867);
 
 # With Grouping By
-$arr= $query->run_query( query =>'get values.output between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") by meta.node from tsdstest where intf = "ge-0/0/0" and node="rtr.chic" ');
-ok($arr, "query request to fetch values.output by meta.node sent successfully");
+$arr= $query->run_query( query =>'get node, intf, aggregate(values.output, 300, average) as output between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") by node from tsdstest where node="rtr.chic" ordered by intf asc ');
+ok($arr, "query request to fetch values.output by node sent successfully");
+is(@$arr, 1, "got 1 result");
+is($arr->[0]{'output'}[0][1], 125310.5, "got aggregate value");
+is($arr->[0]{'intf'}, "interface11");
 
-$result= $arr->[0]->{'values.output'};
-ok( defined($result) , " query to fetch values of output fields (values.output) by meta.node from Mongo successful ");
+# With Grouping by first
+$arr= $query->run_query( query =>'get intf, node, aggregate(values.output, 300, average) as output between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") by node first(intf) from tsdstest where node="rtr.chic" ');
+ok($arr, "query request to fetch values.output by meta.node sent successfully");
+is(@$arr, 1, "got 1 result");
+is($arr->[0]{'output'}[0][1], 103710.5, "got aggregate value");
+is($arr->[0]{'intf'}, "ge-0/0/0", "got interface");
 
 # Validate the results returned
 # with ordering (Sort output)
