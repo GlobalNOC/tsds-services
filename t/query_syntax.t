@@ -7,7 +7,7 @@ use FindBin;
 use GRNOC::Log; 
 use GRNOC::TSDS::Parser;
 
-use Test::More tests => 66;
+use Test::More tests => 78;
 
 use Data::Dumper;
 
@@ -92,6 +92,20 @@ my @basic_queries = (
     # by first()
     'get name as foo between("01/02/2014", "01/03/2014") by meta.node first(meta.intf) from collection where x > 7 and (y < 3 or y > 8) and z > 10 ordered by foo, bar',  
     'get name as foo between("01/02/2014", "01/03/2014") by meta.node first(meta.intf, meta.node) from collection where x > 7 and (y < 3 or y > 8) and z > 10 ordered by foo, bar',  
+
+    # different between() modes
+    'get name between(now-5m, now) by meta.node from collection where x = 4',
+    'get name between("01/02/2014", now) by meta.node from collection where x = 4',
+    'get name between("01/02/2014", now+1h) by meta.node from collection where x = 4',
+    'get name between(1234567890, now+1mo) by meta.node from collection where x = 4',
+    'get name between(1234567890, 1444567890) by meta.node from collection where x = 4',
+    'get name between(now - 10s, now) by meta.node from collection where x = 4',
+    'get name between(now - 10m, now) by meta.node from collection where x = 4',
+    'get name between(now - 10h, now) by meta.node from collection where x = 4',
+    'get name between(now - 10d, now) by meta.node from collection where x = 4',
+    'get name between(now - 10w, now) by meta.node from collection where x = 4',
+    'get name between(now - 10mo, now) by meta.node from collection where x = 4',
+    'get name between(now - 10y, now) by meta.node from collection where x = 4'
     );
 
 
