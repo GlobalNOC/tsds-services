@@ -230,10 +230,20 @@ MongoDB does not do any encryption by default and must be told to do so.  The fi
 The X.509 certificates can be created by doing the following:
 
 ```
-[root@tsds ~]# certtool -p --outfile /etc/pki/tls/private/mongo-`hostname`.key
-[root@tsds ~]# certtool -s --load-privkey /etc/pki/tls/private/mongo-`hostname`.key --outfile /etc/pki/tls/certs/mongo-`hostname`.crt
+[root@tsds ~]# certtool -p --outfile /etc/pki/tls/private/mongo-`hostname'.key
+[root@tsds ~]# certtool -s --load-privkey /etc/pki/tls/private/mongo-'hostname'.key --outfile /etc/pki/tls/certs/mongo-'hostname'.crt
+[root@tsds ~]# cat /etc/pki/tls/certs/mongo-'hostname'.crt >> /etc/pki/tls/private/mongo-'hostname'.key
 ```
 Once again, make sure to specify the proper hostname for the `Common name` option.
+
+File ownership and permissions need to be set appropriately on the certificates:
+
+```
+[root@tsds ~]# chown mongod:mongod /etc/pki/tls/certs/mongo-hostname.crt
+[root@tsds ~]# chown mongod:mongod /etc/pki/tls/private/mongo-hostname.key
+[root@tsds ~]# chmod 400 /etc/pki/tls/certs/mongo-hostname.crt
+[root@tsds ~]# chmod 400 /etc/pki/tls/private/mongo-hostname.key
+```
 
 Each `mongod` and `mongos` instance will need its corresponding config file updated to have the "net" section look like the following with the correct certificate file paths:
 
@@ -248,19 +258,11 @@ net:
     clusterPassword: "password used when creating certs"
 ```
 
+clusterPassword is un-needed if you generate the certs using the above 'certtool' commands.
 If you are using self-signed certificates, you will also need to include the following in the "ssl" section:
 
 ```
 allowInvalidCertificates: "true"
-```
-
-File ownership and permissions need to be set appropriately on the certificates:
-
-```
-[root@tsds ~]# chown mongod:mongod /etc/pki/tls/certs/mongo-hostname.crt
-[root@tsds ~]# chown mongod:mongod /etc/pki/tls/private/mongo-hostname.key
-[root@tsds ~]# chmod 400 /etc/pki/tls/certs/mongo-hostname.crt
-[root@tsds ~]# chmod 400 /etc/pki/tls/private/mongo-hostname.key
 ```
 
 Once again, all `mongod` config servers and shards, as well as all `mongos` instances must be stopped and restarted for SSL to be enabled.
