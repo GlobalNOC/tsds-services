@@ -233,6 +233,11 @@ The X.509 certificates can be created by doing the following:
 [root@tsds ~]# certtool -p --outfile /etc/pki/tls/private/mongo-`hostname`.key
 [root@tsds ~]# certtool -s --load-privkey /etc/pki/tls/private/mongo-`hostname`.key --outfile /etc/pki/tls/certs/mongo-`hostname`.crt
 ```
+The .key file also needs to have the contents of the .crt file at the end of the file when using the self-signed CA method.
+```
+[root@tsds ~]# cat /etc/pki/tls/certs/mongo-`hostname`.crt >> /etc/pki/tls/private/mongo-`hostname`.key
+```
+
 Once again, make sure to specify the proper hostname for the `Common name` option.
 
 Each `mongod` and `mongos` instance will need its corresponding config file updated to have the "net" section look like the following with the correct certificate file paths:
