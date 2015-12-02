@@ -187,6 +187,7 @@ sub update_aggregations {
 }
 
 sub update_expirations {
+
     my ( $self, %args ) = @_;
     
     my $measurement_type  = $args{'measurement_type'};
@@ -303,11 +304,17 @@ sub add_aggregation {
         $self->error($self->mongo_rw()->error());
         return;
     }
+
     # make sure this aggregation doesn't already exists
     if($self->_agg_exp_exists( col => $agg_col, name => $name )){
         $self->error("Aggregation named, $name, already exist");
         return;
     }
+
+    # figure out the highest eval_position currently used (if any)
+    my $highest_eval_position = $self->_agg_highest_eval_position( col => $agg_col );
+    my $new_eval_position = $highest_eval_position + 10;
+    $set->{'eval_position'} = $new_eval_position;
 
     # create the data_[interval] collection
     if(!$self->mongo_root()->add_collection_shard( $measurement_type, "data_$interval" , $GRNOC::TSDS::MongoDB::DATA_SHARDING )){
@@ -330,11 +337,11 @@ sub add_aggregation {
         return;
     } 
 
-
     return [{ 'success' => 1 }];
 }
 
 sub add_expiration {
+
     my ( $self, %args ) = @_;
     
     my $measurement_type = $args{'measurement_type'};
@@ -386,6 +393,11 @@ sub add_expiration {
         return;
     }
 
+    # figure out the highest eval_position currently used (if any)
+    my $highest_eval_position = $self->_agg_highest_eval_position( col => $exp_col );
+    my $new_eval_position = $highest_eval_position + 10;
+    $set->{'eval_position'} = $new_eval_position;
+
     my $id = $exp_col->insert( $set );
     if(!$id) {
         $self->error( "Error inserting values in expiration with interval $interval and meta $meta");
@@ -407,6 +419,28 @@ sub _agg_exp_exists {
     }
     
     return 0;
+}
+
+sub _agg_highest_eval_position {
+
+    my ( $self, %args ) = @_;
+
+    my $col = $args{'col'};
+    my @aggregates = $col->find( {} )->all();
+
+    my $highest_eval_position = 0;
+
+    foreach my $aggregate ( @aggregates ) {
+
+	my $eval_position = $aggregate->{'eval_position'};
+	
+	if ( $eval_position && $eval_position > $highest_eval_position ) {
+
+	    $highest_eval_position = $eval_position;
+	}
+    }
+
+    return $highest_eval_position;
 }
 
 # DELETE METHOD
