@@ -4,8 +4,10 @@ use Moo;
 
 use GRNOC::TSDS::DataType;
 use GRNOC::TSDS::Constants;
+use GRNOC::TSDS::AggregateDocument;
 use GRNOC::TSDS::DataDocument;
 use GRNOC::TSDS::EventDocument;
+use GRNOC::TSDS::Writer::AggregateMessage;
 use GRNOC::TSDS::Writer::DataMessage;
 use GRNOC::TSDS::Writer::EventMessage;
 
@@ -312,6 +314,7 @@ sub _consume_messages {
     # gather all messages to process
     my $data_to_process = [];
     my $events_to_process = [];
+    my $aggregates_to_process = [];
 
     # handle every TSDS message that came within the rabbit message
     foreach my $message ( @$messages ) {
@@ -342,10 +345,11 @@ sub _consume_messages {
             next;
         }
 
-        # does it appear to be an event message?
-        if ( $type =~ /^(.+)\.event$/ ) {
+        # does it appear to be an aggregate or event message?
+        if ( $type =~ /^(.+)\.(aggregate|event)$/ ) {
 
             my $data_type_name = $1;
+	    my $message_type = $2;
             my $data_type = $self->data_types->{$data_type_name};
 
             # we haven't seen this data type before, re-fetch them
@@ -380,27 +384,54 @@ sub _consume_messages {
                 next;
             }
 
-            my $event_message;
+	    # was it an event?
+	    if ( $message_type eq "event" ) {
 
-            try {
+		my $event_message;
+		
+		try {
+		    
+		    $event_message = GRNOC::TSDS::Writer::EventMessage->new( data_type => $data_type,
+									     affected => $affected,
+									     text => $text,
+									     start => $start,
+									     end => $end,
+									     identifier => $identifier,
+									     type => $event_type );
+		}
+		
+		catch {
+		    
+		    $self->logger->error( $_ );
+		};
+		
+		# include this to our list of events to process if it was valid
+		push( @$events_to_process, $event_message ) if $event_message;
+	    }
 
-                $event_message = GRNOC::TSDS::Writer::EventMessage->new( data_type => $data_type,
-                                                                         affected => $affected,
-                                                                         text => $text,
-                                                                         start => $start,
-                                                                         end => $end,
-                                                                         identifier => $identifier,
-                                                                         type => $event_type );
-            }
+	    # was it an aggregate?
+	    elsif ( $message_type eq "aggregate" ) {
 
-            catch {
-
-                $self->logger->error( $_ );
-            };
-
-            # include this to our list of events to process if it was valid
-            push( @$events_to_process, $event_message ) if $event_message;
-        }
+		my $aggregate_message;
+		
+		try {
+		    
+		    $aggregate_message = GRNOC::TSDS::Writer::AggregateMessage->new( data_type => $data_type,
+										     time => $time,
+										     interval => $interval,
+										     values => $values,
+										     meta => $meta );
+		}
+		
+		catch {
+		    
+		    $self->logger->error( $_ );
+		};
+		
+		# include this to our list of aggregates to process if it was valid
+		push( @$aggregates_to_process, $aggregate_message ) if $aggregate_message;
+	    }
+	}
 
         # must be a data message
         else {
@@ -465,6 +496,7 @@ sub _consume_messages {
 
     try {
 
+	$self->_process_aggregate_messages( $aggregates_to_process ) if ( @$aggregates_to_process > 0 );
         $self->_process_data_messages( $data_to_process ) if ( @$data_to_process > 0 );
         $self->_process_event_messages( $events_to_process ) if ( @$events_to_process > 0 );
     }
@@ -694,6 +726,54 @@ sub _process_data_messages {
 
         $self->_update_metadata_value_types( data_type => $unique_data_types->{$data_type},
                                              value_types => \@value_types );
+    }
+
+    # handle every distinct document that we'll need to update
+    @data_types = keys( %$unique_documents );
+
+    foreach my $data_type ( @data_types ) {
+
+        my @measurement_identifiers = keys( %{$unique_documents->{$data_type}} );
+
+        foreach my $measurement_identifier ( @measurement_identifiers ) {
+
+            my @starts = keys( %{$unique_documents->{$data_type}{$measurement_identifier}} );
+
+            foreach my $start ( @starts ) {
+
+                my @ends = keys( %{$unique_documents->{$data_type}{$measurement_identifier}{$start}} );
+
+                foreach my $end ( @ends ) {
+
+                    my $document = $unique_documents->{$data_type}{$measurement_identifier}{$start}{$end};
+
+                    # process this data document, including all data points contained within it
+                    $self->_process_data_document( $document );
+
+                    # all done with this document, remove it so we don't hold onto its memory
+                    delete( $unique_documents->{$data_type}{$measurement_identifier}{$start}{$end} );
+                }
+            }
+        }
+    }
+}
+
+sub _process_aggregate_messages {
+
+    my ( $self, $messages ) = @_;
+
+    # all unique documents we're handling (and their corresponding data points)
+    my $unique_documents = {};
+
+    # handle every message sent, ordered by their timestamp in ascending order
+    foreach my $message ( sort { $a->time <=> $b->time } @$messages ) {
+
+	my $data_type = $message->data_type;
+	my $measurement_identifier = $message->measurement_identifier;
+        my $interval = $message->interval;
+	my $aggregate_points = $message->aggregate_points;
+	my $time = $message->time;
+	my $meta = $message->meta;
     }
 
     # handle every distinct document that we'll need to update
