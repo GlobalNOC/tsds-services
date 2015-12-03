@@ -97,21 +97,29 @@ sub update {
                                   end => $self->end );
 
     my $updates = {'updated' => time()};
-    
+
+    my $min;
+    my $max;
+
     foreach my $data_point ( @$data_points ) {
 	
 	my $value_type = $data_point->value_type;
 	my $value = $data_point->value;
 	my $time = $data_point->time;
-	
+
+        $min = $time if (! defined $min || $time < $min);
+        $max = $time if (! defined $max || $time > $max);
+
 	my $indexes = $self->get_indexes( $time );
 	
 	my ( $x, $y, $z ) = @$indexes;
 	
 	$updates->{"values.$value_type.$x.$y.$z"} = $value;
     }
-    
-    return $data_collection->update( $query, {'$set' => $updates} );
+
+    return $data_collection->update( $query, {'$set' => $updates, 
+                                              '$min' => {'updated_start' => $min},
+                                              '$max' => {'updated_end'   => $max} } );
 }
 
 sub create {
@@ -145,11 +153,15 @@ sub create {
         $values->{$value_type}[$x][$y][$z] = $value;
     }
 
+    my $now = time();
+
     my $fields = Tie::IxHash->new( identifier => $self->measurement_identifier,
                                    start => $self->start,
                                    end => $self->end,
                                    interval => $self->interval,
-                                   updated => time(),
+                                   updated => $now,
+                                   updated_start => $now,
+                                   updated_end => $now,
                                    values => $values );
 
     $data_collection->insert( $fields );
