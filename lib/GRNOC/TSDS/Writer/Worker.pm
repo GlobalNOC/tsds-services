@@ -774,10 +774,12 @@ sub _process_aggregate_messages {
 	my $aggregate_points = $message->aggregate_points;
 	my $time = $message->time;
 	my $meta = $message->meta;
+
+	# ...
     }
 
     # handle every distinct document that we'll need to update
-    @data_types = keys( %$unique_documents );
+    my @data_types = keys( %$unique_documents );
 
     foreach my $data_type ( @data_types ) {
 
@@ -795,8 +797,8 @@ sub _process_aggregate_messages {
 
                     my $document = $unique_documents->{$data_type}{$measurement_identifier}{$start}{$end};
 
-                    # process this data document, including all data points contained within it
-                    $self->_process_data_document( $document );
+                    # process this aggregate document, including all aggregate points contained within it
+                    $self->_process_aggregate_document( $document );
 
                     # all done with this document, remove it so we don't hold onto its memory
                     delete( $unique_documents->{$data_type}{$measurement_identifier}{$start}{$end} );
