@@ -29,6 +29,7 @@ use Data::Dumper;
 use constant LOCK_TIMEOUT => 10;
 use constant LOCK_RETRIES => 10;
 use constant DATA_CACHE_EXPIRATION => 60 * 60;
+use constant AGGREGATE_CACHE_EXPIRATION => 60 * 60;
 use constant MEASUREMENT_CACHE_EXPIRATION => 60 * 60;
 use constant QUEUE_PREFETCH_COUNT => 20;
 use constant QUEUE_FETCH_TIMEOUT => 10 * 1000;
@@ -349,7 +350,7 @@ sub _consume_messages {
         if ( $type =~ /^(.+)\.(aggregate|event)$/ ) {
 
             my $data_type_name = $1;
-	    my $message_type = $2;
+            my $message_type = $2;
             my $data_type = $self->data_types->{$data_type_name};
 
             # we haven't seen this data type before, re-fetch them
@@ -384,54 +385,54 @@ sub _consume_messages {
                 next;
             }
 
-	    # was it an event?
-	    if ( $message_type eq "event" ) {
+            # was it an event?
+            if ( $message_type eq "event" ) {
 
-		my $event_message;
-		
-		try {
-		    
-		    $event_message = GRNOC::TSDS::Writer::EventMessage->new( data_type => $data_type,
-									     affected => $affected,
-									     text => $text,
-									     start => $start,
-									     end => $end,
-									     identifier => $identifier,
-									     type => $event_type );
-		}
-		
-		catch {
-		    
-		    $self->logger->error( $_ );
-		};
-		
-		# include this to our list of events to process if it was valid
-		push( @$events_to_process, $event_message ) if $event_message;
-	    }
+                my $event_message;
 
-	    # was it an aggregate?
-	    elsif ( $message_type eq "aggregate" ) {
+                try {
 
-		my $aggregate_message;
-		
-		try {
-		    
-		    $aggregate_message = GRNOC::TSDS::Writer::AggregateMessage->new( data_type => $data_type,
-										     time => $time,
-										     interval => $interval,
-										     values => $values,
-										     meta => $meta );
-		}
-		
-		catch {
-		    
-		    $self->logger->error( $_ );
-		};
-		
-		# include this to our list of aggregates to process if it was valid
-		push( @$aggregates_to_process, $aggregate_message ) if $aggregate_message;
-	    }
-	}
+                    $event_message = GRNOC::TSDS::Writer::EventMessage->new( data_type => $data_type,
+                                                                             affected => $affected,
+                                                                             text => $text,
+                                                                             start => $start,
+                                                                             end => $end,
+                                                                             identifier => $identifier,
+                                                                             type => $event_type );
+                }
+
+                catch {
+
+                    $self->logger->error( $_ );
+                };
+
+                # include this to our list of events to process if it was valid
+                push( @$events_to_process, $event_message ) if $event_message;
+            }
+
+            # was it an aggregate?
+            elsif ( $message_type eq "aggregate" ) {
+
+                my $aggregate_message;
+
+                try {
+
+                    $aggregate_message = GRNOC::TSDS::Writer::AggregateMessage->new( data_type => $data_type,
+                                                                                     time => $time,
+                                                                                     interval => $interval,
+                                                                                     values => $values,
+                                                                                     meta => $meta );
+                }
+
+                catch {
+
+                    $self->logger->error( $_ );
+                };
+
+                # include this to our list of aggregates to process if it was valid
+                push( @$aggregates_to_process, $aggregate_message ) if $aggregate_message;
+            }
+        }
 
         # must be a data message
         else {
@@ -496,7 +497,7 @@ sub _consume_messages {
 
     try {
 
-	$self->_process_aggregate_messages( $aggregates_to_process ) if ( @$aggregates_to_process > 0 );
+        $self->_process_aggregate_messages( $aggregates_to_process ) if ( @$aggregates_to_process > 0 );
         $self->_process_data_messages( $data_to_process ) if ( @$data_to_process > 0 );
         $self->_process_event_messages( $events_to_process ) if ( @$events_to_process > 0 );
     }
@@ -768,14 +769,44 @@ sub _process_aggregate_messages {
     # handle every message sent, ordered by their timestamp in ascending order
     foreach my $message ( sort { $a->time <=> $b->time } @$messages ) {
 
-	my $data_type = $message->data_type;
-	my $measurement_identifier = $message->measurement_identifier;
+        my $data_type = $message->data_type;
+        my $measurement_identifier = $message->measurement_identifier;
         my $interval = $message->interval;
-	my $aggregate_points = $message->aggregate_points;
-	my $time = $message->time;
-	my $meta = $message->meta;
+        my $aggregate_points = $message->aggregate_points;
+        my $time = $message->time;
+        my $meta = $message->meta;
 
-	# ...
+        # determine proper start and end time of document
+        my $doc_length = $interval * AGGREGATE_DOCUMENT_SIZE;
+        my $start = nlowmult( $doc_length, $time );
+        my $end = $start + $doc_length;
+
+        # determine the document that this message would belong within
+        my $document = GRNOC::TSDS::AggregateDocument->new( data_type => $data_type,
+                                                            measurement_identifier => $measurement_identifier,
+                                                            interval => $interval,
+                                                            start => $start,
+                                                            end => $end );
+
+        # mark the document for this data point if one hasn't been set already
+        my $unique_doc = $unique_documents->{$data_type->name}{$measurement_identifier}{$document->start}{$document->end};
+
+        # we've never handled a data point for this document before
+        if ( !$unique_doc ) {
+
+            # mark it as being a new unique document we need to handle
+            $unique_documents->{$data_type->name}{$measurement_identifier}{$document->start}{$document->end} = $document;
+            $unique_doc = $unique_documents->{$data_type->name}{$measurement_identifier}{$document->start}{$document->end};
+        }
+
+        # handle every aggregate point that was included in this message
+        foreach my $aggregate_point ( @$aggregate_points ) {
+
+            my $value_type = $aggregate_point->value_type;
+
+            # add this as another data point to update/set in the document
+            $unique_doc->add_aggregate_point( $aggregate_point );
+        }
     }
 
     # handle every distinct document that we'll need to update
@@ -974,6 +1005,88 @@ sub _process_data_document {
     }
 
     $self->logger->debug( "Finished processing document $data_type / $measurement_identifier / $start / $end." );
+
+    # release lock on this document now that we're done
+    $self->locker->release( $lock );
+}
+
+sub _process_aggregate_document {
+
+    my ( $self, $document ) = @_;
+
+    my $data_type = $document->data_type->name;
+    my $measurement_identifier = $document->measurement_identifier;
+    my $start = $document->start;
+    my $end = $document->end;
+    my $interval = $document->interval;
+
+    $self->logger->debug( "Processing aggregate document $data_type - $interval / $measurement_identifier / $start / $end." );
+
+    # get lock for this aggregate document
+    my $lock_id = $self->_get_lock_id( type => $data_type,
+                                       collection => "data_$interval",
+                                       identifier => $measurement_identifier,
+                                       start => $start,
+                                       end => $end );
+
+    my $lock = $self->locker->lock( $lock_id, LOCK_TIMEOUT );
+
+    my $cache_id = $self->_get_cache_id( type => $data_type,
+                                         collection => "data_$interval",
+                                         identifier => $measurement_identifier,
+                                         start => $start,
+                                         end => $end );
+
+    # its already in our cache, seen it before
+    if ( my $cached = $self->memcache->get( $cache_id ) ) {
+
+        $self->logger->debug( 'Found document in cache, updating.' );
+
+        my $old_value_types = $cached->{'value_types'};
+
+        # update existing document along with its new data points
+        $document = $self->_update_aggregate_document( document => $document,
+                                                       old_value_types => $old_value_types );
+
+        # update the cache with its new info
+        $self->memcache->set( $cache_id,
+                              {'value_types' => $document->value_types},
+                              AGGREGATE_CACHE_EXPIRATION );
+    }
+
+    # not in cache, we'll have to query mongo to see if its there
+    else {
+
+        $self->logger->debug( 'Document not found in cache.' );
+
+        # retrieve the full updated doc from mongo
+        my $live_doc = $document->fetch();
+
+        # document exists in mongo, so we'll need to update it
+        if ( $live_doc ) {
+
+            $self->logger->debug( 'Document exists in mongo, updating.' );
+
+            # update existing document along with its new data points
+            $document = $self->_update_aggregate_document( document => $document,
+                                                           old_value_types => $live_doc->value_types );
+        }
+
+        # doesn't exist in mongo, we'll need to create it along with the aggregate points provided
+        else {
+
+            $self->logger->debug( 'Document does not exist in mongo, creating.' );
+
+            $document = $self->_create_aggregate_document( $document );
+        }
+
+        # update our cache with the doc info
+        $self->memcache->set( $cache_id,
+                              {'value_types' => $document->value_types},
+                              AGGREGATE_CACHE_EXPIRATION );
+    }
+
+    $self->logger->debug( "Finished processing aggregate document $data_type - $interval / $measurement_identifier / $start / $end." );
 
     # release lock on this document now that we're done
     $self->locker->release( $lock );
@@ -1206,6 +1319,38 @@ sub _create_data_document {
 }
 
 sub _update_data_document {
+
+    my ( $self, %args ) = @_;
+
+    my $document = $args{'document'};
+    my $old_value_types = $args{'old_value_types'};
+
+    # do we need to add any value types to the document?
+    my @value_types_to_add;
+
+    foreach my $new_value_type ( keys %{$document->value_types} ) {
+
+        # already in the doc
+        next if ( $old_value_types->{$new_value_type} );
+
+        # must be new
+        push( @value_types_to_add, $new_value_type );
+    }
+
+    # did we find at least one new value type not in the doc?
+    if ( @value_types_to_add ) {
+
+        $self->logger->debug( "Adding new value types " . join( ',', @value_types_to_add ) . " to document." );
+
+        $document->add_value_types( \@value_types_to_add );
+    }
+
+    $document->update();
+
+    return $document;
+}
+
+sub _update_aggregate_document {
 
     my ( $self, %args ) = @_;
 

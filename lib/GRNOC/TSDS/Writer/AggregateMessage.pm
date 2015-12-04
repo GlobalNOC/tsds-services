@@ -61,11 +61,11 @@ sub _build_aggregate_points {
 
     while ( my ( $value_type, $value ) = each( %$values ) ) {
 
-	my $aggregate_point = GRNOC::TSDS::AggregatePoint->new( data_type => $data_type,
-								value_type => $value_type,
-								time => $time,
-								value => $value,
-								interval => $self->interval );
+        my $aggregate_point = GRNOC::TSDS::AggregatePoint->new( data_type => $data_type,
+                                                                value_type => $value_type,
+                                                                time => $time,
+                                                                value => $value,
+                                                                interval => $self->interval );
 
         push( @$aggregate_points, $aggregate_point );
     }

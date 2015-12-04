@@ -48,6 +48,7 @@ init.d/tsds_writer
 INSTALL.md
 lib/GRNOC/TSDS.pm
 lib/GRNOC/TSDS/Aggregate.pm
+lib/GRNOC/TSDS/AggregateDocument.pm
 lib/GRNOC/TSDS/AggregatePoint.pm
 lib/GRNOC/TSDS/Aggregate/Histogram.pm
 lib/GRNOC/TSDS/Constants.pm

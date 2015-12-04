@@ -1,7 +1,7 @@
 package GRNOC::TSDS::AggregatePoint;
 
 use Moo;
-use Types::Standard qw( Str Int StrictNum InstanceOf Maybe );
+use Types::Standard qw( Str Int StrictNum InstanceOf Maybe Dict Map );
 
 use Data::Dumper;
 
@@ -20,23 +20,21 @@ has 'time' => ( is => 'ro',
                 required => 1,
                 coerce => sub { defined $_[0] ? $_[0] + 0 : undef } );
 
-has 'value' => ( is => 'ro',
-                 isa => Dict[ 'avg' => Maybe[StrictNum],
-			      'min' => Maybe[StrictNum],
-			      'max' => Maybe[StrictNum],
-			      'hist' => Maybe[ Dict[ 'num_bins' => Int,
-						     'bin_size' => Int,
-						     'min' => Int,
-						     'max' => Int,
-						     'bins' => Map[ Int, Int ],
-						     'total' => Int ] ] ],						     
-		 required => 1 );
-
-### optional attributes ###
-
 has 'interval' => ( is => 'rw',
                     isa => Int,
-                    required => 0,
+                    required => 1,
                     coerce => sub { defined $_[0] ? $_[0] + 0 : undef } );
+
+has 'value' => ( is => 'ro',
+                 isa => Dict[ 'avg' => Maybe[StrictNum],
+                              'min' => Maybe[StrictNum],
+                              'max' => Maybe[StrictNum],
+                              'hist' => Maybe[ Dict[ 'num_bins' => Int,
+                                                     'bin_size' => Int,
+                                                     'min' => Int,
+                                                     'max' => Int,
+                                                     'bins' => Map[ Int, Int ],
+                                                     'total' => Int ] ] ],
+                 required => 1 );
 
 1;

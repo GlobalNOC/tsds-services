@@ -222,6 +222,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %{perl_vendorlib}/GRNOC/TSDS.pm
 %{perl_vendorlib}/GRNOC/TSDS/Aggregate.pm
+%{perl_vendorlib}/GRNOC/TSDS/AggregateDocument.pm
 %{perl_vendorlib}/GRNOC/TSDS/AggregatePoint.pm
 %{perl_vendorlib}/GRNOC/TSDS/SearchIndexer.pm
 %{perl_vendorlib}/GRNOC/TSDS/Aggregate/Histogram.pm
