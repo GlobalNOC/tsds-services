@@ -144,12 +144,18 @@ sub create {
         $values->{$value_type} = $self->_get_empty_data_array();
     }
 
+    my $updated_start;
+    my $updated_end;
+
     # now handle every aggregate point to determine the proper update for the document
     foreach my $aggregate_point ( @$aggregate_points ) {
 
         my $value_type = $aggregate_point->value_type;
         my $time = $aggregate_point->time;
         my $value = $aggregate_point->value;
+
+        $updated_start = $time if ( !defined( $updated_start ) || $time < $updated_start );
+        $updated_end = $time if ( !defined( $updated_end ) || $time > $updated_end );
 
         # determine the index(es) of this aggregate point
         my $indexes = $self->get_indexes( $time );
@@ -166,8 +172,8 @@ sub create {
                                    end => $self->end,
                                    interval => $interval,
                                    updated => $now,
-                                   updated_start => $now,
-                                   updated_end => $now,
+                                   updated_start => $updated_start,
+                                   updated_end => $updated_end,
                                    values => $values );
 
     $aggregate_collection->insert( $fields );

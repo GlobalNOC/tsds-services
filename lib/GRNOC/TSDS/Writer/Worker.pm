@@ -1077,7 +1077,7 @@ sub _process_aggregate_document {
 
             $self->logger->debug( 'Document does not exist in mongo, creating.' );
 
-            $document = $self->_create_aggregate_document( $document );
+            $document = $document->create();
         }
 
         # update our cache with the doc info

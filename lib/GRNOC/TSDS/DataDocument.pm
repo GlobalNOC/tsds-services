@@ -102,22 +102,22 @@ sub update {
     my $max;
 
     foreach my $data_point ( @$data_points ) {
-	
-	my $value_type = $data_point->value_type;
-	my $value = $data_point->value;
-	my $time = $data_point->time;
+
+        my $value_type = $data_point->value_type;
+        my $value = $data_point->value;
+        my $time = $data_point->time;
 
         $min = $time if (! defined $min || $time < $min);
         $max = $time if (! defined $max || $time > $max);
 
-	my $indexes = $self->get_indexes( $time );
-	
-	my ( $x, $y, $z ) = @$indexes;
-	
-	$updates->{"values.$value_type.$x.$y.$z"} = $value;
+        my $indexes = $self->get_indexes( $time );
+
+        my ( $x, $y, $z ) = @$indexes;
+
+        $updates->{"values.$value_type.$x.$y.$z"} = $value;
     }
 
-    return $data_collection->update( $query, {'$set' => $updates, 
+    return $data_collection->update( $query, {'$set' => $updates,
                                               '$min' => {'updated_start' => $min},
                                               '$max' => {'updated_end'   => $max} } );
 }
@@ -138,12 +138,18 @@ sub create {
         $values->{$value_type} = $self->_get_empty_data_array();
     }
 
+    my $updated_start;
+    my $updated_end;
+
     # now handle every data point to determine the proper update for the document
     foreach my $data_point ( @$data_points ) {
 
         my $value_type = $data_point->value_type;
         my $time = $data_point->time;
         my $value = $data_point->value;
+
+        $updated_start = $time if ( !defined( $updated_start ) || $time < $updated_start );
+        $updated_end = $time if ( !defined( $updated_end ) || $time > $updated_end );
 
         # determine the index(es) of this data point
         my $indexes = $self->get_indexes( $time );
@@ -160,8 +166,8 @@ sub create {
                                    end => $self->end,
                                    interval => $self->interval,
                                    updated => $now,
-                                   updated_start => $now,
-                                   updated_end => $now,
+                                   updated_start => $updated_start,
+                                   updated_end => $updated_end,
                                    values => $values );
 
     $data_collection->insert( $fields );
