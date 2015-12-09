@@ -26,7 +26,7 @@ use Data::Dumper;
 
 ### constants ###
 
-use constant LOCK_TIMEOUT => 10;
+use constant LOCK_TIMEOUT => 60;
 use constant LOCK_RETRIES => 10;
 use constant DATA_CACHE_EXPIRATION => 60 * 60;
 use constant AGGREGATE_CACHE_EXPIRATION => 60 * 60;
@@ -772,21 +772,35 @@ sub _process_aggregate_messages {
         my $data_type = $message->data_type;
         my $measurement_identifier = $message->measurement_identifier;
         my $interval = $message->interval;
-        my $aggregate_points = $message->aggregate_points;
         my $time = $message->time;
         my $meta = $message->meta;
+
+	# This is lazily built so it might actually fail type validation
+	# when we invoke it for the first time
+	my $aggregate_points;
+	try {
+	    $aggregate_points = $message->aggregate_points;
+	}
+	catch {
+	    $self->logger->error( "Error processing aggregate update - bad data format: $_" );
+	};
+	
+	next if (! defined $aggregate_points);
+
 
         # determine proper start and end time of document
         my $doc_length = $interval * AGGREGATE_DOCUMENT_SIZE;
         my $start = nlowmult( $doc_length, $time );
         my $end = $start + $doc_length;
 
+	
+	
         # determine the document that this message would belong within
-        my $document = GRNOC::TSDS::AggregateDocument->new( data_type => $data_type,
-                                                            measurement_identifier => $measurement_identifier,
-                                                            interval => $interval,
-                                                            start => $start,
-                                                            end => $end );
+	my $document = GRNOC::TSDS::AggregateDocument->new( data_type => $data_type,
+							    measurement_identifier => $measurement_identifier,
+							    interval => $interval,
+							    start => $start,
+							    end => $end );
 
         # mark the document for this data point if one hasn't been set already
         my $unique_doc = $unique_documents->{$data_type->name}{$measurement_identifier}{$document->start}{$document->end};
@@ -804,9 +818,9 @@ sub _process_aggregate_messages {
 
             my $value_type = $aggregate_point->value_type;
 
-            # add this as another data point to update/set in the document
-            $unique_doc->add_aggregate_point( $aggregate_point );
-        }
+	    # add this as another data point to update/set in the document
+	    $unique_doc->add_aggregate_point( $aggregate_point );
+	}
     }
 
     # handle every distinct document that we'll need to update
@@ -857,7 +871,8 @@ sub _process_event_document {
                                        start => $start,
                                        end => $end );
 
-    my $lock = $self->locker->lock( $lock_id, LOCK_TIMEOUT );
+    my $lock = $self->locker->lock( $lock_id, LOCK_TIMEOUT ) or die "Unable to lock event document, requeueing";
+
 
     my $cache_id = $self->_get_cache_id( type => $data_type,
                                          collection => 'event',
@@ -946,7 +961,7 @@ sub _process_data_document {
                                        start => $start,
                                        end => $end );
 
-    my $lock = $self->locker->lock( $lock_id, LOCK_TIMEOUT );
+    my $lock = $self->locker->lock( $lock_id, LOCK_TIMEOUT ) or die "Can't lock data document for $measurement_identifier";
 
     my $cache_id = $self->_get_cache_id( type => $data_type,
                                          collection => 'data',
@@ -1029,7 +1044,7 @@ sub _process_aggregate_document {
                                        start => $start,
                                        end => $end );
 
-    my $lock = $self->locker->lock( $lock_id, LOCK_TIMEOUT );
+    my $lock = $self->locker->lock( $lock_id, LOCK_TIMEOUT ) or die "Can't lock aggregate data doc for $measurement_identifier";
 
     my $cache_id = $self->_get_cache_id( type => $data_type,
                                          collection => "data_$interval",
@@ -1215,7 +1230,7 @@ sub _create_data_document {
                                            start => $overlap_start,
                                            end => $overlap_end );
 
-        my $lock = $self->locker->lock( $lock_id, LOCK_TIMEOUT );
+        my $lock = $self->locker->lock( $lock_id, LOCK_TIMEOUT ) or die "Can't lock overlapping data doc for $identifier";
 
         push( @locks, $lock );
 
@@ -1471,7 +1486,7 @@ sub _update_metadata_value_types {
     my $lock_id = $self->_get_lock_id( type => $data_type->name,
                                        collection => 'metadata' );
 
-    my $lock = $self->locker->lock( $lock_id, LOCK_TIMEOUT );
+    my $lock = $self->locker->lock( $lock_id, LOCK_TIMEOUT ) or die "Can't lock metadata for " . $data_type->name;
 
     # grab the current metadata document
     my $doc = $metadata_collection->find_one( {}, {'values' => 1} );
@@ -1532,7 +1547,7 @@ sub _create_measurement_document {
                                        collection => 'measurements',
                                        identifier => $identifier );
 
-    my $lock = $self->locker->lock( $lock_id, LOCK_TIMEOUT );
+    my $lock = $self->locker->lock( $lock_id, LOCK_TIMEOUT ) or die "Can't lock measurements for $identifier";
 
     # get measurement collection for this data type
     my $measurement_collection = $data_type->database->get_collection( 'measurements' );
