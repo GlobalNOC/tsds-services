@@ -26,8 +26,8 @@ use Data::Dumper;
 
 ### constants ###
 
-use constant LOCK_TIMEOUT => 60;
-use constant LOCK_RETRIES => 10;
+use constant LOCK_TIMEOUT => 120;
+use constant LOCK_RETRIES => 20;
 use constant DATA_CACHE_EXPIRATION => 60 * 60;
 use constant AGGREGATE_CACHE_EXPIRATION => 60 * 60;
 use constant MEASUREMENT_CACHE_EXPIRATION => 60 * 60;
@@ -129,7 +129,8 @@ sub start {
     $self->logger->debug( 'Creating locker.' );
 
     my $locker = Redis::DistLock->new( servers => [$redis],
-                                       retry_count => LOCK_RETRIES );
+                                       retry_count => LOCK_RETRIES,
+				       retry_delay => 0.5);
 
     $self->_set_locker( $locker );
 
