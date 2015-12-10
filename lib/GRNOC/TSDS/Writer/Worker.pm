@@ -43,6 +43,9 @@ has config => ( is => 'ro',
 has logger => ( is => 'ro',
                 required => 1 );
 
+has queue => ( is => 'ro',
+               required => 1 );
+
 ### internal attributes ###
 
 has is_running => ( is => 'rwp',
@@ -69,13 +72,15 @@ sub start {
 
     my ( $self ) = @_;
 
+    my $queue = $self->queue;
+
     $self->logger->debug( "Starting." );
 
     # flag that we're running
     $self->_set_is_running( 1 );
 
     # change our process name
-    $0 = "tsds_writer [worker]";
+    $0 = "tsds_writer ($queue) [worker]";
 
     # setup signal handlers
     $SIG{'TERM'} = sub {
@@ -102,16 +107,19 @@ sub start {
     $self->logger->debug( "Connecting to MongoDB as readwrite on $mongo_host:$mongo_port." );
 
     my $mongo;
-    eval {
-        $mongo = MongoDB::MongoClient->new(
-            host => "$mongo_host:$mongo_port",
-            username => $rw_user->{'user'},
-            password => $rw_user->{'password'}
-            );
-    };
-    if($@){
-        die "Could not connect to Mongo: $@";
+
+    try {
+
+        $mongo = MongoDB::MongoClient->new( host => "$mongo_host:$mongo_port",
+                                            username => $rw_user->{'user'},
+                                            password => $rw_user->{'password'} );
     }
+
+    catch {
+
+        $self->logger->error( "Error connecting to MongoDB: $_" );
+        die( "Error connecting to MongoDB: $_" );
+    };
 
     $self->_set_mongo_rw( $mongo );
 
@@ -121,7 +129,18 @@ sub start {
 
     $self->logger->debug( "Connecting to Redis $redis_host:$redis_port." );
 
-    my $redis = Redis->new( server => "$redis_host:$redis_port" );
+    my $redis;
+
+    try {
+
+        $redis = Redis->new( server => "$redis_host:$redis_port" );
+    }
+
+    catch {
+
+        $self->logger->error( "Error connecting to Redis: $_" );
+        die( "Error connecting to Redis: $_" );
+    };
 
     $self->_set_redis( $redis );
 
@@ -130,7 +149,7 @@ sub start {
 
     my $locker = Redis::DistLock->new( servers => [$redis],
                                        retry_count => LOCK_RETRIES,
-				       retry_delay => 0.5);
+                                       retry_delay => 0.5);
 
     $self->_set_locker( $locker );
 
@@ -776,17 +795,17 @@ sub _process_aggregate_messages {
         my $time = $message->time;
         my $meta = $message->meta;
 
-	# This is lazily built so it might actually fail type validation
-	# when we invoke it for the first time
-	my $aggregate_points;
-	try {
-	    $aggregate_points = $message->aggregate_points;
-	}
-	catch {
-	    $self->logger->error( "Error processing aggregate update - bad data format: $_" );
-	};
-	
-	next if (! defined $aggregate_points);
+        # This is lazily built so it might actually fail type validation
+        # when we invoke it for the first time
+        my $aggregate_points;
+        try {
+            $aggregate_points = $message->aggregate_points;
+        }
+        catch {
+            $self->logger->error( "Error processing aggregate update - bad data format: $_" );
+        };
+
+        next if (! defined $aggregate_points);
 
 
         # determine proper start and end time of document
@@ -794,14 +813,14 @@ sub _process_aggregate_messages {
         my $start = nlowmult( $doc_length, $time );
         my $end = $start + $doc_length;
 
-	
-	
+
+
         # determine the document that this message would belong within
-	my $document = GRNOC::TSDS::AggregateDocument->new( data_type => $data_type,
-							    measurement_identifier => $measurement_identifier,
-							    interval => $interval,
-							    start => $start,
-							    end => $end );
+        my $document = GRNOC::TSDS::AggregateDocument->new( data_type => $data_type,
+                                                            measurement_identifier => $measurement_identifier,
+                                                            interval => $interval,
+                                                            start => $start,
+                                                            end => $end );
 
         # mark the document for this data point if one hasn't been set already
         my $unique_doc = $unique_documents->{$data_type->name}{$measurement_identifier}{$document->start}{$document->end};
@@ -819,9 +838,9 @@ sub _process_aggregate_messages {
 
             my $value_type = $aggregate_point->value_type;
 
-	    # add this as another data point to update/set in the document
-	    $unique_doc->add_aggregate_point( $aggregate_point );
-	}
+            # add this as another data point to update/set in the document
+            $unique_doc->add_aggregate_point( $aggregate_point );
+        }
     }
 
     # handle every distinct document that we'll need to update
@@ -872,7 +891,7 @@ sub _process_event_document {
                                        start => $start,
                                        end => $end );
 
-    my $lock = $self->locker->lock( $lock_id, LOCK_TIMEOUT ) or die "Unable to lock event document, requeueing";
+    my $lock = $self->locker->lock( $lock_id, LOCK_TIMEOUT ) or die "Unable to lock event document $data_type / $type / $start / $end, requeueing";
 
 
     my $cache_id = $self->_get_cache_id( type => $data_type,
@@ -962,7 +981,7 @@ sub _process_data_document {
                                        start => $start,
                                        end => $end );
 
-    my $lock = $self->locker->lock( $lock_id, LOCK_TIMEOUT ) or die "Can't lock data document for $measurement_identifier";
+    my $lock = $self->locker->lock( $lock_id, LOCK_TIMEOUT ) or die "Can't lock data document for $data_type / $measurement_identifier / $start / $end";
 
     my $cache_id = $self->_get_cache_id( type => $data_type,
                                          collection => 'data',
@@ -1045,7 +1064,7 @@ sub _process_aggregate_document {
                                        start => $start,
                                        end => $end );
 
-    my $lock = $self->locker->lock( $lock_id, LOCK_TIMEOUT ) or die "Can't lock aggregate data doc for $measurement_identifier";
+    my $lock = $self->locker->lock( $lock_id, LOCK_TIMEOUT ) or die "Can't lock aggregate data doc for $data_type - $interval / $measurement_identifier / $start / $end.";
 
     my $cache_id = $self->_get_cache_id( type => $data_type,
                                          collection => "data_$interval",
@@ -1662,7 +1681,7 @@ sub _rabbit_connect {
 
     my $rabbit_host = $self->config->get( '/config/rabbit/@host' );
     my $rabbit_port = $self->config->get( '/config/rabbit/@port' );
-    my $rabbit_queue = $self->config->get( '/config/rabbit/@queue' );
+    my $rabbit_queue = $self->queue;
 
     while ( 1 ) {
 
