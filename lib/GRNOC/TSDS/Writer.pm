@@ -142,10 +142,18 @@ sub _create_workers {
     my ( $self ) = @_;
 
     my $num_processes = $self->config->get( '/config/num-processes' );
+    my $num_aggregate_processes = $self->config->get( '/config/num-aggregate-processes' );
 
-    $self->logger->info( "Creating $num_processes child worker processes." );
+    warn "$num_processes $num_aggregate_processes";
 
-    my $forker = Parallel::ForkManager->new( $num_processes );
+    my $queue = $self->config->get( '/config/rabbit/@queue' );
+    my $aggregate_queue = $self->config->get( '/config/rabbit/@aggregate-queue' );
+
+    $self->logger->info( "Creating $num_processes high resolution and $num_aggregate_processes aggregate child worker processes." );
+
+    my $total_workers = $num_processes + $num_aggregate_processes;
+
+    my $forker = Parallel::ForkManager->new( $total_workers );
 
     # keep track of children pids
     $forker->run_on_start( sub {
@@ -157,13 +165,32 @@ sub _create_workers {
         push( @{$self->children}, $pid );
                            } );
 
+    # create high res workers
     for ( 1 .. $num_processes ) {
 
         $forker->start() and next;
 
         # create worker in this process
         my $worker = GRNOC::TSDS::Writer::Worker->new( config => $self->config,
-                                                       logger => $self->logger );
+                                                       logger => $self->logger,
+						       queue => $queue );
+
+        # this should only return if we tell it to stop via TERM signal etc.
+        $worker->start();
+
+        # exit child process
+        $forker->finish();
+    }
+
+    # create aggregate workers
+    for ( 1 .. $num_aggregate_processes ) {
+
+        $forker->start() and next;
+
+        # create worker in this process
+        my $worker = GRNOC::TSDS::Writer::Worker->new( config => $self->config,
+                                                       logger => $self->logger,
+						       queue => $aggregate_queue );
 
         # this should only return if we tell it to stop via TERM signal etc.
         $worker->start();
