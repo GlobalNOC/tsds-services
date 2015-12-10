@@ -2742,19 +2742,23 @@ sub _apply_sum {
 
     my @set = $self->_find_value($name, $data);
 
+    my $any_defined = 0;
     my $sum = 0;
 
     foreach my $value (@set){
         $value = $value->[1] if (ref $value eq 'ARRAY');
-	$sum += $value if (defined $value);
+	if (defined $value){
+            $sum         += $value;
+            $any_defined = 1;
+        }
     }
 
-    if ($math_symbol){
+    if ($any_defined && $math_symbol){
 	$sum = $self->_apply_math($sum, $math_symbol, $math_value);
     }
 
     return {
-	$rename => $sum
+	$rename => $any_defined ? $sum : undef
     };
 }
 
