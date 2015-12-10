@@ -434,7 +434,7 @@ sub get_meta_field_values {
 
     my $date_format = DateTime::Format::Strptime->new( pattern => '%m/%d/%Y %H:%M:%S');
 
-    my $base_time    = $date_format->format_datetime($date_format->parse_datetime('01/01/1970 00:00:00'));
+    my $base_time    = $date_format->format_datetime($date_format->parse_datetime('01/01/2015 00:00:00'));
     my $present_time = $date_format->format_datetime(DateTime->now());
 
     my $query = "get $meta_field between(\"$base_time\", \"$present_time\") by $meta_field from $measurement_type";
