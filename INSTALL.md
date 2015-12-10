@@ -433,7 +433,7 @@ Remember to enable it to start up upon boot:
 By default, the TSDS bootstrap sets up measurement types with a predefined set of information on how to aggregate data up to lower resolutions and how to expire old data  These defaults are extremely liberal and may need to be adjusted.  The expiration time primarily impacts on how much disk space will be utilized--the longer you keep data around, the more
 disk space it takes up.  The aggregation windows help to make queries more efficient at larger time resolutions - being able to utilize one-hour pre-calculated averages makes a month query much faster than using 10-second raw samples.
 
-The `grnoc-tsds-services` package provides a `/etc/cron.d/tsds-services.cron` that will run the aggregation and expiration defaults.  These entries are commented out initially to give adminstrators a chance to configure them appropriately.
+A separate `grnoc-tsds-aggregate` package provides two tools, one that finds data that needs to be aggregated, and another which performs the aggregation work and sends it to a separate queue to be processed by the writer which is part of this package.  It will need to be installed and configured as well.
 
 ## Sphinx Search Configuration
 
