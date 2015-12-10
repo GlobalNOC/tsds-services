@@ -48,6 +48,8 @@ init.d/tsds_writer
 INSTALL.md
 lib/GRNOC/TSDS.pm
 lib/GRNOC/TSDS/Aggregate.pm
+lib/GRNOC/TSDS/AggregateDocument.pm
+lib/GRNOC/TSDS/AggregatePoint.pm
 lib/GRNOC/TSDS/Aggregate/Histogram.pm
 lib/GRNOC/TSDS/Constants.pm
 lib/GRNOC/TSDS/Constraints.pm
@@ -90,8 +92,10 @@ lib/GRNOC/TSDS/Upgrade/1_2_3.pm
 lib/GRNOC/TSDS/Upgrade/1_4_0.pm
 lib/GRNOC/TSDS/Upgrade/1_4_1.pm
 lib/GRNOC/TSDS/Upgrade/1_4_2.pm
+lib/GRNOC/TSDS/Upgrade/1_5_0.pm
 lib/GRNOC/TSDS/Util/ConfigChooser.pm
 lib/GRNOC/TSDS/Writer.pm
+lib/GRNOC/TSDS/Writer/AggregateMessage.pm
 lib/GRNOC/TSDS/Writer/DataMessage.pm
 lib/GRNOC/TSDS/Writer/EventMessage.pm
 lib/GRNOC/TSDS/Writer/Worker.pm

@@ -222,6 +222,8 @@ rm -rf $RPM_BUILD_ROOT
 
 %{perl_vendorlib}/GRNOC/TSDS.pm
 %{perl_vendorlib}/GRNOC/TSDS/Aggregate.pm
+%{perl_vendorlib}/GRNOC/TSDS/AggregateDocument.pm
+%{perl_vendorlib}/GRNOC/TSDS/AggregatePoint.pm
 %{perl_vendorlib}/GRNOC/TSDS/SearchIndexer.pm
 %{perl_vendorlib}/GRNOC/TSDS/Aggregate/Histogram.pm
 %{perl_vendorlib}/GRNOC/TSDS/Constants.pm
@@ -260,6 +262,7 @@ rm -rf $RPM_BUILD_ROOT
 %{perl_vendorlib}/GRNOC/TSDS/Upgrade/*.pm
 %{perl_vendorlib}/GRNOC/TSDS/Util/ConfigChooser.pm
 %{perl_vendorlib}/GRNOC/TSDS/Writer.pm
+%{perl_vendorlib}/GRNOC/TSDS/Writer/AggregateMessage.pm
 %{perl_vendorlib}/GRNOC/TSDS/Writer/DataMessage.pm
 %{perl_vendorlib}/GRNOC/TSDS/Writer/EventMessage.pm
 %{perl_vendorlib}/GRNOC/TSDS/Writer/Worker.pm
