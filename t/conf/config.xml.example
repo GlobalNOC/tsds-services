@@ -5,6 +5,9 @@
 
     <!-- how many concurrent processes should read and process messages off of the rabbit queue -->
     <num-processes>1</num-processes>
+
+    <!-- how many concurrent processes should read and process aggregate messages off of the rabbit queue -->
+    <num-aggregate-processes>1</num-aggregate-processes>
     
     <!-- where should we write our pid file to -->
     <pid-file>/tmp/tsds_receiver_test.pid</pid-file>
@@ -13,7 +16,7 @@
     <report-root>/etc/grnoc/tsds/services/report_templates/</report-root>    
 
     <!-- rabbitmq connection info -->
-    <rabbit host="127.0.0.1" port="5672" queue="tsds_test" />
+    <rabbit host="127.0.0.1" port="5672" queue="tsds_test" aggregate-queue="tsds_test_aggregate" />
 
     <!-- mongodb connection info -->
     <mongo host='127.0.0.1' port='27017'>

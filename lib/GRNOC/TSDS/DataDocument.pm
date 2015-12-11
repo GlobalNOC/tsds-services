@@ -87,7 +87,9 @@ sub add_value_types {
 
 sub update {
 
-    my ( $self ) = @_;
+    my ( $self, %args ) = @_;
+
+    my $bulk = $args{'bulk'};
 
     my $data_collection = $self->data_type->database->get_collection( 'data' );
     my $data_points = $self->data_points;
@@ -117,18 +119,33 @@ sub update {
         $updates->{"values.$value_type.$x.$y.$z"} = $value;
     }
 
-    return $data_collection->update( $query, {'$set' => $updates,
-                                              '$min' => {'updated_start' => $min},
-                                              '$max' => {'updated_end'   => $max} } );
+    # doing this as part of a bulk operation?
+    if ( $bulk ) {
+
+        return $bulk->find( $query )->update( {'$set' => $updates,
+                                               '$min' => {'updated_start' => $min},
+                                               '$max' => {'updated_end'   => $max}} );
+    }
+
+    # single doc update
+    else {
+
+        my $data_collection = $self->data_type->database->get_collection( 'data' );
+
+        return $data_collection->update( $query, {'$set' => $updates,
+						  '$min' => {'updated_start' => $min},
+						  '$max' => {'updated_end'   => $max} } );
+    }
 }
 
 sub create {
 
     my ( $self, %args ) = @_;
 
+    my $bulk = $args{'bulk'};
+
     my $values = {};
 
-    my $data_collection = $self->data_type->database->get_collection( 'data' );
     my $value_types = $self->data_type->value_types;
     my $data_points = $self->data_points;
 
@@ -170,7 +187,18 @@ sub create {
                                    updated_end => $updated_end,
                                    values => $values );
 
-    $data_collection->insert( $fields );
+    # asked to perform this as part of a bulk op
+    if ( $bulk ) {
+
+	$bulk->insert( $fields );
+    }
+
+    # single op
+    else {
+
+	my $data_collection = $self->data_type->database->get_collection( 'data' );
+	$data_collection->insert( $fields );
+    }
 
     return $self;
 }

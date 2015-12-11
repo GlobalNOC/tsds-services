@@ -65,10 +65,10 @@ if ( !defined( $mongo ) ) {
   BAIL_OUT( "Can't connect to mongo." );
 }
 
-my $database = $mongo->get_database( $unit_test_db, create => 1 );
+my $database = $mongo->get_database( $unit_test_db );
 
-# delete the db since we are going to recreate it
-$database->drop();
+# delete the db since we are going to recreate it (if it exists)
+$database->drop() if $database;
 
 my $database_dir = "$FindBin::Bin/conf/databases/";
 my $tsds_install = GRNOC::TSDS::Install->new(

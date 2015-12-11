@@ -337,6 +337,10 @@ sub _consume_messages {
     my $events_to_process = [];
     my $aggregates_to_process = [];
 
+    # keep track and build up all of the bulk operations we'll want to do at the end
+    my $bulk_creates = {};
+    my $bulk_updates = {};
+
     # handle every TSDS message that came within the rabbit message
     foreach my $message ( @$messages ) {
 
@@ -517,9 +521,39 @@ sub _consume_messages {
 
     try {
 
-        $self->_process_aggregate_messages( $aggregates_to_process ) if ( @$aggregates_to_process > 0 );
-        $self->_process_data_messages( $data_to_process ) if ( @$data_to_process > 0 );
-        $self->_process_event_messages( $events_to_process ) if ( @$events_to_process > 0 );
+        # at least one aggregate to process
+        if ( @$aggregates_to_process > 0 ) {
+
+	    $self->logger->debug( "Processing " . @$aggregates_to_process . " aggregate messages." );
+
+            $self->_process_aggregate_messages( messages => $aggregates_to_process,
+                                                bulk_creates => $bulk_creates,
+                                                bulk_updates => $bulk_updates );
+        }
+
+        # at least one high res data to process
+        if ( @$data_to_process > 0 ) {
+
+	    $self->logger->debug( "Processing " . @$data_to_process . " data messages." );
+
+            $self->_process_data_messages( messages => $data_to_process,
+                                           bulk_creates => $bulk_creates,
+                                           bulk_updates => $bulk_updates );
+        }
+
+        # at least one event to process
+        if ( @$events_to_process > 0 ) {
+
+	    $self->logger->debug( "Processing " . @$events_to_process . " event messages." );
+
+            $self->_process_event_messages( messages => $events_to_process,
+                                            bulk_creates => $bulk_creates,
+                                            bulk_updates => $bulk_updates );
+        }
+
+        # perform all (most, except for data type changes..) create and update operations in bulk
+        $self->_process_bulks( $bulk_creates );
+        $self->_process_bulks( $bulk_updates );
     }
 
     catch {
@@ -532,9 +566,34 @@ sub _consume_messages {
     return $success;
 }
 
+sub _process_bulks {
+
+    my ( $self, $bulks ) = @_;
+
+    my @database_names = keys( %$bulks );
+
+    foreach my $database_name ( @database_names ) {
+
+	my @collection_names = keys( %{$bulks->{$database_name}});
+
+	foreach my $collection_name ( @collection_names ) {
+
+	    my $bulk = $bulks->{$database_name}{$collection_name};
+
+	    $self->logger->debug( "Executing bulk query for $database_name - $collection_name." );
+
+	    my $ret = $bulk->execute();
+	}
+    }
+}
+
 sub _process_event_messages {
 
-    my ( $self, $messages ) = @_;
+    my ( $self, %args ) = @_;
+
+    my $messages = $args{'messages'};
+    my $bulk_creates = $args{'bulk_creates'};
+    my $bulk_updates = $args{'bulk_updates'};
 
     # all unique documents we're handling (and their corresponding events)
     my $unique_documents = {};
@@ -595,7 +654,9 @@ sub _process_event_messages {
                     my $document = $unique_documents->{$data_type}{$type}{$start}{$end};
 
                     # process this event document, including all events contained within it
-                    $self->_process_event_document( $document );
+                    $self->_process_event_document( document => $document,
+                                                    bulk_creates => $bulk_creates,
+                                                    bulk_updates => $bulk_updates );
 
                     # all done with this document, remove it so we don't hold onto its memory
                     delete( $unique_documents->{$data_type}{$type}{$start}{$end} );
@@ -607,7 +668,11 @@ sub _process_event_messages {
 
 sub _process_data_messages {
 
-    my ( $self, $messages ) = @_;
+    my ( $self, %args ) = @_;
+
+    my $messages = $args{'messages'};
+    my $bulk_creates = $args{'bulk_creates'};
+    my $bulk_updates = $args{'bulk_updates'};
 
     # all unique value types we're handling per each data type
     my $unique_data_types = {};
@@ -733,7 +798,8 @@ sub _process_data_messages {
                                                      data_type => $unique_data_types->{$data_type},
                                                      meta => $meta,
                                                      start => $start,
-                                                     interval => $interval );
+                                                     interval => $interval,
+                                                     bulk_creates => $bulk_creates );
             }
         }
     }
@@ -769,7 +835,9 @@ sub _process_data_messages {
                     my $document = $unique_documents->{$data_type}{$measurement_identifier}{$start}{$end};
 
                     # process this data document, including all data points contained within it
-                    $self->_process_data_document( $document );
+                    $self->_process_data_document( document => $document,
+                                                   bulk_creates => $bulk_creates,
+                                                   bulk_updates => $bulk_updates );
 
                     # all done with this document, remove it so we don't hold onto its memory
                     delete( $unique_documents->{$data_type}{$measurement_identifier}{$start}{$end} );
@@ -781,7 +849,11 @@ sub _process_data_messages {
 
 sub _process_aggregate_messages {
 
-    my ( $self, $messages ) = @_;
+    my ( $self, %args ) = @_;
+
+    my $messages = $args{'messages'};
+    my $bulk_creates = $args{'bulk_creates'};
+    my $bulk_updates = $args{'bulk_updates'};
 
     # all unique documents we're handling (and their corresponding data points)
     my $unique_documents = {};
@@ -798,22 +870,22 @@ sub _process_aggregate_messages {
         # This is lazily built so it might actually fail type validation
         # when we invoke it for the first time
         my $aggregate_points;
+
         try {
+
             $aggregate_points = $message->aggregate_points;
         }
         catch {
+
             $self->logger->error( "Error processing aggregate update - bad data format: $_" );
         };
 
         next if (! defined $aggregate_points);
 
-
         # determine proper start and end time of document
         my $doc_length = $interval * AGGREGATE_DOCUMENT_SIZE;
         my $start = nlowmult( $doc_length, $time );
         my $end = $start + $doc_length;
-
-
 
         # determine the document that this message would belong within
         my $document = GRNOC::TSDS::AggregateDocument->new( data_type => $data_type,
@@ -863,7 +935,9 @@ sub _process_aggregate_messages {
                     my $document = $unique_documents->{$data_type}{$measurement_identifier}{$start}{$end};
 
                     # process this aggregate document, including all aggregate points contained within it
-                    $self->_process_aggregate_document( $document );
+                    $self->_process_aggregate_document( document => $document,
+                                                        bulk_creates => $bulk_creates,
+                                                        bulk_updates => $bulk_updates );
 
                     # all done with this document, remove it so we don't hold onto its memory
                     delete( $unique_documents->{$data_type}{$measurement_identifier}{$start}{$end} );
@@ -875,26 +949,31 @@ sub _process_aggregate_messages {
 
 sub _process_event_document {
 
-    my ( $self, $document ) = @_;
+    my ( $self, %args ) = @_;
 
-    my $data_type = $document->data_type->name;
+    my $document = $args{'document'};
+    my $bulk_creates = $args{'bulk_creates'};
+    my $bulk_updates = $args{'bulk_updates'};
+
+    my $data_type = $document->data_type;
+    my $data_type_name = $data_type->name;
     my $type = $document->type;
     my $start = $document->start;
     my $end = $document->end;
 
-    $self->logger->debug( "Processing event document $data_type / $type / $start / $end." );
+    $self->logger->debug( "Processing event document $data_type_name / $type / $start / $end." );
 
     # get lock for this event document
-    my $lock_id = $self->_get_lock_id( type => $data_type,
+    my $lock_id = $self->_get_lock_id( type => $data_type_name,
                                        collection => 'event',
                                        identifier => $type,
                                        start => $start,
                                        end => $end );
 
-    my $lock = $self->locker->lock( $lock_id, LOCK_TIMEOUT ) or die "Unable to lock event document $data_type / $type / $start / $end, requeueing";
+    my $lock = $self->locker->lock( $lock_id, LOCK_TIMEOUT ) or die "Unable to lock event document $data_type_name / $type / $start / $end, requeueing";
 
 
-    my $cache_id = $self->_get_cache_id( type => $data_type,
+    my $cache_id = $self->_get_cache_id( type => $data_type_name,
                                          collection => 'event',
                                          identifier => $type,
                                          start => $start,
@@ -906,15 +985,15 @@ sub _process_event_document {
         $self->logger->debug( 'Found document in cache, updating.' );
 
         # retrieve the full old document from mongo
-        my $old_doc = GRNOC::TSDS::EventDocument->new( data_type => $document->data_type,
+        my $old_doc = GRNOC::TSDS::EventDocument->new( data_type => $data_type,
                                                        type => $type,
                                                        start => $start,
                                                        end => $end )->fetch();
 
         # update it and its events accordingly
         $self->_update_event_document( new_document => $document,
-                                       old_document => $old_doc );
-
+                                       old_document => $old_doc,
+                                       bulk_updates => $bulk_updates );
 
         # update the cache with its new info
         $self->memcache->set( $cache_id,
@@ -928,7 +1007,7 @@ sub _process_event_document {
         $self->logger->debug( 'Document not found in cache.' );
 
         # retrieve the full old document from mongo
-        my $old_doc = GRNOC::TSDS::EventDocument->new( data_type => $document->data_type,
+        my $old_doc = GRNOC::TSDS::EventDocument->new( data_type => $data_type,
                                                        type => $type,
                                                        start => $start,
                                                        end => $end )->fetch();
@@ -940,7 +1019,8 @@ sub _process_event_document {
 
             # update it and its events accordingly
             $self->_update_event_document( new_document => $document,
-                                           old_document => $old_doc );
+                                           old_document => $old_doc,
+                                           bulk_updates => $bulk_updates );
         }
 
         # doesn't exist in mongo, we'll need to create it along with its data points we added to it
@@ -948,7 +1028,18 @@ sub _process_event_document {
 
             $self->logger->debug( 'Document does not exist in mongo, creating.' );
 
-            $document->create();
+            my $bulk = $bulk_creates->{$data_type_name}{'event'};
+
+            # haven't initialized a bulk op for this data type + collection yet
+            if ( !defined( $bulk ) ) {
+
+                my $collection = $data_type->database->get_collection( 'event' );
+
+                $bulk = $collection->initialize_unordered_bulk_op();
+		$bulk_creates->{$data_type_name}{'event'} = $bulk;
+            }
+
+            $document->create( bulk => $bulk );
         }
 
         # update our cache with the doc info
@@ -957,7 +1048,7 @@ sub _process_event_document {
                               DATA_CACHE_EXPIRATION );
     }
 
-    $self->logger->debug( "Finished processing event document $data_type / $type / $start / $end." );
+    $self->logger->debug( "Finished processing event document $data_type_name / $type / $start / $end." );
 
     # release lock on this document now that we're done
     $self->locker->release( $lock );
@@ -965,7 +1056,11 @@ sub _process_event_document {
 
 sub _process_data_document {
 
-    my ( $self, $document ) = @_;
+    my ( $self, %args ) = @_;
+
+    my $document = $args{'document'};
+    my $bulk_creates = $args{'bulk_creates'};
+    my $bulk_updates = $args{'bulk_updates'};
 
     my $data_type = $document->data_type->name;
     my $measurement_identifier = $document->measurement_identifier;
@@ -998,7 +1093,8 @@ sub _process_data_document {
 
         # update existing document along with its new data points
         $document = $self->_update_data_document( document => $document,
-                                                  old_value_types => $old_value_types );
+                                                  old_value_types => $old_value_types,
+                                                  bulk_updates => $bulk_updates );
 
         # update the cache with its new info
         $self->memcache->set( $cache_id,
@@ -1021,7 +1117,8 @@ sub _process_data_document {
 
             # update existing document along with its new data points
             $document = $self->_update_data_document( document => $document,
-                                                      old_value_types => $live_doc->value_types );
+                                                      old_value_types => $live_doc->value_types,
+                                                      bulk_updates => $bulk_updates );
         }
 
         # doesn't exist in mongo, we'll need to create it along with the data points provided, and
@@ -1030,7 +1127,8 @@ sub _process_data_document {
 
             $self->logger->debug( 'Document does not exist in mongo, creating.' );
 
-            $document = $self->_create_data_document( $document );
+            $document = $self->_create_data_document( document => $document,
+                                                      bulk_creates => $bulk_creates );
         }
 
         # update our cache with the doc info
@@ -1047,26 +1145,31 @@ sub _process_data_document {
 
 sub _process_aggregate_document {
 
-    my ( $self, $document ) = @_;
+    my ( $self, %args ) = @_;
 
-    my $data_type = $document->data_type->name;
+    my $document = $args{'document'};
+    my $bulk_creates = $args{'bulk_creates'};
+    my $bulk_updates = $args{'bulk_updates'};
+
+    my $data_type = $document->data_type;
+    my $data_type_name = $data_type->name;
     my $measurement_identifier = $document->measurement_identifier;
     my $start = $document->start;
     my $end = $document->end;
     my $interval = $document->interval;
 
-    $self->logger->debug( "Processing aggregate document $data_type - $interval / $measurement_identifier / $start / $end." );
+    $self->logger->debug( "Processing aggregate document $data_type_name - $interval / $measurement_identifier / $start / $end." );
 
     # get lock for this aggregate document
-    my $lock_id = $self->_get_lock_id( type => $data_type,
+    my $lock_id = $self->_get_lock_id( type => $data_type_name,
                                        collection => "data_$interval",
                                        identifier => $measurement_identifier,
                                        start => $start,
                                        end => $end );
 
-    my $lock = $self->locker->lock( $lock_id, LOCK_TIMEOUT ) or die "Can't lock aggregate data doc for $data_type - $interval / $measurement_identifier / $start / $end.";
+    my $lock = $self->locker->lock( $lock_id, LOCK_TIMEOUT ) or die "Can't lock aggregate data doc for $data_type_name - $interval / $measurement_identifier / $start / $end.";
 
-    my $cache_id = $self->_get_cache_id( type => $data_type,
+    my $cache_id = $self->_get_cache_id( type => $data_type_name,
                                          collection => "data_$interval",
                                          identifier => $measurement_identifier,
                                          start => $start,
@@ -1081,7 +1184,8 @@ sub _process_aggregate_document {
 
         # update existing document along with its new data points
         $document = $self->_update_aggregate_document( document => $document,
-                                                       old_value_types => $old_value_types );
+                                                       old_value_types => $old_value_types,
+                                                       bulk_updates => $bulk_updates );
 
         # update the cache with its new info
         $self->memcache->set( $cache_id,
@@ -1104,7 +1208,8 @@ sub _process_aggregate_document {
 
             # update existing document along with its new data points
             $document = $self->_update_aggregate_document( document => $document,
-                                                           old_value_types => $live_doc->value_types );
+                                                           old_value_types => $live_doc->value_types,
+                                                           bulk_updates => $bulk_updates );
         }
 
         # doesn't exist in mongo, we'll need to create it along with the aggregate points provided
@@ -1112,7 +1217,18 @@ sub _process_aggregate_document {
 
             $self->logger->debug( 'Document does not exist in mongo, creating.' );
 
-            $document = $document->create();
+            my $bulk = $bulk_creates->{$data_type_name}{'data_' . $document->interval};
+
+            # haven't initialized a bulk op for this data type + collection yet
+            if ( !defined( $bulk ) ) {
+
+                my $collection = $data_type->database->get_collection( 'data_' . $document->interval );
+
+                $bulk = $collection->initialize_unordered_bulk_op();
+		$bulk_creates->{$data_type_name}{'data_' . $document->interval} = $bulk;
+            }
+
+            $document = $document->create( bulk => $bulk );
         }
 
         # update our cache with the doc info
@@ -1121,7 +1237,7 @@ sub _process_aggregate_document {
                               AGGREGATE_CACHE_EXPIRATION );
     }
 
-    $self->logger->debug( "Finished processing aggregate document $data_type - $interval / $measurement_identifier / $start / $end." );
+    $self->logger->debug( "Finished processing aggregate document $data_type_name - $interval / $measurement_identifier / $start / $end." );
 
     # release lock on this document now that we're done
     $self->locker->release( $lock );
@@ -1133,6 +1249,7 @@ sub _update_event_document {
 
     my $old_document = $args{'old_document'};
     my $new_document = $args{'new_document'};
+    my $bulk_updates = $args{'bulk_updates'};
 
     my $old_events = $old_document->events;
     my $new_events = $new_document->events;
@@ -1173,13 +1290,30 @@ sub _update_event_document {
         }
     }
 
+    my $data_type = $new_document->data_type;
+    my $collection_name = 'event';
+
+    my $bulk = $bulk_updates->{$data_type->name}{$collection_name};
+
+    # haven't initialized a bulk op for this data type + collection yet
+    if ( !defined( $bulk ) ) {
+
+        my $collection = $data_type->database->get_collection( $collection_name );
+
+        $bulk = $collection->initialize_unordered_bulk_op();
+	$bulk_updates->{$data_type->name}{$collection_name} = $bulk;
+    }
+
     $new_document->events( $events );
-    $new_document->update();
+    $new_document->update( bulk => $bulk );
 }
 
 sub _create_data_document {
 
-    my ( $self, $document ) = @_;
+    my ( $self, %args ) = @_;
+
+    my $document = $args{'document'};
+    my $bulk_creates = $args{'bulk_creates'};
 
     # before we insert this new document, we will want to check for existing documents which
     # may have overlapping data with this new one.  this can happen if there was an interval
@@ -1317,8 +1451,17 @@ sub _create_data_document {
 
                 my $unique_document = $unique_documents->{$measurement_identifier}{$start}{$end};
 
+                my $bulk = $bulk_creates->{$data_type->name}{'data'};
+
+                # haven't initialized a bulk op for this data type + collection yet
+                if ( !defined( $bulk ) ) {
+
+                    $bulk = $data_collection->initialize_unordered_bulk_op();
+		    $bulk_creates->{$data_type->name}{'data'} = $bulk;
+                }
+
                 $self->logger->debug( "Creating new data document $measurement_identifier / $start / $end." );
-                $unique_document->create();
+                $unique_document->create( bulk => $bulk );
 
                 # must also create a cache entry for it since it now exists
                 my $cache_id = $self->_get_cache_id( type => $data_type->name,
@@ -1359,6 +1502,7 @@ sub _update_data_document {
 
     my $document = $args{'document'};
     my $old_value_types = $args{'old_value_types'};
+    my $bulk_updates = $args{'bulk_updates'};
 
     # do we need to add any value types to the document?
     my @value_types_to_add;
@@ -1380,7 +1524,21 @@ sub _update_data_document {
         $document->add_value_types( \@value_types_to_add );
     }
 
-    $document->update();
+    my $data_type = $document->data_type;
+    my $collection_name = 'data';
+
+    my $bulk = $bulk_updates->{$data_type->name}{$collection_name};
+
+    # haven't initialized a bulk op for this data type + collection yet
+    if ( !defined( $bulk ) ) {
+
+        my $collection = $data_type->database->get_collection( $collection_name );
+
+        $bulk = $collection->initialize_unordered_bulk_op();
+	$bulk_updates->{$data_type->name}{$collection_name} = $bulk;
+    }
+
+    $document->update( bulk => $bulk );
 
     return $document;
 }
@@ -1391,6 +1549,7 @@ sub _update_aggregate_document {
 
     my $document = $args{'document'};
     my $old_value_types = $args{'old_value_types'};
+    my $bulk_updates = $args{'bulk_updates'};
 
     # do we need to add any value types to the document?
     my @value_types_to_add;
@@ -1412,7 +1571,21 @@ sub _update_aggregate_document {
         $document->add_value_types( \@value_types_to_add );
     }
 
-    $document->update();
+    my $data_type = $document->data_type;
+    my $collection_name = 'data_' . $document->interval;
+
+    my $bulk = $bulk_updates->{$data_type->name}{$collection_name};
+
+    # haven't initialized a bulk op for this data type + collection yet
+    if ( !defined( $bulk ) ) {
+
+        my $collection = $data_type->database->get_collection( $collection_name );
+
+        $bulk = $collection->initialize_unordered_bulk_op();
+	$bulk_updates->{$data_type->name}{$collection_name} = $bulk;
+    }
+
+    $document->update( bulk => $bulk );
 
     return $document;
 }
@@ -1559,6 +1732,7 @@ sub _create_measurement_document {
     my $meta = $args{'meta'};
     my $start = $args{'start'};
     my $interval = $args{'interval'};
+    my $bulk_creates = $args{'bulk_creates'};
 
     $self->logger->debug( "Measurement $identifier in database " . $data_type->name . " not found in cache." );
 

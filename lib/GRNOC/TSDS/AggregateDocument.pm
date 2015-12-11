@@ -89,11 +89,10 @@ sub add_value_types {
 
 sub update {
 
-    my ( $self ) = @_;
+    my ( $self, %args ) = @_;
 
-    my $interval = $self->interval;
-
-    my $aggregate_collection = $self->data_type->database->get_collection( "data_$interval" );
+    my $bulk = $args{'bulk'};
+    
     my $aggregate_points = $self->aggregate_points;
 
     my $query = Tie::IxHash->new( identifier => $self->measurement_identifier,
@@ -121,20 +120,35 @@ sub update {
         $updates->{"values.$value_type.$x.$y.$z"} = $value;
     }
 
-    return $aggregate_collection->update( $query, {'$set' => $updates,
-                                                   '$min' => {'updated_start' => $min},
-                                                   '$max' => {'updated_end'   => $max} } );
+    # doing this as part of a bulk operation?
+    if ( $bulk ) {
+
+	return $bulk->find( $query )->update( {'$set' => $updates,
+					       '$min' => {'updated_start' => $min},
+					       '$max' => {'updated_end'   => $max}} );
+    }
+
+    # single doc update
+    else {
+
+	my $aggregate_collection = $self->data_type->database->get_collection( "data_" . $self->interval );
+
+	return $aggregate_collection->update( $query, {'$set' => $updates,
+						       '$min' => {'updated_start' => $min},
+						       '$max' => {'updated_end'   => $max} } );
+    }
 }
 
 sub create {
 
     my ( $self, %args ) = @_;
 
+    my $bulk = $args{'bulk'};
+
     my $interval = $self->interval;
 
     my $values = {};
 
-    my $aggregate_collection = $self->data_type->database->get_collection( "data_$interval" );
     my $value_types = $self->data_type->value_types;
     my $aggregate_points = $self->aggregate_points;
 
@@ -176,7 +190,16 @@ sub create {
                                    updated_end => $updated_end,
                                    values => $values );
 
-    $aggregate_collection->insert( $fields );
+    if ( $bulk ) {
+
+	$bulk->insert( $fields );
+    }
+
+    else {
+
+	my $aggregate_collection = $self->data_type->database->get_collection( "data_$interval" );
+	$aggregate_collection->insert( $fields );
+    }
 
     return $self;
 }

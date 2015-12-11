@@ -144,8 +144,6 @@ sub _create_workers {
     my $num_processes = $self->config->get( '/config/num-processes' );
     my $num_aggregate_processes = $self->config->get( '/config/num-aggregate-processes' );
 
-    warn "$num_processes $num_aggregate_processes";
-
     my $queue = $self->config->get( '/config/rabbit/@queue' );
     my $aggregate_queue = $self->config->get( '/config/rabbit/@aggregate-queue' );
 
