@@ -340,6 +340,7 @@ sub _consume_messages {
     # keep track and build up all of the bulk operations we'll want to do at the end
     my $bulk_creates = {};
     my $bulk_updates = {};
+    my $acquired_locks = [];
 
     # handle every TSDS message that came within the rabbit message
     foreach my $message ( @$messages ) {
@@ -509,6 +510,9 @@ sub _consume_messages {
             catch {
 
                 $self->logger->error( $_ );
+
+                # release any outstanding locks
+                $self->_release_locks( $acquired_locks );
             };
 
             # include this to our list of data to process if it was valid
@@ -524,46 +528,65 @@ sub _consume_messages {
         # at least one aggregate to process
         if ( @$aggregates_to_process > 0 ) {
 
-	    $self->logger->debug( "Processing " . @$aggregates_to_process . " aggregate messages." );
+            $self->logger->debug( "Processing " . @$aggregates_to_process . " aggregate messages." );
 
             $self->_process_aggregate_messages( messages => $aggregates_to_process,
                                                 bulk_creates => $bulk_creates,
-                                                bulk_updates => $bulk_updates );
+                                                bulk_updates => $bulk_updates,
+                                                acquired_locks => $acquired_locks );
         }
 
         # at least one high res data to process
         if ( @$data_to_process > 0 ) {
 
-	    $self->logger->debug( "Processing " . @$data_to_process . " data messages." );
+            $self->logger->debug( "Processing " . @$data_to_process . " data messages." );
 
             $self->_process_data_messages( messages => $data_to_process,
                                            bulk_creates => $bulk_creates,
-                                           bulk_updates => $bulk_updates );
+                                           bulk_updates => $bulk_updates,
+                                           acquired_locks => $acquired_locks );
         }
 
         # at least one event to process
         if ( @$events_to_process > 0 ) {
 
-	    $self->logger->debug( "Processing " . @$events_to_process . " event messages." );
+            $self->logger->debug( "Processing " . @$events_to_process . " event messages." );
 
             $self->_process_event_messages( messages => $events_to_process,
                                             bulk_creates => $bulk_creates,
-                                            bulk_updates => $bulk_updates );
+                                            bulk_updates => $bulk_updates,
+                                            acquired_locks => $acquired_locks );
         }
 
         # perform all (most, except for data type changes..) create and update operations in bulk
         $self->_process_bulks( $bulk_creates );
         $self->_process_bulks( $bulk_updates );
+
+        # release all the locks we're acquired for the docs we're changing
+        $self->_release_locks( $acquired_locks );
     }
 
     catch {
 
         $self->logger->error( "Error processing messages: $_" );
 
+        # release any outstanding locks
+        $self->_release_locks( $acquired_locks );
+
         $success = 0;
     };
 
     return $success;
+}
+
+sub _release_locks {
+
+    my ( $self, $locks ) = @_;
+
+    foreach my $lock ( @$locks ) {
+
+        $self->locker->release( $lock );
+    }
 }
 
 sub _process_bulks {
@@ -574,16 +597,25 @@ sub _process_bulks {
 
     foreach my $database_name ( @database_names ) {
 
-	my @collection_names = keys( %{$bulks->{$database_name}});
+        my @collection_names = keys( %{$bulks->{$database_name}});
 
-	foreach my $collection_name ( @collection_names ) {
+        foreach my $collection_name ( @collection_names ) {
 
-	    my $bulk = $bulks->{$database_name}{$collection_name};
+            my $bulk = $bulks->{$database_name}{$collection_name};
 
-	    $self->logger->debug( "Executing bulk query for $database_name - $collection_name." );
+            $self->logger->debug( "Executing bulk query for $database_name - $collection_name." );
 
-	    my $ret = $bulk->execute();
-	}
+            my $ret = $bulk->execute();
+
+            my $num_errors = $ret->count_writeErrors() + $ret->count_writeConcernErrors();
+
+            # did at least one error occur during the bulk update?
+            if ( $num_errors > 0 ) {
+
+                # throw an exception so this entire message will get requeued
+                die( "bulk update failed: " . $ret->last_errmsg() );
+            }
+        }
     }
 }
 
@@ -594,6 +626,7 @@ sub _process_event_messages {
     my $messages = $args{'messages'};
     my $bulk_creates = $args{'bulk_creates'};
     my $bulk_updates = $args{'bulk_updates'};
+    my $acquired_locks = $args{'acquired_locks'};
 
     # all unique documents we're handling (and their corresponding events)
     my $unique_documents = {};
@@ -656,7 +689,8 @@ sub _process_event_messages {
                     # process this event document, including all events contained within it
                     $self->_process_event_document( document => $document,
                                                     bulk_creates => $bulk_creates,
-                                                    bulk_updates => $bulk_updates );
+                                                    bulk_updates => $bulk_updates,
+                                                    acquired_locks => $acquired_locks );
 
                     # all done with this document, remove it so we don't hold onto its memory
                     delete( $unique_documents->{$data_type}{$type}{$start}{$end} );
@@ -673,6 +707,7 @@ sub _process_data_messages {
     my $messages = $args{'messages'};
     my $bulk_creates = $args{'bulk_creates'};
     my $bulk_updates = $args{'bulk_updates'};
+    my $acquired_locks = $args{'acquired_locks'};
 
     # all unique value types we're handling per each data type
     my $unique_data_types = {};
@@ -799,7 +834,8 @@ sub _process_data_messages {
                                                      meta => $meta,
                                                      start => $start,
                                                      interval => $interval,
-                                                     bulk_creates => $bulk_creates );
+                                                     bulk_creates => $bulk_creates,
+                                                     acquired_locks => $acquired_locks );
             }
         }
     }
@@ -837,7 +873,8 @@ sub _process_data_messages {
                     # process this data document, including all data points contained within it
                     $self->_process_data_document( document => $document,
                                                    bulk_creates => $bulk_creates,
-                                                   bulk_updates => $bulk_updates );
+                                                   bulk_updates => $bulk_updates,
+                                                   acquired_locks => $acquired_locks );
 
                     # all done with this document, remove it so we don't hold onto its memory
                     delete( $unique_documents->{$data_type}{$measurement_identifier}{$start}{$end} );
@@ -854,6 +891,7 @@ sub _process_aggregate_messages {
     my $messages = $args{'messages'};
     my $bulk_creates = $args{'bulk_creates'};
     my $bulk_updates = $args{'bulk_updates'};
+    my $acquired_locks = $args{'acquired_locks'};
 
     # all unique documents we're handling (and their corresponding data points)
     my $unique_documents = {};
@@ -937,7 +975,8 @@ sub _process_aggregate_messages {
                     # process this aggregate document, including all aggregate points contained within it
                     $self->_process_aggregate_document( document => $document,
                                                         bulk_creates => $bulk_creates,
-                                                        bulk_updates => $bulk_updates );
+                                                        bulk_updates => $bulk_updates,
+                                                        acquired_locks => $acquired_locks );
 
                     # all done with this document, remove it so we don't hold onto its memory
                     delete( $unique_documents->{$data_type}{$measurement_identifier}{$start}{$end} );
@@ -954,6 +993,7 @@ sub _process_event_document {
     my $document = $args{'document'};
     my $bulk_creates = $args{'bulk_creates'};
     my $bulk_updates = $args{'bulk_updates'};
+    my $acquired_locks = $args{'acquired_locks'};
 
     my $data_type = $document->data_type;
     my $data_type_name = $data_type->name;
@@ -971,7 +1011,7 @@ sub _process_event_document {
                                        end => $end );
 
     my $lock = $self->locker->lock( $lock_id, LOCK_TIMEOUT ) or die "Unable to lock event document $data_type_name / $type / $start / $end, requeueing";
-
+    push( @$acquired_locks, $lock );
 
     my $cache_id = $self->_get_cache_id( type => $data_type_name,
                                          collection => 'event',
@@ -993,9 +1033,10 @@ sub _process_event_document {
         # update it and its events accordingly
         $self->_update_event_document( new_document => $document,
                                        old_document => $old_doc,
-                                       bulk_updates => $bulk_updates );
+                                       bulk_updates => $bulk_updates,
+                                       acquired_locks => $acquired_locks );
 
-        # update the cache with its new info
+        # re-cache existing entry found in cache
         $self->memcache->set( $cache_id,
                               1,
                               DATA_CACHE_EXPIRATION );
@@ -1015,12 +1056,18 @@ sub _process_event_document {
         # document exists in mongo, so we'll need to update it
         if ( $old_doc ) {
 
+            # we found it in the database, set our cache accordingly to mark that it exists
+            $self->memcache->set( $cache_id,
+                                  1,
+                                  DATA_CACHE_EXPIRATION );
+
             $self->logger->debug( 'Document exists in mongo, updating.' );
 
             # update it and its events accordingly
             $self->_update_event_document( new_document => $document,
                                            old_document => $old_doc,
-                                           bulk_updates => $bulk_updates );
+                                           bulk_updates => $bulk_updates,
+                                           acquired_locks => $acquired_locks );
         }
 
         # doesn't exist in mongo, we'll need to create it along with its data points we added to it
@@ -1036,22 +1083,16 @@ sub _process_event_document {
                 my $collection = $data_type->database->get_collection( 'event' );
 
                 $bulk = $collection->initialize_unordered_bulk_op();
-		$bulk_creates->{$data_type_name}{'event'} = $bulk;
+                $bulk_creates->{$data_type_name}{'event'} = $bulk;
             }
 
             $document->create( bulk => $bulk );
         }
 
-        # update our cache with the doc info
-        $self->memcache->set( $cache_id,
-                              1,
-                              DATA_CACHE_EXPIRATION );
+        # dont update memcache here, because it might fail during the bulk op; we'll find it and update cache later
     }
 
     $self->logger->debug( "Finished processing event document $data_type_name / $type / $start / $end." );
-
-    # release lock on this document now that we're done
-    $self->locker->release( $lock );
 }
 
 sub _process_data_document {
@@ -1061,11 +1102,14 @@ sub _process_data_document {
     my $document = $args{'document'};
     my $bulk_creates = $args{'bulk_creates'};
     my $bulk_updates = $args{'bulk_updates'};
+    my $acquired_locks = $args{'acquired_locks'};
 
     my $data_type = $document->data_type->name;
     my $measurement_identifier = $document->measurement_identifier;
     my $start = $document->start;
     my $end = $document->end;
+
+    my %new_value_types = %{$document->value_types};
 
     $self->logger->debug( "Processing data document $data_type / $measurement_identifier / $start / $end." );
 
@@ -1077,6 +1121,7 @@ sub _process_data_document {
                                        end => $end );
 
     my $lock = $self->locker->lock( $lock_id, LOCK_TIMEOUT ) or die "Can't lock data document for $data_type / $measurement_identifier / $start / $end";
+    push( @$acquired_locks, $lock );
 
     my $cache_id = $self->_get_cache_id( type => $data_type,
                                          collection => 'data',
@@ -1092,14 +1137,26 @@ sub _process_data_document {
         my $old_value_types = $cached->{'value_types'};
 
         # update existing document along with its new data points
-        $document = $self->_update_data_document( document => $document,
-                                                  old_value_types => $old_value_types,
-                                                  bulk_updates => $bulk_updates );
+        ( $document, my $added_value_types ) = $self->_update_data_document( document => $document,
+                                                                             old_value_types => $old_value_types,
+                                                                             new_value_types => \%new_value_types,
+                                                                             bulk_updates => $bulk_updates,
+                                                                             acquired_locks => $acquired_locks );
 
-        # update the cache with its new info
-        $self->memcache->set( $cache_id,
-                              {'value_types' => $document->value_types},
-                              DATA_CACHE_EXPIRATION );
+        # will this update add a new value type?
+        if ( @$added_value_types > 0 ) {
+
+            # invalidate the cache entry so we fetch it from the db later and verify they were properly added during the bulk op
+            $self->memcache->delete( $cache_id );
+        }
+
+        # maintain/update existing cache entry
+        else {
+
+            $self->memcache->set( $cache_id,
+                                  {'value_types' => $document->value_types},
+                                  DATA_CACHE_EXPIRATION );
+        }
     }
 
     # not in cache, we'll have to query mongo to see if its there
@@ -1113,12 +1170,26 @@ sub _process_data_document {
         # document exists in mongo, so we'll need to update it
         if ( $live_doc ) {
 
+            # update our cache with the doc info we found in the db
+            $self->memcache->set( $cache_id,
+                                  {'value_types' => $live_doc->value_types},
+                                  DATA_CACHE_EXPIRATION );
+
             $self->logger->debug( 'Document exists in mongo, updating.' );
 
             # update existing document along with its new data points
-            $document = $self->_update_data_document( document => $document,
-                                                      old_value_types => $live_doc->value_types,
-                                                      bulk_updates => $bulk_updates );
+            ( $document, my $added_value_types ) = $self->_update_data_document( document => $document,
+                                                                                 old_value_types => $live_doc->value_types,
+                                                                                 new_value_types => \%new_value_types,
+                                                                                 bulk_updates => $bulk_updates,
+                                                                                 acquired_locks => $acquired_locks );
+
+            # will this update add a new value type?
+            if ( @$added_value_types > 0 ) {
+
+                # invalidate the cache entry so we fetch it from the db again later and verify they were properly added during the bulk op
+                $self->memcache->delete( $cache_id );
+            }
         }
 
         # doesn't exist in mongo, we'll need to create it along with the data points provided, and
@@ -1128,19 +1199,12 @@ sub _process_data_document {
             $self->logger->debug( 'Document does not exist in mongo, creating.' );
 
             $document = $self->_create_data_document( document => $document,
-                                                      bulk_creates => $bulk_creates );
+                                                      bulk_creates => $bulk_creates,
+                                                      acquired_locks => $acquired_locks );
         }
-
-        # update our cache with the doc info
-        $self->memcache->set( $cache_id,
-                              {'value_types' => $document->value_types},
-                              DATA_CACHE_EXPIRATION );
     }
 
     $self->logger->debug( "Finished processing document $data_type / $measurement_identifier / $start / $end." );
-
-    # release lock on this document now that we're done
-    $self->locker->release( $lock );
 }
 
 sub _process_aggregate_document {
@@ -1150,6 +1214,7 @@ sub _process_aggregate_document {
     my $document = $args{'document'};
     my $bulk_creates = $args{'bulk_creates'};
     my $bulk_updates = $args{'bulk_updates'};
+    my $acquired_locks = $args{'acquired_locks'};
 
     my $data_type = $document->data_type;
     my $data_type_name = $data_type->name;
@@ -1157,6 +1222,8 @@ sub _process_aggregate_document {
     my $start = $document->start;
     my $end = $document->end;
     my $interval = $document->interval;
+
+    my %new_value_types = %{$document->value_types};
 
     $self->logger->debug( "Processing aggregate document $data_type_name - $interval / $measurement_identifier / $start / $end." );
 
@@ -1168,6 +1235,7 @@ sub _process_aggregate_document {
                                        end => $end );
 
     my $lock = $self->locker->lock( $lock_id, LOCK_TIMEOUT ) or die "Can't lock aggregate data doc for $data_type_name - $interval / $measurement_identifier / $start / $end.";
+    push( @$acquired_locks, $lock );
 
     my $cache_id = $self->_get_cache_id( type => $data_type_name,
                                          collection => "data_$interval",
@@ -1183,14 +1251,26 @@ sub _process_aggregate_document {
         my $old_value_types = $cached->{'value_types'};
 
         # update existing document along with its new data points
-        $document = $self->_update_aggregate_document( document => $document,
-                                                       old_value_types => $old_value_types,
-                                                       bulk_updates => $bulk_updates );
+        ( $document, my $added_value_types )  = $self->_update_aggregate_document( document => $document,
+                                                                                   old_value_types => $old_value_types,
+                                                                                   new_value_types => \%new_value_types,
+                                                                                   bulk_updates => $bulk_updates,
+                                                                                   acquired_locks => $acquired_locks );
 
-        # update the cache with its new info
-        $self->memcache->set( $cache_id,
-                              {'value_types' => $document->value_types},
-                              AGGREGATE_CACHE_EXPIRATION );
+        # will this update add a new value type?
+        if ( @$added_value_types > 0 ) {
+
+            # invalidate the cache entry so we fetch it from the db later and verify they were properly added during the bulk op
+            $self->memcache->delete( $cache_id );
+        }
+
+        # maintain/update existing cache entry
+        else {
+
+            $self->memcache->set( $cache_id,
+                                  {'value_types' => $document->value_types},
+                                  AGGREGATE_CACHE_EXPIRATION );
+        }
     }
 
     # not in cache, we'll have to query mongo to see if its there
@@ -1204,12 +1284,26 @@ sub _process_aggregate_document {
         # document exists in mongo, so we'll need to update it
         if ( $live_doc ) {
 
+            # update our cache with the doc info we found in the db
+            $self->memcache->set( $cache_id,
+                                  {'value_types' => $live_doc->value_types},
+                                  AGGREGATE_CACHE_EXPIRATION );
+
             $self->logger->debug( 'Document exists in mongo, updating.' );
 
             # update existing document along with its new data points
-            $document = $self->_update_aggregate_document( document => $document,
-                                                           old_value_types => $live_doc->value_types,
-                                                           bulk_updates => $bulk_updates );
+            ( $document, my $added_value_types ) = $self->_update_aggregate_document( document => $document,
+                                                                                      old_value_types => $live_doc->value_types,
+                                                                                      new_value_types => \%new_value_types,
+                                                                                      bulk_updates => $bulk_updates,
+                                                                                      acquired_locks => $acquired_locks );
+
+            # will this update add a new value type?
+            if ( @$added_value_types > 0 ) {
+
+                # invalidate the cache entry so we fetch it from the db again later and verify they were properly added during the bulk op
+                $self->memcache->delete( $cache_id );
+            }
         }
 
         # doesn't exist in mongo, we'll need to create it along with the aggregate points provided
@@ -1225,22 +1319,14 @@ sub _process_aggregate_document {
                 my $collection = $data_type->database->get_collection( 'data_' . $document->interval );
 
                 $bulk = $collection->initialize_unordered_bulk_op();
-		$bulk_creates->{$data_type_name}{'data_' . $document->interval} = $bulk;
+                $bulk_creates->{$data_type_name}{'data_' . $document->interval} = $bulk;
             }
 
             $document = $document->create( bulk => $bulk );
         }
-
-        # update our cache with the doc info
-        $self->memcache->set( $cache_id,
-                              {'value_types' => $document->value_types},
-                              AGGREGATE_CACHE_EXPIRATION );
     }
 
     $self->logger->debug( "Finished processing aggregate document $data_type_name - $interval / $measurement_identifier / $start / $end." );
-
-    # release lock on this document now that we're done
-    $self->locker->release( $lock );
 }
 
 sub _update_event_document {
@@ -1250,6 +1336,7 @@ sub _update_event_document {
     my $old_document = $args{'old_document'};
     my $new_document = $args{'new_document'};
     my $bulk_updates = $args{'bulk_updates'};
+    my $acquired_locks = $args{'acquired_locks'};
 
     my $old_events = $old_document->events;
     my $new_events = $new_document->events;
@@ -1301,7 +1388,7 @@ sub _update_event_document {
         my $collection = $data_type->database->get_collection( $collection_name );
 
         $bulk = $collection->initialize_unordered_bulk_op();
-	$bulk_updates->{$data_type->name}{$collection_name} = $bulk;
+        $bulk_updates->{$data_type->name}{$collection_name} = $bulk;
     }
 
     $new_document->events( $events );
@@ -1314,6 +1401,7 @@ sub _create_data_document {
 
     my $document = $args{'document'};
     my $bulk_creates = $args{'bulk_creates'};
+    my $acquired_locks = $args{'acquired_locks'};
 
     # before we insert this new document, we will want to check for existing documents which
     # may have overlapping data with this new one.  this can happen if there was an interval
@@ -1342,9 +1430,6 @@ sub _create_data_document {
 
     # the cache ids of the overlaps we found
     my @overlap_cache_ids;
-
-    # the locks we had to acquire
-    my @locks;
 
     # unique documents that the data points, after altering their interval, will belong in
     my $unique_documents = {};
@@ -1385,8 +1470,7 @@ sub _create_data_document {
                                            end => $overlap_end );
 
         my $lock = $self->locker->lock( $lock_id, LOCK_TIMEOUT ) or die "Can't lock overlapping data doc for $identifier";
-
-        push( @locks, $lock );
+        push( @$acquired_locks, $lock );
 
         $self->logger->debug( "Found overlapping data document with interval: $overlap_interval start: $overlap_start end: $overlap_end." );
 
@@ -1457,22 +1541,11 @@ sub _create_data_document {
                 if ( !defined( $bulk ) ) {
 
                     $bulk = $data_collection->initialize_unordered_bulk_op();
-		    $bulk_creates->{$data_type->name}{'data'} = $bulk;
+                    $bulk_creates->{$data_type->name}{'data'} = $bulk;
                 }
 
                 $self->logger->debug( "Creating new data document $measurement_identifier / $start / $end." );
                 $unique_document->create( bulk => $bulk );
-
-                # must also create a cache entry for it since it now exists
-                my $cache_id = $self->_get_cache_id( type => $data_type->name,
-                                                     collection => 'data',
-                                                     identifier => $measurement_identifier,
-                                                     start => $start,
-                                                     end => $end );
-
-                $self->memcache->set( $cache_id,
-                                      {'value_types' => $document->value_types},
-                                      DATA_CACHE_EXPIRATION );
             }
         }
     }
@@ -1483,14 +1556,8 @@ sub _create_data_document {
         # first remove from mongo
         $data_collection->remove( {'_id' => {'$in' => \@overlap_ids}} );
 
-        # also must remove them from our cache since they no longer exist!
+        # also must remove them from our cache since they should no longer exist
         $self->memcache->delete_multi( @overlap_cache_ids );
-
-        # release all locks on all extra docs we created since we're done
-        foreach my $lock ( @locks ) {
-
-            $self->locker->release( $lock );
-        }
     }
 
     return $document;
@@ -1502,12 +1569,17 @@ sub _update_data_document {
 
     my $document = $args{'document'};
     my $old_value_types = $args{'old_value_types'};
+    my $new_value_types = $args{'new_value_types'};
     my $bulk_updates = $args{'bulk_updates'};
+    my $acquired_locks = $args{'acquired_locks'};
 
     # do we need to add any value types to the document?
     my @value_types_to_add;
 
-    foreach my $new_value_type ( keys %{$document->value_types} ) {
+    my @new_value_types = keys( %$new_value_types );
+    my @old_value_types = keys( %$old_value_types );
+
+    foreach my $new_value_type ( @new_value_types ) {
 
         # already in the doc
         next if ( $old_value_types->{$new_value_type} );
@@ -1535,12 +1607,12 @@ sub _update_data_document {
         my $collection = $data_type->database->get_collection( $collection_name );
 
         $bulk = $collection->initialize_unordered_bulk_op();
-	$bulk_updates->{$data_type->name}{$collection_name} = $bulk;
+        $bulk_updates->{$data_type->name}{$collection_name} = $bulk;
     }
 
     $document->update( bulk => $bulk );
 
-    return $document;
+    return ( $document, \@value_types_to_add );
 }
 
 sub _update_aggregate_document {
@@ -1550,6 +1622,7 @@ sub _update_aggregate_document {
     my $document = $args{'document'};
     my $old_value_types = $args{'old_value_types'};
     my $bulk_updates = $args{'bulk_updates'};
+    my $acquired_locks =$args{'acquired_locks'};
 
     # do we need to add any value types to the document?
     my @value_types_to_add;
@@ -1582,12 +1655,12 @@ sub _update_aggregate_document {
         my $collection = $data_type->database->get_collection( $collection_name );
 
         $bulk = $collection->initialize_unordered_bulk_op();
-	$bulk_updates->{$data_type->name}{$collection_name} = $bulk;
+        $bulk_updates->{$data_type->name}{$collection_name} = $bulk;
     }
 
     $document->update( bulk => $bulk );
 
-    return $document;
+    return ( $document, \@value_types_to_add );
 }
 
 sub _get_lock_id {
@@ -1733,6 +1806,7 @@ sub _create_measurement_document {
     my $start = $args{'start'};
     my $interval = $args{'interval'};
     my $bulk_creates = $args{'bulk_creates'};
+    my $acquired_locks = $args{'acquired_locks'};
 
     $self->logger->debug( "Measurement $identifier in database " . $data_type->name . " not found in cache." );
 
@@ -1742,6 +1816,7 @@ sub _create_measurement_document {
                                        identifier => $identifier );
 
     my $lock = $self->locker->lock( $lock_id, LOCK_TIMEOUT ) or die "Can't lock measurements for $identifier";
+    push( @$acquired_locks, $lock );
 
     # get measurement collection for this data type
     my $measurement_collection = $data_type->database->get_collection( 'measurements' );
@@ -1787,9 +1862,6 @@ sub _create_measurement_document {
     $cache_duration = $interval * 2 if ( $interval * 2 > $cache_duration );
 
     $self->memcache->set( $cache_id, 1, $interval * 2 );
-
-    # release our lock on this measurement document
-    $self->locker->release( $lock );
 }
 
 sub _fetch_data_types {
