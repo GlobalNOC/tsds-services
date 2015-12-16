@@ -3,11 +3,8 @@
 #--------------------------------------------------------------------
 #----- GRNOC TSDS Installation/Bootstrap Script
 #-----
-#----- Copyright(C) 2014 The Trustees of Indiana University
+#----- Copyright(C) 2015 The Trustees of Indiana University
 #--------------------------------------------------------------------
-#----- $HeadURL: svn+ssh://svn.grnoc.iu.edu/grnoc/tsds/services/trunk/bin/tsds_install.pl $
-#----- $Id: tsds_install.pl 38549 2015-08-03 17:04:46Z bgeels $
-#-----
 #----- This script is used to install/bootstrap a brand new instance
 #----- the TSDS services.  It is simply a wrapper to the
 #----- GRNOC::TSDS::Install object.

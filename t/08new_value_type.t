@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 11;
+use Test::More tests => 13;
 
 use GRNOC::Config;
 use GRNOC::TSDS::Writer;
@@ -145,14 +145,14 @@ ok( defined( $value_types->{'newtypelol1'} ), 'newtypelol1' );
 ok( defined( $value_types->{'newtypelol2'} ), 'newtypelol2' );
 
 # get the document that should be created
-my $doc = GRNOC::TSDS::DataDocument->new( data_type => $data_type,
-                                          measurement_identifier => "bdbd5926b074ab1890b7060f966a9df1cc41d0fd6210baa76f2aec7e51537b4a",
-                                          start => 1424100000,
-                                          end => 1424400000 );
+my $data_col = $database->get_collection( 'data' );
+my $doc = $data_col->find( {'identifier' => 'bdbd5926b074ab1890b7060f966a9df1cc41d0fd6210baa76f2aec7e51537b4a',
+			    'start' => 1424100000,
+			    'end' => 1424400000} )->fields( {'values.newtypelol1' => 1,
+							     'values.newtypelol2' => 1} )->next();
 
-$doc->fetch();
+ok( defined( $doc->{'values'}{'newtypelol1'} ), 'value type newtypelol1 created' );
+ok( defined( $doc->{'values'}{'newtypelol2'} ), 'value type newtypelol2 created' );
 
-$value_types = $doc->value_types;
-
-ok( defined( $value_types->{'newtypelol1'} ), 'newtypelol1' );
-ok( defined( $value_types->{'newtypelol2'} ), 'newtypelol2' );
+is( ref( $doc->{'values'}{'newtypelol1'} ), 'ARRAY', 'newtypelol1 array created' );
+is( ref( $doc->{'values'}{'newtypelol2'} ), 'ARRAY', 'newtypelol2 array created' );
