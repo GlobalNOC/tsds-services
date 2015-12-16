@@ -3,9 +3,6 @@
 #-----
 #----- Copyright(C) 2015 The Trustees of Indiana University
 #--------------------------------------------------------------------
-#----- $HeadURL: svn+ssh://svn.grnoc.iu.edu/grnoc/tsds/services/trunk/lib/GRNOC/TSDS/Install.pm $
-#----- $Id: Install.pm 39282 2015-09-21 15:39:51Z bgeels $
-#-----
 #----- This module is responsible for installating/bootstrapping a
 #----- brand new instance of the TSDS backend services.  It is used
 #----- by the tsds_install script to initialize the necessary MongoDB
@@ -353,12 +350,24 @@ sub install {
     }
 
 
-    $self->_create_shards() or return;
+    if ( !$self->_create_shards() ) {
 
-    $self->_create_databases() or return;
+	$self->error( 'An error occurred attempting to create the shards.' );
+	return;
+    }
+
+    if ( !$self->_create_databases() ) {
+
+	$self->error( 'An error occurred attempting to create the databases.' );
+	return;
+    }
 
     # also make sure to set the version of the schema
-    $self->_set_version() or return;
+    if ( !$self->_set_version() ) {
+
+	$self->error( 'An error occurred attempting to set the version.' );
+	return;
+    }
 
     # installation was a success
     return 1;
@@ -635,6 +644,7 @@ sub _add_meta_field {
     }
     # otherwise add the optional metadata
     else {
+
         $res = $self->metadata_ds()->add_meta_field( 
             name => $name,
             measurement_type => $database_name,
