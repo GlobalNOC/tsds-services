@@ -594,13 +594,13 @@ sub get_distinct_meta_field_values {
 
         foreach my $value (@$values) {
             my $field;
-            if ($key =~ /^(.+)_like$/) {
-                $field = $1;
-                push(@$filter_array, { $field => {'$regex' => qr/$value/i} });
-            }
-            elsif ($key =~ /^(.+)_not_like$/) {
+            if ($key =~ /^(.+)_not_like$/) {
                 $field = $1;
                 push(@$filter_array, { $field => {'$not' => qr/$value/i} });
+            }
+            elsif ($key =~ /^(.+)_like$/) {
+                $field = $1;
+                push(@$filter_array, { $field => {'$regex' => qr/$value/i} });
             }
             elsif ($key =~ /^(.+)_not$/) {
                 $field = $1;
@@ -615,7 +615,12 @@ sub get_distinct_meta_field_values {
     
     my $query = {};
     
-    $query = { '$and' => $filter_array } if (@$filter_array > 0);
+    if (@$filter_array == 1) {
+        $query = $filter_array->[0];
+    }
+    elsif (@$filter_array > 1) {
+        $query = { '$and' => $filter_array };
+    }
 
     # Determine from meta_field how to process this request
     # if it's a classifier and an array (e.g., circuit.name), we need to use aggregate
