@@ -634,7 +634,6 @@ sub add_measurement_type {
         my $collection = $db->get_collection( $col_name );
         $collection->ensure_index({start => 1});
         $collection->ensure_index({end   => 1});
-        $collection->ensure_index({last_updated => 1}) if ($col_name eq  'measurements');
 
         if( $col_name eq 'data' ){
             my $index = Tie::IxHash->new(
@@ -643,10 +642,12 @@ sub add_measurement_type {
                 end        => 1
             );
             $collection->ensure_index($index);
+	    $collection->ensure_index({updated => 1});
         }
 
 	if ( $col_name eq 'measurements' ){
 	    $collection->ensure_index({identifier => 1});
+	    $collection->ensure_index({last_updated => 1});
 	}
     }
 
