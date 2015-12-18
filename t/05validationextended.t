@@ -84,14 +84,14 @@ validate_results($result,4867);
 $arr= $query->run_query( query =>'get node, intf, aggregate(values.output, 300, average) as output between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") by node from tsdstest where node="rtr.chic" ordered by intf asc ');
 ok($arr, "query request to fetch values.output by node sent successfully");
 is(@$arr, 1, "got 1 result");
-is($arr->[0]{'output'}[0][1], 125310.5, "got aggregate value");
+is($arr->[0]{'output'}[0][1], 125296, "got aggregate value");
 is($arr->[0]{'intf'}, "interface11");
 
 # With Grouping by first
 $arr= $query->run_query( query =>'get intf, node, aggregate(values.output, 300, average) as output between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") by node first(intf) from tsdstest where node="rtr.chic" ');
 ok($arr, "query request to fetch values.output by meta.node sent successfully");
 is(@$arr, 1, "got 1 result");
-is($arr->[0]{'output'}[0][1], 103710.5, "got aggregate value");
+is($arr->[0]{'output'}[0][1], 103696, "got aggregate value");
 is($arr->[0]{'intf'}, "ge-0/0/0", "got interface");
 
 # Validate the results returned
@@ -431,7 +431,7 @@ $arr = $query->run_query( query =>'get count(min(values.input)) as first, averag
 ok($arr, "query request to fetch values.input sent successfully");
 
 is($arr->[0]->{'first'}, 1, "got count min chain");
-is($arr->[0]->{'second'}, 106366.653846154, "got average aggregate chain");
-is($arr->[0]->{'third'}, 106366.653846154, "got max average aggregate chain");
+is($arr->[0]->{'second'}, 106195.25, "got average aggregate chain");
+is($arr->[0]->{'third'}, 106195.25, "got max average aggregate chain");
 is($arr->[0]->{'fourth'}, 1, "got count max average aggregate chain");
 is($arr->[0]->{'fourth'}, 1, "got sum count max average aggregate chain");
