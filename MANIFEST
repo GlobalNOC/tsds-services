@@ -116,7 +116,6 @@ t/conf/databases/tsdstest.json
 t/conf/extra.conf.in
 t/conf/logging.conf
 t/conf/sphinx.conf.example
-t/histogram.t
 t/query_syntax.t
 t/TEST
 www/admin.cgi
