@@ -441,8 +441,9 @@ TSDS uses [Sphinx](http://sphinxsearch.com) to index the measurement documents f
 
 ```
 [root@tsds ~]# cp /etc/sphinx/sphinx.conf.tsds /etc/sphinx/sphinx.conf
+[root@tsds ~]# /usr/bin/indexer tsds_metadata_index
+[root@tsds ~]# /usr/bin/indexer tsds_metadata_delta_index
 [root@tsds ~]# service searchd start
-[root@tsds ~]# /usr/bin/indexer tsds_metadata_index --rotate
 ```
 
 Enable the delta index and merger in cron by uncommenting them out in `/etc/cron.d/tsds-services.cron`.  Remember to enable it to start up upon boot:
