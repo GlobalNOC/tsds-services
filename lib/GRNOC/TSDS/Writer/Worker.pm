@@ -856,7 +856,7 @@ sub _process_data_messages {
 
     foreach my $data_type ( @data_types ) {
 
-        my @measurement_identifiers = keys( %{$unique_documents->{$data_type}} );
+        my @measurement_identifiers = sort keys( %{$unique_documents->{$data_type}} );
 
         foreach my $measurement_identifier ( @measurement_identifiers ) {
 
