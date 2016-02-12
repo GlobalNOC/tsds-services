@@ -326,8 +326,10 @@ sub add_aggregation {
     $agg_data_col->ensure_index({end     => 1});
 
     # Index for agg daemon to query against
-    $agg_data_col->ensure_index({updated    => 1,
-				 identifier => 1});
+    $agg_data_col->ensure_index(Tie::IxHash->new(
+				    updated     => 1,
+				    identifier  => 1
+				));
 
     my $index = Tie::IxHash->new( 
         identifier => 1,
