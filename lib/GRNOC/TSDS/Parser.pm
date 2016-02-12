@@ -34,6 +34,12 @@ use constant AGGREGATE    => 'aggregate';
 use constant EVENT        => 'event';
 use constant BNF_FILE => '/usr/share/doc/grnoc/tsds/query_language.bnf';
 
+use constant AGGREGATE_AVERAGE    => 1;
+use constant AGGREGATE_MAX        => 2;
+use constant AGGREGATE_MIN        => 3;
+use constant AGGREGATE_HIST       => 4;
+use constant AGGREGATE_PERCENTILE => 5;
+
 ### constructor ###
 
 sub new {
@@ -2800,6 +2806,16 @@ sub _apply_aggregate {
 	$extent = nlowmult( $interval, $extent ) || 1;
     }
 
+    # map the string onto a constant to make lookups faster
+    my %func_lookup = (
+	'average'    => AGGREGATE_AVERAGE,
+	'max'        => AGGREGATE_MAX,
+	'min'        => AGGREGATE_MIN,
+	'histogram'  => AGGREGATE_HIST,
+	'percentile' => AGGREGATE_PERCENTILE
+	);
+    $function = $func_lookup{$function};
+
     # start all of these regardless of what function
     # we're doing to avoid reprocessing each bucket array
     my $max;
@@ -2871,7 +2887,7 @@ sub _apply_aggregate {
 	if ($extent == 1 || $i == @$set - 1 || ( $time !=  $set->[$i+1]->[0] && $time - $extent_start >= $extent)){
 
 	    # most common one, short circuit here
-	    if ($function eq 'average'){
+	    if ($function == AGGREGATE_AVERAGE){
 		if ( @bucket == 0 ) {		    
 		    push( @$aggregated, [$extent_start, undef] );
 		}		
@@ -2879,17 +2895,17 @@ sub _apply_aggregate {
 		    push(@$aggregated, [$extent_start, $total / @bucket]);
 		}		
 	    }
-	    elsif ($function eq 'max'){
+	    elsif ($function == AGGREGATE_MAX){
 		push(@$aggregated, [$extent_start, $max]);
 	    }
-	    elsif ($function eq 'min'){
+	    elsif ($function == AGGREGATE_MIN){
 		push(@$aggregated, [$extent_start, $min]);
 	    }
-	    elsif ($function eq 'percentile'){
+	    elsif ($function == AGGREGATE_PERCENTILE){
 		my $value = $self->_calculate_percentile(\@bucket, $extra);
 		push(@$aggregated, [$extent_start, $value]);
 	    }
-	    elsif ( $function eq 'histogram' ) {
+	    elsif ( $function == AGGREGATE_HIST ) {
 		
 		foreach my $hist ( @hists ) {
 		    
@@ -2918,8 +2934,6 @@ sub _apply_aggregate {
     if ($math_symbol){
 	$aggregated = $self->_apply_math($aggregated, $math_symbol, $math_value);
     }
-
-    log_debug("Aggregated " . @$set . " points into " . @$aggregated . " points using extent $extent");
 
     return {
 	$rename => $aggregated
@@ -3452,20 +3466,33 @@ sub _fix_document {
 
 	    # See if we can scrape out unneeded parts of the packed
 	    # array before we have to unpack and examine everything
-	    for (my $i = 9; $i >= 0; $i--){
+	    # This assumes a 10x10x10 structure in the document
+	    my $right_splice = @$values - 1;
+	    my $left_splice = 0;
+	    for (my $i = @$values - 1; $i >= 0; $i--){
 		my $start_of_section = $start + ($i * $interval * 10 * 10);
 		my $end_of_section   = $start + (($i+1) * $interval * 10 * 10);
-		# This entire block is outside of our boundaries, 
-		# throw it away
-		if ($end_of_section < $meta_start || $start_of_section > $meta_end){
-		    splice(@$values, $i, 1);
+
+		# If this entire block is earlier than the meta start, we can
+		# stop looking because we're going right to left and know we can
+		# throw this whole thing away
+		if ($end_of_section < $meta_start){
+		    $left_splice = $i + 1;
+		    last;
+		}
+		# If this entire block is later than the meta end, we can
+		# "decrement" our splice index to remove the unnecessary data
+		elsif ($start_of_section > $meta_end){
+		    $right_splice = $i - 1;
 		    next;
 		}
 
 		# Since we're going old to new, if we haven't thrown away 
-		# the block we can set the start equal to it
+		# the block for whatever reason we can set the start equal to it
 		$effective_start = $start_of_section;
 	    }
+
+	    @$values = @$values[$left_splice .. $right_splice];
 
 	    # now we're perl'ing with style. This unpacks the remaining
 	    # 3d array into a 1d flat array
@@ -3473,21 +3500,22 @@ sub _fix_document {
 		ref $_ ? map { ref $_ ? map { $_ } @$_ : $_ } @$_ : $_;
 	    } @$values;
 
+
+	    # Now that it's a flat array, we can strip out the exact
+	    # points that don't belong in this result set. The above
+	    # stripping was coarse grain - this is fine grain.
 	    my $start_index = int(($meta_start - $effective_start) / $interval);
 	    if ($meta_start < $effective_start){
 		$start_index = 0;
 	    }
 
-	    my $end_index   = int(($meta_end - $effective_start) / $interval) + 1;
+	    my $end_index   = int(($meta_end - $effective_start) / $interval);
 	    if ($end_index > @$values - 1){
 		$end_index = @$values - 1;
 	    }
 
-	    # Now that it's a flat array, we can strip out the exact
-	    # points that don't belong in this result set. The above
-	    # stripping was coarse grain - this is fine grain.
-	    splice(@$values, $end_index);
-	    splice(@$values, 0, $start_index);
+	    @$values = @$values[$start_index .. $end_index];
+
 
 	    # add timestamps to all the points now that are good
 	    for (my $i = 0; $i < @$values; $i++){

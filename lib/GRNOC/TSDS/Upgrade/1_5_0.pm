@@ -46,7 +46,10 @@ sub upgrade {
 	    my $collection = $database->get_collection( 'expire' );
 	    $self->_fix_eval_positions( $collection );
 	}
+
     }
+
+
 
     ### END UPGRADE CODE ###
 

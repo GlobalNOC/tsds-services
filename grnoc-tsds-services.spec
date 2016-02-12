@@ -60,6 +60,7 @@ Requires: perl-Hash-Merge
 Requires: perl-Proc-Daemon
 Requires: perl-Sort-Versions
 Requires: perl-List-Flatten-Recursive
+Requires: perl-GRNOC-TSDS-Aggregate-Histogram
 Requires: python-pymongo
 Requires: python-pika
 Requires: python-memcached

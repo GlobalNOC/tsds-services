@@ -324,7 +324,11 @@ sub add_aggregation {
     my $agg_data_col = $self->mongo_rw()->get_collection( $measurement_type, "data_$interval", create => 1 );
     $agg_data_col->ensure_index({start   => 1});
     $agg_data_col->ensure_index({end     => 1});
-    $agg_data_col->ensure_index({updated => 1});
+
+    # Index for agg daemon to query against
+    $agg_data_col->ensure_index({updated    => 1,
+				 identifier => 1});
+
     my $index = Tie::IxHash->new( 
         identifier => 1,
         start      => 1,
