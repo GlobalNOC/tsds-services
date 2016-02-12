@@ -782,8 +782,10 @@ sub add_measurement_type {
             $collection->ensure_index($index);
 
 	    # Ensure we add index for agg daemon to query against
-	    $collection->ensure_index({updated    => 1,
-				       identifier => 1});
+	    $collection->ensure_index(Tie::IxHash->new(
+					  updated    => 1,
+					  identifier => 1
+				      ));
         }
 
 	if ( $col_name eq 'measurements' ){
