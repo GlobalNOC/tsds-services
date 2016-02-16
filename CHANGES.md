@@ -1,6 +1,23 @@
+## GRNOC TSDS Services 1.5.0 -- Tue Feb 16 2016
+
+### Features:
+
+* ISSUE=12536 query language now supports relative (from "now") and epoch timestamps in between clause
+* ISSUE=12641 MongoDB document writes are now done in bulk operations to improve performance with less round trips
+* ISSUE=12401 improved performance for search suggestions using new get_distinct_meta_field_values() webservice method
+* ISSUE=12463 set the "updated_start" and "updated_end" timestamps in data documents for new aggregation framework
+* ISSUE=12408 support data aggregation within the writer worker processes when receiving aggregate message for new aggregation framework
+* ISSUE=12464 aggregate data from other aggregated data when possible (1 day aggregates will use 1 hour aggregate data)
+
+### Bug Fixes:
+
+* ISSUE=12566 properly set eval position for the default aggregation and expiration rules upon new installation
+* ISSUE=12412 require data interval to be a positive, non-zero integer
+* ISSUE=12499 fixed default file path location for sphinx search index template files
+* ISSUE=12500 properly handle unicode characters when indexing sphinx search data
+
 
 ## GRNOC TSDS Services 1.4.2 -- Wed Nov 04 2015
-
 
 ### Features:
 
@@ -21,7 +38,7 @@
  * ISSUE=12362 moved unknown field warning messages down to debug level
  * ISSUE=12315 added --noconfirm option to tsds_upgrade.pl to allow for unattended upgrades if desired. The default is still interactive.
 
-### Bugs:
+### Bug Fixes:
 
  * ISSUE=12027 fixed issue where event query for one day didn't include events whose start and end are not on the same date in the result
  * ISSUE=12111 fixed bug where writer would fail when it encountered a measurement type without a valid metadata collection & document
@@ -34,7 +51,7 @@
 
 ## GRNOC TSDS Services 1.4.1 -- Tue Sep 29 2015
 
-### Bugs: 
+### Bug Fixes: 
 
  * ISSUE=12126 Fixed issue where the search API was not respecting the order of the ordinal fields set on value fields
  * ISSUE=11369 add missing last_updated index to measurements collection
@@ -52,7 +69,7 @@
  * ISSUE=11369 added new global search API using sphinx for backend indexing
  * ISSUE=11801 global search query support from browse section
 
-### Bugs:
+### Bug Fixes:
 
  * ISSUE=11556 data aggregation and expiration rules are now maintained separately
  * ISSUE=11793 added support for angle, square, and curly brackets in the query language
