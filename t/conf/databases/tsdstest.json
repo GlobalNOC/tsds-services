@@ -2,28 +2,7 @@
   "label" : "tsdstest",
   "meta_fields" : {
     "intf" : { "required" : 1, "ordinal" : 1, "search_weight" : 1 },
-    "node" : { "required" : 1, "ordinal" : 2, "search_weight" : 1 },
-    "description" : {
-        "ordinal" : 3
-    },
-    "circuit" : {
-      "array" : 1,
-      "classifier" : 1, 
-      "fields" : {
-        "circuit_id" : { },
-        "owner" : { },
-        "name" : { "ordinal" : 1 },
-        "description" : { "ordinal" : 2 },
-        "carrier" : { },
-        "speed" : { },
-        "customer" : { },
-        "type" : { },
-        "role" : { }
-      }
-    },
-    "tags": {
-      "array": 1
-    } 
+    "node" : { "required" : 1, "ordinal" : 2, "search_weight" : 1 }
   },  
   "type" : "tsdstest",
   "values" : {

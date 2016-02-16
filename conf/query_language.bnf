@@ -69,9 +69,9 @@ histogram ::= 'histogram' '(' field_word ',' number ')' action => remove_symbols
 	      |
 	      'histogram' '(' field ',' number ')' action => remove_symbols
 
-extrapolate ::= 'extrapolate' '(' field_word ',' date ')' action => remove_symbols
+extrapolate ::= 'extrapolate' '(' field_word ',' number ')' action => remove_symbols
                 |
-                'extrapolate' '(' field_word ',' number ')' action => remove_symbols
+                'extrapolate' '(' field_word ',' date ')' action => remove_symbols
 		|
 		'extrapolate' '(' field ',' date ')' action => remove_symbols
                 |
@@ -127,13 +127,13 @@ where_term ::= word equals phrase action => flatten
 	       |
 	       word not_equals null action => parse_null
 	       |
-	       word '>' date_or_number action => ::array
+	       word '>' number action => ::array
 	       |
-               word '>=' date_or_number action => ::array
+               word '>=' number action => ::array
                |
-               word '<' date_or_number action => ::array
+               word '<' number action => ::array
 	       |
-               word '<=' date_or_number action => ::array
+               word '<=' number action => ::array
                |
                word 'in' '(' phrase_list ')' action => remove_symbols
                | 
@@ -143,8 +143,6 @@ where_term ::= word equals phrase action => flatten
                |
                word 'like' phrase action => flatten
                
-
-date_or_number ::= date | number
 
 #word_list ::= word+ action => ::array separator => comma
 phrase_list ::= phrase+ action => ::array separator => comma
@@ -179,6 +177,15 @@ date    ::= quote two_numbers '/' two_numbers '/' four_numbers two_numbers ':' t
             quote two_numbers '/' two_numbers '/' four_numbers timezone quote action => make_date
             |
             quote two_numbers '/' two_numbers '/' four_numbers quote action => make_date
+            |
+            now plus_minus relative_time_number relative_time_spec action => make_date
+            |
+            now action => make_date
+            |
+            epoch action => make_date
+
+relative_time_spec ::= 's'|'m'|'h'|'d'|'w'|'mo'|'y'
+relative_time_number ~ [\d]+
 
 timezone ::= alpha '/' alpha action => collapse
 	     | 
@@ -238,12 +245,16 @@ or   ~ 'or'
 having ~ 'having'
 limit ~ 'limit'
 offset ~ 'offset'
-integer ~ [\d]+
 two_numbers ~ [\d][\d]
 four_numbers ~ [\d][\d][\d][\d]
 math ~ [\+\-\*\/]
 null ~ 'null'
 alpha ~ [a-zA-Z]+
+integer ~ [\d]+
+now ~ 'now'
+plus_minus ~ [\+\-]
+epoch ~ [\d]+
+
 
 :discard ~ whitespace
 whitespace ~ [\s]+

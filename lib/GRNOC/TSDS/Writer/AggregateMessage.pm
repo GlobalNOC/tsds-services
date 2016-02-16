@@ -1,26 +1,24 @@
-package GRNOC::TSDS::Writer::DataMessage;
+package GRNOC::TSDS::Writer::AggregateMessage;
 
 use Moo;
 
-use Types::Standard qw( Str Int HashRef Object );
-use Types::XSD::Lite qw( PositiveInteger NonNegativeInteger );
-
-use GRNOC::TSDS::DataPoint;
+use Types::Standard qw( HashRef InstanceOf );
+use Types::Common::Numeric qw( PositiveInt PositiveOrZeroInt );
 
 use Data::Dumper;
 
 ### required attributes ###
 
 has 'data_type' => ( is => 'ro',
-                     isa => Object,
+                     isa => InstanceOf['GRNOC::TSDS::DataType'],
                      required => 1 );
 
 has 'time' => ( is => 'ro',
-                isa => NonNegativeInteger,
+                isa => PositiveOrZeroInt,
                 required => 1 );
 
 has 'interval' => ( is => 'ro',
-                    isa => PositiveInteger,
+                    isa => PositiveInt,
                     required => 1 );
 
 has 'values' => ( is => 'ro',
@@ -33,7 +31,7 @@ has 'meta' => ( is => 'ro',
 
 ### lazy attributes ###
 
-has 'data_points' => ( is => 'lazy' );
+has 'aggregate_points' => ( is => 'lazy' );
 
 has 'measurement_identifier' => ( is => 'lazy' );
 
@@ -51,7 +49,7 @@ sub BUILD {
 
 ### attribute builders ###
 
-sub _build_data_points {
+sub _build_aggregate_points {
 
     my ( $self ) = @_;
 
@@ -59,20 +57,20 @@ sub _build_data_points {
     my $time = $self->time;
     my $values = $self->values;
 
-    my $data_points = [];
+    my $aggregate_points = [];
 
     while ( my ( $value_type, $value ) = each( %$values ) ) {
 
-        my $data_point = GRNOC::TSDS::DataPoint->new( data_type => $data_type,
-                                                      value_type => $value_type,
-                                                      time => $time,
-                                                      value => $value,
-                                                      interval => $self->interval );
+        my $aggregate_point = GRNOC::TSDS::AggregatePoint->new( data_type => $data_type,
+                                                                value_type => $value_type,
+                                                                time => $time,
+                                                                value => $value,
+                                                                interval => $self->interval );
 
-        push( @$data_points, $data_point );
+        push( @$aggregate_points, $aggregate_point );
     }
 
-    return $data_points;
+    return $aggregate_points;
 }
 
 sub _build_measurement_identifier {

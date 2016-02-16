@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 178;
+use Test::More tests => 184;
 
 # testing multiple where operators
 use GRNOC::Config;
@@ -18,23 +18,25 @@ my $length;
 
 sub validate_results{
     my ($result,$len) = @_;
-# validate total number of records sent back
+    # validate total number of records sent back
     $length = scalar @$result;
     is($length,$len,"Count variable match with total number of output values returned by query");
 
-# validate the random values
-# # result =Multi Dimensional Array :::  index -> [interval at index 0] and [value at index 1 ] . Use index 1 for fetching value
+    # validate the random values
+    # # result =Multi Dimensional Array :::  index -> [interval at index 0] and [value at index 1 ] . Use index 1 for fetching value
     my $value= $result->[0]->[1]; # column 1 is for getting value
-    is($value, 1, " First row of query array result is valid ");
+    ok($result->[0]->[1] < $result->[1]->[1] &&
+       $result->[0]->[0] < $result->[1]->[0], "First row is less than later row");
 
-# Random row selection and validation .Random Seed generator
-# https://www.ccsf.edu/Pub/Perl/perlfunc/srand.html
+    # Random row selection and validation .Random Seed generator
+    # https://www.ccsf.edu/Pub/Perl/perlfunc/srand.html
     srand(time ^ $$ ^ unpack "%L*", `ps axww | gzip`);
-    my $randnum = rand($length);
-    $value= $result->[$randnum]->[1];
-    is($value, int($randnum + 1) , " random row of query array result is valid ");
+    my $randnum = rand($length - 1);
+    my $value  = $result->[$randnum]->[1];
+    my $value2 = $result->[$randnum+1]->[1];
+    is($value2, $value + 1, " random row of query array result is valid ");
     $value=$result->[$length-1]->[1];
-    is($value,$len,"last row fetched of query array result is valid");
+    ok($value >= $value2,"last row fetched of query array result is valid");
 }
 
 my $query = GRNOC::TSDS::DataService::Query->new( config_file => $config_file,
@@ -79,11 +81,18 @@ ok( defined($result) , " query to fetch values of output fields (values.output) 
 validate_results($result,4867);
 
 # With Grouping By
-$arr= $query->run_query( query =>'get values.output between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") by meta.node from tsdstest where intf = "ge-0/0/0" and node="rtr.chic" ');
-ok($arr, "query request to fetch values.output by meta.node sent successfully");
+$arr= $query->run_query( query =>'get node, intf, aggregate(values.output, 300, average) as output between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") by node from tsdstest where node="rtr.chic" ordered by intf asc ');
+ok($arr, "query request to fetch values.output by node sent successfully");
+is(@$arr, 1, "got 1 result");
+is($arr->[0]{'output'}[0][1], 125296, "got aggregate value");
+is($arr->[0]{'intf'}, "interface11");
 
-$result= $arr->[0]->{'values.output'};
-ok( defined($result) , " query to fetch values of output fields (values.output) by meta.node from Mongo successful ");
+# With Grouping by first
+$arr= $query->run_query( query =>'get intf, node, aggregate(values.output, 300, average) as output between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") by node first(intf) from tsdstest where node="rtr.chic" ');
+ok($arr, "query request to fetch values.output by meta.node sent successfully");
+is(@$arr, 1, "got 1 result");
+is($arr->[0]{'output'}[0][1], 103696, "got aggregate value");
+is($arr->[0]{'intf'}, "ge-0/0/0", "got interface");
 
 # Validate the results returned
 # with ordering (Sort output)
@@ -94,11 +103,11 @@ $result= $arr->[0]->{'values.output'};
 ok( defined($result) , " query to fetch values of output fields (values.output) using ordered by meta.intf,meta.node from Mongo successful ");
 
 $first_value= $result->[0]->[1];
-is($first_value,1,"First value of sorted output is valid ");
+is($first_value,103681,"First value of sorted output is valid ");
 
 $length= scalar @$result - 1 ;
 $last_value= $result->[$length]->[1];
-is($last_value,4867,"Last value of sorted output is valid ");
+is($last_value,108547,"Last value of sorted output is valid ");
 
 # with ordering ( sort ascending default order)
 $arr= $query->run_query( query =>'get values.input between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") from tsdstest where intf = "ge-0/0/0" and node="rtr.chic" ordered by meta.node');
@@ -108,11 +117,11 @@ $result= $arr->[0]->{'values.input'};
 ok( defined($result) , " query to fetch values of input fields (values.input) using order by meta.node from Mongo successful ");
 
 $first_value= $result->[0]->[1];
-is($first_value,1,"First value of sorted meta.node output is valid ");
+is($first_value,103681,"First value of sorted meta.node output is valid ");
 
 $length= scalar @$result - 1 ;
 $last_value= $result->[$length]->[1];
-is($last_value,4867,"Last value of sorted meta.node output is valid ");
+is($last_value,108547,"Last value of sorted meta.node output is valid ");
 
 # subqueries
 my $subquery ='get intf,node,values.input,values.output between("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") from tsdstest where intf = "ge-0/0/0" ';
@@ -191,24 +200,24 @@ $arr= $query->run_query( query => " get average(values.input) from($subquery) or
 ok(defined($arr)," Subquery , average(output),sorted output and conditional statements query executed successfully");
 
 $result=$arr->[0]->{'average(values.input)'};
-is($result,"2434","Average value returned by query get average(values.input) from($subquery) ordered by node");
+is($result,"106114","Average value returned by query get average(values.input) from($subquery) ordered by node");
 
 $arr= $query->run_query( query => "get max(values.input) from($subquery) ordered by node ");
 ok(defined($arr),"Query with aggregate function , conditional statement , order by command and subquery executed successfully");
 
 $result=$arr->[0]->{'max(values.input)'};
-is($arr->[0]->{'max(values.input)'},"4867","Max value returned by query (get max(values.input) from($subquery) ordered by node) is valid ");
+is($arr->[0]->{'max(values.input)'},"108547","Max value returned by query (get max(values.input) from($subquery) ordered by node) is valid ");
 
 $arr= $query->run_query( query => "get sum(values.input) as SUM_OUTPUT from($subquery) ordered by node ");
 ok(defined($arr),"Query with aggregate function , conditional statement , order by command and subquery executed successfully");
 
 $result=$arr->[0]->{'SUM_OUTPUT'};
 ok( defined($result) , "Aggregate function sum(field) result on sub query information returned succesfully");
-is( $result ,11846278,"sum function return value verified ");
+is( $result ,516456838,"sum function return value verified ");
 
 $arr= $query->run_query( query => " get min(values.input) as minval from($subquery) ");
 ok(defined($arr),"Query with aggregate function min on input values and subquery executed successfully");
-is($arr->[0]->{'minval'},"1","Min value returned by query (get min(values.input) as minval from($subquery) ) is valid ");
+is($arr->[0]->{'minval'},"103681","Min value returned by query (get min(values.input) as minval from($subquery) ) is valid ");
 
 $result=$arr->[0]->{'minval'};
 ok( defined($result) , "Aggregate function min(field) result on sub query information returned succesfully");
@@ -227,13 +236,13 @@ ok(defined($arr),"Query with aggregate function min on input values and subquery
 $result=$arr->[0]->{'minval'};
 
 ok( defined($result) , "Aggregate function min(field) output result on sub query information returned succesfully");
-is($result,"1","Min value returned by query (get min(values.output) as minval from($subquery) ) is valid ");
+is($result,"103681","Min value returned by query (get min(values.output) as minval from($subquery) ) is valid ");
 
 $arr= $query->run_query( query => " get max(values.output) as maxval from($subquery) ");
 $result= $arr->[0]->{'maxval'};
 
 ok( defined($result) , "Aggregate function max(field) output result on sub query information returned succesfully");
-is($result,"4867","Max value returned by query (get max(values.output) as maxval from($subquery)) is valid ");
+is($result,"108547","Max value returned by query (get max(values.output) as maxval from($subquery)) is valid ");
 
 # Testing various interface values present in  particular node and values associated with it
 $subquery ='get values.input,node,intf between("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") by intf from tsdstest where node = "rtr.chic" ';
@@ -276,11 +285,8 @@ validate_results($arr->[0]->{'values.output'},4867);
 
 $subquery ='get intf,node,values.input,values.output between("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") by intf from tsdstest where node = "rtr.chic" ';
 $arr= $query->run_query( query => " get intf,node,min(values.output) as Min_Val,average(values.input),average(values.output) as AVGOUT by intf from ($subquery) ");
-$length= scalar @$arr -1;
-srand(time ^ $$ ^ unpack "%L*", `ps axww | gzip`);
-my $randnum = rand($length);
-is($arr->[$randnum]->{'AVGOUT'},2434,"Average returned by query is valid");
-is($arr->[$randnum]->{'Min_Val'},1,"Minimum value returned by query is valid");
+is($arr->[0]->{'AVGOUT'},88834,"Average returned by query is valid");
+is($arr->[0]->{'Min_Val'},86401,"Minimum value returned by query is valid");
 
 $subquery ='get values.output,node,intf between("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") by node,intf from tsdstest where intf = "interface3" ordered by node';
 $arr= $query->run_query( query => "get intf,node by node from ($subquery) ");
@@ -336,7 +342,7 @@ is($arr->[2]->{'intf'},"interface7","Interface first value and order descending 
 
 # Testing aggreagate functions with various bucket input
 $arr=$query->run_query(query => 'get values.input,node,aggregate(values.input,300,average) as AVGIN,values.output,aggregate(values.output,600,min) as MINOUT  between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") from tsdstest where intf="interface5" ');
-is($arr->[0]->{'MINOUT'}->[0]->[1],1,"Minimum value in first bucket validated successfully");
+is($arr->[0]->{'MINOUT'}->[0]->[1],17281,"Minimum value in first bucket validated successfully");
 
 $arr=$query->run_query(query => 'get aggregate(values.input,600,count) as BucketCount between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") from tsdstest where intf="interface5" ');
 
@@ -398,7 +404,7 @@ $arr = $query->run_query( query =>'get average(values.input) as avg, intf betwee
 ok($arr, "query request with having sent successfully");
 is(@$arr, 1, "got all 1 interfaces response with having");
 is($arr->[0]->{'intf'}, "ge-0/0/0", "got correct interface");
-is($arr->[0]->{'avg'}, "4320.5", "got correct interface data");
+is($arr->[0]->{'avg'}, "108000.5", "got correct interface data");
 
 $arr = $query->run_query( query =>'get average(values.input) as avg, intf between("01/01/1970 00:00:00 UTC","01/10/1970 13:31:00 UTC") by intf from tsdstest where node="rtr.chic" having intf like "ge" or (intf like "interface1" and avg >= 4000) ordered by intf');
 ok($arr, "query request with having sent successfully");
@@ -415,8 +421,8 @@ ok($arr, "query request with having sent successfully");
 is(@$arr, 10, "got all 10 interfaces response");
 is($arr->[0]->{'diff_minus'}, 0, "got right diff minus");
 is($arr->[0]->{'diff_divide'}, 1, "got right diff divide");
-is($arr->[0]->{'diff_plus'}, 74658240, "got right diff plus");
-is($arr->[0]->{'diff_mult'}, 1393463199974400, "got right diff mult");
+is($arr->[0]->{'diff_plus'}, 1567650240, "got right diff plus");
+is($arr->[0]->{'diff_mult'}, 614381818743014400, "got right diff mult");
 
 
 
@@ -425,7 +431,7 @@ $arr = $query->run_query( query =>'get count(min(values.input)) as first, averag
 ok($arr, "query request to fetch values.input sent successfully");
 
 is($arr->[0]->{'first'}, 1, "got count min chain");
-is($arr->[0]->{'second'}, 2686.65384615385, "got average aggregate chain");
-is($arr->[0]->{'third'}, 2686.65384615385, "got max average aggregate chain");
+is($arr->[0]->{'second'}, 106195.25, "got average aggregate chain");
+is($arr->[0]->{'third'}, 106195.25, "got max average aggregate chain");
 is($arr->[0]->{'fourth'}, 1, "got count max average aggregate chain");
 is($arr->[0]->{'fourth'}, 1, "got sum count max average aggregate chain");

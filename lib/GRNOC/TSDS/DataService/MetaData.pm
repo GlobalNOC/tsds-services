@@ -560,6 +560,143 @@ sub _get_classifier_fields {
     return \@classifier_fields;
 }
 
+sub get_distinct_meta_field_values {
+    my ( $self, %args ) = @_;
+
+    my $measurement_type = $args{'measurement_type'};
+    my $meta_field       = $args{'meta_field'};
+    my $limit            = $args{'limit'};
+    #my $offset           = $args{'offset'};
+
+    my $classifier;
+    ($classifier, $measurement_type) = $self->_parse_measurement_type( $measurement_type );
+
+    return if(!$measurement_type || !$meta_field);
+
+    my $db = $self->mongo_ro()->get_database($measurement_type);
+    if (!$db){
+        $self->error("Error accessing database \"$measurement_type\": " . $self->mongo_ro()->error());
+        return;
+    }
+
+    my %meta_filters = map { $_ => $args{$_} } grep {
+        $_ ne 'measurement_type' &&
+        $_ ne 'meta_field' &&
+        $_ ne 'limit' &&
+        $_ ne 'offset' &&
+        $_ ne 'order' &&
+        $_ !~ /_logic$/
+    } keys %args;
+
+    my $filter_array = [];
+    foreach my $key (keys %meta_filters) {
+        my $values = $meta_filters{$key};
+
+        foreach my $value (@$values) {
+            my $field;
+            if ($key =~ /^(.+)_not_like$/) {
+                $field = $1;
+                push(@$filter_array, { $field => {'$not' => qr/$value/i} });
+            }
+            elsif ($key =~ /^(.+)_like$/) {
+                $field = $1;
+                push(@$filter_array, { $field => {'$regex' => qr/$value/i} });
+            }
+            elsif ($key =~ /^(.+)_not$/) {
+                $field = $1;
+                push(@$filter_array, { $field => {'$ne' => $value} });
+            }
+            elsif ($key =~ /^(.+)$/) {
+                $field = $1;
+                push(@$filter_array, { $field => {'$eq' => $value} });
+            }
+        }
+    }
+    
+    my $query = {};
+    
+    if (@$filter_array == 1) {
+        $query = $filter_array->[0];
+    }
+    elsif (@$filter_array > 1) {
+        $query = { '$and' => $filter_array };
+    }
+
+    # Determine from meta_field how to process this request
+    # if it's a classifier and an array (e.g., circuit.name), we need to use aggregate
+    # otherwise, simply use distinct command
+
+    my $prefix = $meta_field;
+    $prefix = ($prefix =~ /(.+)\.(.+)/) ? $1 : $prefix;
+    my $meta_field_array = $self->_is_meta_field_array($db, $prefix);
+
+    my @results = ();  
+
+    if (!$meta_field_array) {
+        my $result;
+
+        eval {
+            $result = $db->run_command(["distinct" => "measurements",
+                                        "key"      => $meta_field,
+                                        "query"    => $query
+                                       ]);
+        };
+        if ($@){
+            $self->error("Error querying distinct command from database: $@");
+            return;
+        }
+
+  
+        foreach my $value (@{$result->{'values'}}[ 0 .. $limit-1 ]) {
+            push(@results, {'value' => $value}) if $value;
+        }
+    }
+    else {
+        my $agg_results;
+        my $measurements = $db->get_collection("measurements");    
+
+        eval {
+            $agg_results = $measurements->aggregate([{'$match' => $query},
+                                                     {'$unwind' => '$'.$prefix},
+                                                     {'$match' => $query},
+                                                     {'$group' => { _id => '$'.$meta_field }},
+                                                     {'$sort' => { _id => 1 }},
+                                                     {'$limit' => $limit+0}]);
+        };
+        if ($@){
+            $self->error("Error querying aggregation from database: $@");
+            return;
+        }
+
+        # Loop through the aggregation result to create a final result (replace 'value' with '_id')
+        # one rare case (circuit role) where the meta field value is an array 
+        foreach my $item (@$agg_results) {
+             my $value = $item->{'_id'};
+             if (defined($value)) {
+                 if (ref($value) eq 'ARRAY') {
+                     foreach my $v (@$value) {
+                         if (my ($matched) = grep $_->{'value'} eq $v, @results) {
+                             next;
+                         }
+                         else {
+                             push(@results, {'value' => $v});
+                         }
+                     }
+                 }
+                 else {
+                     push(@results, {'value' => $value});
+                 }
+             }
+        }
+    }
+
+    my $total = @results;
+    return {
+               total => $total,
+               results => \@results
+           };
+}
+
 # ADD METHODS
 sub add_measurement_type {
 
@@ -634,7 +771,6 @@ sub add_measurement_type {
         my $collection = $db->get_collection( $col_name );
         $collection->ensure_index({start => 1});
         $collection->ensure_index({end   => 1});
-        $collection->ensure_index({last_updated => 1}) if ($col_name eq  'measurements');
 
         if( $col_name eq 'data' ){
             my $index = Tie::IxHash->new(
@@ -642,11 +778,19 @@ sub add_measurement_type {
                 start      => 1,
                 end        => 1
             );
+
             $collection->ensure_index($index);
+
+	    # Ensure we add index for agg daemon to query against
+	    $collection->ensure_index(Tie::IxHash->new(
+					  updated    => 1,
+					  identifier => 1
+				      ));
         }
 
 	if ( $col_name eq 'measurements' ){
 	    $collection->ensure_index({identifier => 1});
+	    $collection->ensure_index({last_updated => 1});
 	}
     }
 
@@ -1725,6 +1869,24 @@ sub _get_constraint_databases {
     }
     
     return;
+}
+
+sub _is_meta_field_array {
+    my ( $self, $db, $meta_field ) = @_;
+
+    my $metadata_collection = $db->get_collection("metadata");
+    my $metadata_doc = $metadata_collection->find_one( {} );
+    my $meta_fields = $metadata_doc->{'meta_fields'};
+
+    if ( defined($meta_fields) ) {
+        if (defined($meta_fields->{$meta_field}) and 
+            defined($meta_fields->{$meta_field}->{'array'}) and
+            $meta_fields->{$meta_field}->{'array'} == 1) {
+            return 1;
+        }
+    }
+    
+    return 0;
 }
 
 1;

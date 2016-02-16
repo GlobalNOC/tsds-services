@@ -111,42 +111,89 @@ sub make_date {
 	push(@values, $value);
     }
 
-    # These are always required. 
-    my $month = shift @values;
-    my $day   = shift @values;
-    my $year  = shift @values;
+    my $dt;
 
-    my $dt = new DateTime(year  => $year,
-			  month => $month,			  
-			  day   => $day
-	);
-    
-    
-    my $hour   = 0; 
-    my $minute = 0;
-    my $second = 0;
-    my $timezone = "local";
 
-    # There are 4 possibilities now: 
-    #   1.) We have full specification with 4 items left in the array
-    #   2.) We have just the time specification
-    #   3.) We have just the timezone specification
-    #   4.) We have nothing else
+    # If we're doing relative time, we can do that
+    if ($values[0] =~ /^now$/i){
+        $dt = DateTime->now();
 
-    if (@values >= 3){
-	$hour   = shift @values; 
-	$minute = shift @values;
-	$second = shift @values;
+        # Are we doing something like now - 5m?
+        if (@values > 1){
+            my $op   = $values[1];
+            my $num  = $values[2];
+            my $type = $values[3];
+
+            # Cast the incoming to whatever DateTime::Duration 
+            # is expecting
+            my %lookup = (
+                's'  => 'seconds',                
+                'm'  => 'minutes',
+                'h'  => 'hours',
+                'd'  => 'days',
+                'w'  => 'weeks',
+                'mo' => 'months',
+                'y'  => 'years'
+            );
+
+            my $name = $lookup{$type};
+
+            if ($op eq '+'){
+                $dt->add($name => $num);
+            }
+            else {
+                $dt->subtract($name => $num);
+            }
+        }
     }
+    # If they just specified an epoch timestamp, this is easy
+    # just use that.
+    elsif (@values == 1){
+        $dt = DateTime->from_epoch(epoch => $values[0]);
+    }        
+    # Otherwise we have a long human readable date
+    # passed in
+    else {
 
-    if (@values == 1){
-	$timezone = shift @values;
+        # These are always required. 
+        my $month = shift @values;
+        my $day   = shift @values;
+        my $year  = shift @values;
+
+        $dt = new DateTime(year  => $year,
+                           month => $month,			  
+
+                           day   => $day
+            );
+        
+        
+        my $hour   = 0; 
+        my $minute = 0;
+        my $second = 0;
+        my $timezone = "local";
+        
+        # There are 4 possibilities now: 
+        #   1.) We have full specification with 4 items left in the array
+        #   2.) We have just the time specification
+        #   3.) We have just the timezone specification
+        #   4.) We have nothing else
+        
+        if (@values >= 3){
+            $hour   = shift @values; 
+            $minute = shift @values;
+            $second = shift @values;
+        }
+        
+        if (@values == 1){
+            $timezone = shift @values;
+        }
+        
+        $dt->set_hour($hour);
+        $dt->set_minute($minute);
+        $dt->set_second($second);    
+        $dt->set_time_zone($timezone);    
+
     }
-
-    $dt->set_hour($hour);
-    $dt->set_minute($minute);
-    $dt->set_second($second);    
-    $dt->set_time_zone($timezone);    
 
     # should this be isodate or epoch?
     #return '"' . $dt->epoch() . '"';

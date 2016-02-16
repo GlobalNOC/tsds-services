@@ -26,6 +26,12 @@ use GRNOC::TSDS::DataService::Query;
 use GRNOC::WebService::Method;
 use GRNOC::WebService::Regex;
 
+use JSON::XS;
+
+# Get access to encode/decode_bson
+use XSLoader;
+XSLoader::load("MongoDB");
+
 use Data::Dumper;
 
 sub new {
@@ -54,6 +60,7 @@ sub _init_methods {
     $method = GRNOC::WebService::Method->new( name          => 'query',
                                               description   => 'Executes a query',
                                               expires       => '-1d',
+					      output_formatter => sub { return shift; },
                                               callback      => sub { $self->_query( @_ ) } );
 
     # add the required query parameter to the query() method
@@ -62,6 +69,14 @@ sub _init_methods {
                                   required      => 1,
                                   multiple      => 0,
                                   description   => '' );
+
+    # add the required query parameter to the query() method
+    $method->add_input_parameter( name          => 'output',
+                                  pattern       => '^(json|bson)$',
+                                  required      => 1,
+                                  multiple      => 0,
+				  default       => 'json',
+                                  description   => 'Whether to output the results as JSON or BSON' );
 
     # register the query() method
     $self->websvc()->register_method( $method );
@@ -83,12 +98,25 @@ sub _query {
         return;
     }
 
-    return {
+    my $response = {
 	total     => $self->query_ds()->total(),
 	total_raw => $self->query_ds()->total_raw(),
 	results   => $results,
 	query     => $args->{'query'}{'value'}
     };
+
+    my $output = $args->{'output'}{'value'};
+
+    if ($output =~ /^bson$/i){
+	$method->{'output_type'} = "application/bson";
+	$response = MongoDB::BSON::encode_bson($response);
+    }
+    else {
+	$method->{'output_type'} = "application/json";
+	$response = JSON::XS::encode_json( $response );
+    }
+
+    return $response;
 }
 
 sub update_constraints_file {

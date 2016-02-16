@@ -34,6 +34,12 @@ use constant AGGREGATE    => 'aggregate';
 use constant EVENT        => 'event';
 use constant BNF_FILE => '/usr/share/doc/grnoc/tsds/query_language.bnf';
 
+use constant AGGREGATE_AVERAGE    => 1;
+use constant AGGREGATE_MAX        => 2;
+use constant AGGREGATE_MIN        => 3;
+use constant AGGREGATE_HIST       => 4;
+use constant AGGREGATE_PERCENTILE => 5;
+
 ### constructor ###
 
 sub new {
@@ -2742,19 +2748,23 @@ sub _apply_sum {
 
     my @set = $self->_find_value($name, $data);
 
+    my $any_defined = 0;
     my $sum = 0;
 
     foreach my $value (@set){
         $value = $value->[1] if (ref $value eq 'ARRAY');
-	$sum += $value if (defined $value);
+	if (defined $value){
+            $sum         += $value;
+            $any_defined = 1;
+        }
     }
 
-    if ($math_symbol){
+    if ($any_defined && $math_symbol){
 	$sum = $self->_apply_math($sum, $math_symbol, $math_value);
     }
 
     return {
-	$rename => $sum
+	$rename => $any_defined ? $sum : undef
     };
 }
 
@@ -2796,6 +2806,16 @@ sub _apply_aggregate {
 	$extent = nlowmult( $interval, $extent ) || 1;
     }
 
+    # map the string onto a constant to make lookups faster
+    my %func_lookup = (
+	'average'    => AGGREGATE_AVERAGE,
+	'max'        => AGGREGATE_MAX,
+	'min'        => AGGREGATE_MIN,
+	'histogram'  => AGGREGATE_HIST,
+	'percentile' => AGGREGATE_PERCENTILE
+	);
+    $function = $func_lookup{$function};
+
     # start all of these regardless of what function
     # we're doing to avoid reprocessing each bucket array
     my $max;
@@ -2824,7 +2844,7 @@ sub _apply_aggregate {
 	}
 
 	# we're looking at a retention aggregation
-	if ( ref( $value ) eq 'HASH' ) {
+	if ( ref( $value ) ) {
 
             if ( !defined( $value->{'avg'} ) || !defined( $value->{'min'} ) || !defined( $value->{'max'} ) ) {
 
@@ -2866,29 +2886,26 @@ sub _apply_aggregate {
         # ( here we check whether there are more data for the same timestamp exist in next iteration, if so wait until we reach the last timestamp)
 	if ($extent == 1 || $i == @$set - 1 || ( $time !=  $set->[$i+1]->[0] && $time - $extent_start >= $extent)){
 
-	    if ($function eq 'max'){
+	    # most common one, short circuit here
+	    if ($function == AGGREGATE_AVERAGE){
+		if ( @bucket == 0 ) {		    
+		    push( @$aggregated, [$extent_start, undef] );
+		}		
+		else {
+		    push(@$aggregated, [$extent_start, $total / @bucket]);
+		}		
+	    }
+	    elsif ($function == AGGREGATE_MAX){
 		push(@$aggregated, [$extent_start, $max]);
 	    }
-	    elsif ($function eq 'min'){
+	    elsif ($function == AGGREGATE_MIN){
 		push(@$aggregated, [$extent_start, $min]);
 	    }
-	    elsif ($function eq 'average'){
-		
-		if ( @bucket == 0 ) {
-		    
-		    push( @$aggregated, [$extent_start, undef] );
-		}
-		
-		else {
-		    
-		    push(@$aggregated, [$extent_start, $total / @bucket]);
-		}
-	    }
-	    elsif ($function eq 'percentile'){
+	    elsif ($function == AGGREGATE_PERCENTILE){
 		my $value = $self->_calculate_percentile(\@bucket, $extra);
 		push(@$aggregated, [$extent_start, $value]);
 	    }
-	    elsif ( $function eq 'histogram' ) {
+	    elsif ( $function == AGGREGATE_HIST ) {
 		
 		foreach my $hist ( @hists ) {
 		    
@@ -2917,8 +2934,6 @@ sub _apply_aggregate {
     if ($math_symbol){
 	$aggregated = $self->_apply_math($aggregated, $math_symbol, $math_value);
     }
-
-    log_debug("Aggregated " . @$set . " points into " . @$aggregated . " points using extent $extent");
 
     return {
 	$rename => $aggregated
@@ -3279,7 +3294,10 @@ sub _find_math {
     my $tokens = shift;
 
     for (my $i = 0; $i < @$tokens; $i++){
-	if ($self->_is_math_symbol($tokens->[$i])){
+	# this really should be a macro or something, it's lifted from
+	# the _is_math_symbol call but faster since this is called frequently
+	# to not have function overhead
+	if (defined $tokens->[$i] && $tokens->[$i] =~ /^[*\/+-]$/){
 	    my $math_symbol = $tokens->[$i];
 	    my $math_value  = $tokens->[$i + 1];
 
@@ -3377,16 +3395,16 @@ sub _fix_document {
     my $base_doc = $args{'base_doc'};
     my $full_start = $args{'start'};
     my $full_end = $args{'end'};
-    my $aggregate_interval = $args{'aggregate_interval'};
+    my $aggregate_interval = $args{'aggregate_interval'} || undef;
     my $meta_values = $args{'meta_merge_docs'};    
 
     # we need to flatten out the multidimensional structure
     # and remove any points that are outside of the queried time
 
     my $identifier = $base_doc->{'identifier'};
-    my $start      = $base_doc->{'start'};
-    my $end        = $base_doc->{'end'};
-    my $interval   = $base_doc->{'interval'};
+    my $start      = int($base_doc->{'start'});
+    my $end        = int($base_doc->{'end'});
+    my $interval   = int($base_doc->{'interval'});
 
     # merge in the measurement meta values
     my $meta_docs = $meta_values->{$identifier};
@@ -3439,58 +3457,77 @@ sub _fix_document {
 
 	my @keys = keys %{$clone->{'values'}};
 
-	# We need to unpack the values from their multidimensional array if needed
+	# We need to unpack the values from their multidimensional array 
 	foreach my $measurement (@keys){
 
-	    my $effective_time = $start;
-
-	    my @flat;
+	    my $effective_start = $start;
 
 	    my $values = $clone->{'values'}{$measurement};
 
-	    while (@$values) {
+	    # See if we can scrape out unneeded parts of the packed
+	    # array before we have to unpack and examine everything
+	    # This assumes a 10x10x10 structure in the document
+	    my $right_splice = @$values - 1;
+	    my $left_splice = 0;
+	    for (my $i = @$values - 1; $i >= 0; $i--){
+		my $start_of_section = $start + ($i * $interval * 10 * 10);
+		my $end_of_section   = $start + (($i+1) * $interval * 10 * 10);
 
-		my $element = shift @$values;
-
-		if (ref($element) eq 'ARRAY') {
-		    unshift @$values, @$element;
+		# If this entire block is earlier than the meta start, we can
+		# stop looking because we're going right to left and know we can
+		# throw this whole thing away
+		if ($end_of_section < $meta_start){
+		    $left_splice = $i + 1;
+		    last;
 		}
-		else {
-
-		    # cut down the array in the document to just the elements
-		    # that are exactly within the queried timeframe
-		    last if ($effective_time > $meta_end);
-
-		    # If we're within the time boundary AND inside the meta boundary,
-		    # we can add this data point to our dataset
-		    if ($effective_time >= $meta_start){
-			push(@flat, [$effective_time, $element]);
-		    }
-		    # If we're inside the time boundary but OUTSIDE the meta boundary,
-		    # then we need to push a null in so that things outside know that there
-		    # was a gap in the data instead of just having two far away points
-		    # next to eachother in the return set
-		    # TODO - removing this for now because it has an issue with double counting
-		    # points in the same series which can really mess up aggregates
-		    #elsif ($effective_time >= $full_start) {
-		    #	#push(@flat, [$effective_time, undef]);
-		    #}
-
-		    $effective_time += $interval;
+		# If this entire block is later than the meta end, we can
+		# "decrement" our splice index to remove the unnecessary data
+		elsif ($start_of_section > $meta_end){
+		    $right_splice = $i - 1;
+		    next;
 		}
+
+		# Since we're going old to new, if we haven't thrown away 
+		# the block for whatever reason we can set the start equal to it
+		$effective_start = $start_of_section;
 	    }
+
+	    @$values = @$values[$left_splice .. $right_splice];
+
+	    # now we're perl'ing with style. This unpacks the remaining
+	    # 3d array into a 1d flat array
+	    @$values = map {
+		ref $_ ? map { ref $_ ? map { $_ } @$_ : $_ } @$_ : $_;
+	    } @$values;
+
+
+	    # Now that it's a flat array, we can strip out the exact
+	    # points that don't belong in this result set. The above
+	    # stripping was coarse grain - this is fine grain.
+	    my $start_index = int(($meta_start - $effective_start) / $interval);
+	    if ($meta_start < $effective_start){
+		$start_index = 0;
+	    }
+
+	    my $end_index   = int(($meta_end - $effective_start) / $interval);
+	    if ($end_index > @$values - 1){
+		$end_index = @$values - 1;
+	    }
+
+	    @$values = @$values[$start_index .. $end_index];
+
+
+	    # add timestamps to all the points now that are good
+	    for (my $i = 0; $i < @$values; $i++){
+		$values->[$i] = [$effective_start + (($start_index + $i) * $interval),
+				 $values->[$i]];
+	    }
+
 
 	    # store aggregate data values different to avoid overlap with hires docs
-	    if ( defined( $aggregate_interval ) ) {
-
-		$clone->{"values_$aggregate_interval"}{$measurement} = \@flat;
+	    if ( $aggregate_interval ) {
+		$clone->{"values_$aggregate_interval"}{$measurement} = $values;
 		delete( $clone->{'values'}{$measurement} );
-	    }
-
-	    # store hires data values
-	    else {
-
-		$clone->{'values'}{$measurement} = \@flat;
 	    }
 
 	}

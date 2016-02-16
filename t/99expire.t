@@ -37,14 +37,14 @@ is( $num_removed, 180, "expired 180 hires docs (9 each for 20 measurements)" );
 # expire five minute retention data
 $agent->expire( "five_min" );
 $num_removed = $agent->expire_data();
-is( $num_removed, 20, "expired 20 five minute docs (1 each for 20 measurements)" );
+is( $num_removed, 0, "expired 0 five minute docs" );
 
 # expire one hour retention data
 $agent->expire( "one_hour" );
 $num_removed = $agent->expire_data();
-is( $num_removed, 20, "expired 20 one hour docs (1 each for 20 measurements)" );
+is( $num_removed, 0, "expired 0 one hour docs" );
 
 # expire one day retention data
 $agent->expire( "one_day" );
 $num_removed = $agent->expire_data();
-is( $num_removed, 20, "expired 20 one day docs (1 each for 20 measurements)" );
+is( $num_removed, 0, "expired 0 one day docs" );

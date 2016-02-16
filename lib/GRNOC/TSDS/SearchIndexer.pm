@@ -1,5 +1,8 @@
 package GRNOC::TSDS::SearchIndexer;
 
+# marpa complains unless we load this before everything else...
+use GRNOC::TSDS::Parser;
+
 use Moo;
 
 use GRNOC::CLI;
@@ -37,6 +40,11 @@ has config_file => (
     required => 1 
 );
 
+has sphinx_templates_dir => (
+    is => 'ro',
+    required => 1
+);
+
 ### optional attributes ###
 
 has num_docs_per_fetch => (
@@ -52,11 +60,6 @@ has quiet => (
 has pretend => ( 
     is => 'ro',
     default => 0 
-);
-
-has sphinx_templates_dir => (
-    is => 'ro',
-    default => '/etc/grnoc/tsds/services/sphinx_templates/'
 );
 
 has last_updated_offset => (
@@ -107,7 +110,11 @@ sub BUILD {
 ### public methods ###
 
 sub index_metadata {
+
     my ( $self ) = @_;
+
+    # ISSUE=12500 properly handle unicode characters
+    binmode( STDOUT, ":utf8" );
 
     my $start_time = time;
     log_info('starting sphinx xmlpipe2 generation...');

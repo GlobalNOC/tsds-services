@@ -1,4 +1,3 @@
-bin/tsds_aggregate.pl
 bin/tsds_expire.pl
 bin/tsds_firehose.pl
 bin/tsds_install.pl
@@ -47,8 +46,8 @@ init.d/mongos
 init.d/tsds_writer
 INSTALL.md
 lib/GRNOC/TSDS.pm
-lib/GRNOC/TSDS/Aggregate.pm
-lib/GRNOC/TSDS/Aggregate/Histogram.pm
+lib/GRNOC/TSDS/AggregateDocument.pm
+lib/GRNOC/TSDS/AggregatePoint.pm
 lib/GRNOC/TSDS/Constants.pm
 lib/GRNOC/TSDS/Constraints.pm
 lib/GRNOC/TSDS/DataDocument.pm
@@ -90,8 +89,10 @@ lib/GRNOC/TSDS/Upgrade/1_2_3.pm
 lib/GRNOC/TSDS/Upgrade/1_4_0.pm
 lib/GRNOC/TSDS/Upgrade/1_4_1.pm
 lib/GRNOC/TSDS/Upgrade/1_4_2.pm
+lib/GRNOC/TSDS/Upgrade/1_5_0.pm
 lib/GRNOC/TSDS/Util/ConfigChooser.pm
 lib/GRNOC/TSDS/Writer.pm
+lib/GRNOC/TSDS/Writer/AggregateMessage.pm
 lib/GRNOC/TSDS/Writer/DataMessage.pm
 lib/GRNOC/TSDS/Writer/EventMessage.pm
 lib/GRNOC/TSDS/Writer/Worker.pm
@@ -99,7 +100,6 @@ Makefile.PL
 MANIFEST			This list of files
 t/00init.t
 t/01bootstrap.t
-t/02aggregate.t
 t/03resource_limit.t
 t/04validation.t
 t/05validationextended.t
@@ -116,7 +116,6 @@ t/conf/databases/tsdstest.json
 t/conf/extra.conf.in
 t/conf/logging.conf
 t/conf/sphinx.conf.example
-t/histogram.t
 t/query_syntax.t
 t/TEST
 www/admin.cgi

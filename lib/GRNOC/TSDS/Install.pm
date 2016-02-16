@@ -3,9 +3,6 @@
 #-----
 #----- Copyright(C) 2015 The Trustees of Indiana University
 #--------------------------------------------------------------------
-#----- $HeadURL: svn+ssh://svn.grnoc.iu.edu/grnoc/tsds/services/trunk/lib/GRNOC/TSDS/Install.pm $
-#----- $Id: Install.pm 39282 2015-09-21 15:39:51Z bgeels $
-#-----
 #----- This module is responsible for installating/bootstrapping a
 #----- brand new instance of the TSDS backend services.  It is used
 #----- by the tsds_install script to initialize the necessary MongoDB
@@ -42,6 +39,7 @@ use constant AGGREGATES => {'interface' => [{'name'     => 'one_hour',
 					     'interval' => ONE_HOUR,
 					     'meta'     => '{}',
 					     'max_age'  => ONE_YEAR * 20,
+					     'eval_position' => 10,
 					     'values' => {'input' => {'hist_res' => 0.1,
 								      'hist_min_width' => 10000000},
 							  'output' => {'hist_res' => 0.1,
@@ -65,6 +63,7 @@ use constant AGGREGATES => {'interface' => [{'name'     => 'one_hour',
 					     'interval' => ONE_DAY,
 					     'meta'     => '{}',
 					     'max_age'  => ONE_YEAR * 20,
+					     'eval_position' => 20,
 					     'values' => {'input' => {'hist_res' => 0.1,
 								      'hist_min_width' => 10000000},
 							  'output' => {'hist_res' => 0.1,
@@ -89,6 +88,7 @@ use constant AGGREGATES => {'interface' => [{'name'     => 'one_hour',
 					    'last_run' => undef,
 					    'meta' => '{}',
 					    'max_age'  => ONE_YEAR * 20,
+					    'eval_position' => 10,
 					    'values' => {'input' => {'hist_res' => 0.1,
 								     'hist_min_width' => 1000000000},
 							 'output' => {'hist_res' => 0.1,
@@ -99,6 +99,7 @@ use constant AGGREGATES => {'interface' => [{'name'     => 'one_hour',
 					    'last_run' => undef,
 					    'meta' => '{}',
 					    'max_age'  => ONE_YEAR * 20,
+					    'eval_position' => 20,
 					    'values' => {'input' => {'hist_res' => 0.1,
 								     'hist_min_width' => 1000000000},
 							 'output' => {'hist_res' => 0.1,
@@ -109,6 +110,7 @@ use constant AGGREGATES => {'interface' => [{'name'     => 'one_hour',
 					    'last_run' => undef,
 					    'meta' => '{}',
 					    'max_age'  => ONE_YEAR * 20,
+					    'eval_position' => 30,
 					    'values' => {'input' => {'hist_res' => 0.1,
 								     'hist_min_width' => 1000000000},
 							 'output' => {'hist_res' => 0.1,
@@ -118,30 +120,35 @@ use constant AGGREGATES => {'interface' => [{'name'     => 'one_hour',
 				       'interval' => ONE_HOUR,
 				       'meta' => '{}',
 				       'max_age' => ONE_YEAR * 20,
+				       'eval_position' => 10,
 				       'values' => {'cpu' => {'hist_res' => 1,
 							      'hist_min_width' => 1}}},
 				      {'name' => 'one_day',
 				       'interval' => ONE_DAY,
 				       'meta' => '{}',
 				       'max_age' => ONE_YEAR * 20,
+				       'eval_position' => 20,
 				       'values' => {'cpu' => {'hist_res' => 1,
 							      'hist_min_width' => 1}}}],
 			    'temperature' => [{'name' => 'one_hour',
 					       'interval' => ONE_HOUR,
 					       'meta' => '{}',
 					       'max_age' => ONE_YEAR * 20,
+					       'eval_position' => 10,
 					       'values' => {'temp' => {'hist_res' => 1,
 								       'hist_min_width' => 1}}},
 					      {'name' => 'one_day',
 					       'interval' => ONE_DAY,
 					       'meta' => '{}',
 					       'max_age' => ONE_YEAR * 20,
+					       'eval_position' => 20,
 					       'values' => {'temp' => {'hist_res' => 1,
 								       'hist_min_width'=> 1}}}],
 			    'power' => [{'name' => 'one_hour',
 					 'interval' => ONE_HOUR,
 					 'meta' => '{}',
 					 'max_age' => ONE_YEAR * 20,
+					 'eval_position' => 10,
 					 'values' => {'status' => {'hist_res' => undef,
 								   'hist_min_width' => undef},
 						      'apppower' => {'hist_res' => undef,
@@ -158,6 +165,7 @@ use constant AGGREGATES => {'interface' => [{'name'     => 'one_hour',
 					 'interval' => ONE_DAY,
 					 'meta' => '{}',
 					 'max_age' => ONE_YEAR * 20,
+					 'eval_position' => 20,
 					 'values' => {'status' => {'hist_res' => undef,
 								   'hist_min_width' => undef},
 						      'apppower' => {'hist_res' => undef,
@@ -342,12 +350,24 @@ sub install {
     }
 
 
-    $self->_create_shards() or return;
+    if ( !$self->_create_shards() ) {
 
-    $self->_create_databases() or return;
+	$self->error( 'An error occurred attempting to create the shards.' );
+	return;
+    }
+
+    if ( !$self->_create_databases() ) {
+
+	$self->error( 'An error occurred attempting to create the databases.' );
+	return;
+    }
 
     # also make sure to set the version of the schema
-    $self->_set_version() or return;
+    if ( !$self->_set_version() ) {
+
+	$self->error( 'An error occurred attempting to set the version.' );
+	return;
+    }
 
     # installation was a success
     return 1;
@@ -624,6 +644,7 @@ sub _add_meta_field {
     }
     # otherwise add the optional metadata
     else {
+
         $res = $self->metadata_ds()->add_meta_field( 
             name => $name,
             measurement_type => $database_name,

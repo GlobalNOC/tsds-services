@@ -61,9 +61,9 @@ sub add_event {
 
 sub update {
 
-    my ( $self ) = @_;
+    my ( $self, %args ) = @_;
 
-    my $event_collection = $self->data_type->database->get_collection( 'event' );
+    my $bulk = $args{'bulk'};
 
     my $query = Tie::IxHash->new( type => $self->type,
                                   start => $self->start,
@@ -92,17 +92,28 @@ sub update {
     $updates->{'events'} = $events;
     $updates->{'last_event_end'} = $self->last_event_end;
 
-    return $event_collection->update( $query, {'$set' => $updates} );
+    # doing this as part of a bulk operation?
+    if ( $bulk ) {
+
+        return $bulk->find( $query )->update( {'$set' => $updates} );
+    }
+
+    # single doc update
+    else {
+
+        my $event_collection = $self->data_type->database->get_collection( 'event' );
+
+        return $event_collection->update( $query, {'$set' => $updates} );
+    }
 }
 
 sub create {
 
-    my ( $self ) = @_;
+    my ( $self, %args ) = @_;
+
+    my $bulk = $args{'bulk'};
 
     my $values = {};
-
-    my $event_collection = $self->data_type->database->get_collection( 'event' );
-
     my $events = [];
 
     # handle every event that needs to be included in this document
@@ -128,7 +139,18 @@ sub create {
                                    updated => time(),
                                    events => $events );
 
-    $event_collection->insert( $fields );
+    # bulk op requested
+    if ( $bulk ) {
+
+	$bulk->insert( $fields );
+    }
+
+    # single op
+    else {
+
+	my $event_collection = $self->data_type->database->get_collection( 'event' );
+	$event_collection->insert( $fields );
+    }
 
     return $self;
 }

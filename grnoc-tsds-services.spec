@@ -1,6 +1,6 @@
 Summary: GRNOC TSDS Services
 Name: grnoc-tsds-services
-Version: 1.4.2
+Version: 1.5.0
 Release: 1%{?dist}
 License: GRNOC
 Group: Measurement
@@ -37,8 +37,6 @@ Requires: perl-Template-Toolkit
 Requires: perl-HTML-Parser
 Requires: perl-XML-Writer
 Requires: perl-WWW-Mechanize-PhantomJS >= 0.11-2
-Requires: perl-Inline >= 0.77
-Requires: perl-Inline-C
 Requires: perl-Math-Round
 Requires: perl-Test-Deep
 Requires: perl-Tie-IxHash
@@ -54,6 +52,7 @@ Requires: perl-Moo
 Requires: perl-Net-AMQP-RabbitMQ
 Requires: perl-LockFile-Simple
 Requires: perl-Type-Tiny
+Requires: perl-Types-XSD-Lite
 Requires: perl-Redis
 Requires: perl-Redis-DistLock
 Requires: perl-Cache-Memcached-Fast
@@ -61,6 +60,7 @@ Requires: perl-Hash-Merge
 Requires: perl-Proc-Daemon
 Requires: perl-Sort-Versions
 Requires: perl-List-Flatten-Recursive
+Requires: perl-GRNOC-TSDS-Aggregate-Histogram
 Requires: python-pymongo
 Requires: python-pika
 Requires: python-memcached
@@ -78,11 +78,6 @@ GRNOC TSDS Services
 %build
 %{__perl} Makefile.PL PREFIX="%{buildroot}%{_prefix}" INSTALLDIRS="vendor"
 make
-
-%post
-
-# this will build the Inline::C bindings in proper install location
-%{__perl} %{perl_vendorlib}/GRNOC/TSDS/Aggregate/Histogram.pm
 
 %install
 rm -rf $RPM_BUILD_ROOT
@@ -145,7 +140,6 @@ make pure_install
 %{__install} conf/install/temperature.json %{buildroot}/usr/share/doc/grnoc/tsds/install/temperature.json
 
 %{__install} bin/tsds_search_indexer.pl %{buildroot}/usr/bin/tsds_search_indexer.pl
-%{__install} bin/tsds_aggregate.pl %{buildroot}/usr/bin/tsds_aggregate.pl
 %{__install} bin/tsds_expire.pl %{buildroot}/usr/bin/tsds_expire.pl
 %{__install} bin/tsds_firehose.pl %{buildroot}/usr/bin/tsds_firehose.pl
 %{__install} bin/tsds_install.pl %{buildroot}/usr/bin/tsds_install.pl
@@ -220,9 +214,9 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/doc/grnoc/tsds/install/temperature.json
 
 %{perl_vendorlib}/GRNOC/TSDS.pm
-%{perl_vendorlib}/GRNOC/TSDS/Aggregate.pm
+%{perl_vendorlib}/GRNOC/TSDS/AggregateDocument.pm
+%{perl_vendorlib}/GRNOC/TSDS/AggregatePoint.pm
 %{perl_vendorlib}/GRNOC/TSDS/SearchIndexer.pm
-%{perl_vendorlib}/GRNOC/TSDS/Aggregate/Histogram.pm
 %{perl_vendorlib}/GRNOC/TSDS/Constants.pm
 %{perl_vendorlib}/GRNOC/TSDS/Constraints.pm
 %{perl_vendorlib}/GRNOC/TSDS/DataService.pm
@@ -259,6 +253,7 @@ rm -rf $RPM_BUILD_ROOT
 %{perl_vendorlib}/GRNOC/TSDS/Upgrade/*.pm
 %{perl_vendorlib}/GRNOC/TSDS/Util/ConfigChooser.pm
 %{perl_vendorlib}/GRNOC/TSDS/Writer.pm
+%{perl_vendorlib}/GRNOC/TSDS/Writer/AggregateMessage.pm
 %{perl_vendorlib}/GRNOC/TSDS/Writer/DataMessage.pm
 %{perl_vendorlib}/GRNOC/TSDS/Writer/EventMessage.pm
 %{perl_vendorlib}/GRNOC/TSDS/Writer/Worker.pm
@@ -279,7 +274,6 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(754, root, root, -)
 
 /usr/bin/tsds_search_indexer.pl
-/usr/bin/tsds_aggregate.pl
 /usr/bin/tsds_expire.pl
 /usr/bin/tsds_firehose.pl
 /usr/bin/tsds_install.pl
