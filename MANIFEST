@@ -2,7 +2,6 @@ bin/tsds_expire.pl
 bin/tsds_firehose.pl
 bin/tsds_install.pl
 bin/tsds_meta.py
-bin/tsds_receiver.py
 bin/tsds_search_indexer.pl
 bin/tsds_upgrade.pl
 bin/tsds_writer
