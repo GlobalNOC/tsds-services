@@ -50,6 +50,22 @@ sub upgrade {
     }
 
 
+    print << 'EOF';
+
+Indexes need to be added for the new aggregation framework in 1.5.0 to work properly. Until added the system will skip aggregating collections that do not have this index set, so it will not implode, but it will also not work. These indexes can take a possibly long time to add depending on size of the data and horsepower of the box.
+
+For every database and every data* collection in that database (data, data_3600, etc), we will need to run the following. This will start a background index creation process which means that it will not block other things from going on. The mongodb session in which you start it will appear to block but other things will keep going. 
+    db.$collection_name.ensureIndex({updated: 1, identifier: 1}, {background: 1});
+
+To check on the status of index building from the mongo shell:
+    db.currentOp().inprog.forEach(function(n){ if (n.msg && n.msg.match(/Index Build/)){ print("Duration: " + n.secs_running + " secs"); printjson(n.msg); } });
+
+The reason this is not automated is because we want it to be a deliberate process. This will cause IO and CPU usage on the machine to rise since it needs to re-examine a lot of things. Rather than script add all the indexes at once, we want to make sure there is sufficient overhead and make it a deliberate process.
+
+There are a few things to be aware of during index creation: https://docs.mongodb.org/manual/core/index-creation/ In particular that if the mongod process terminates, the background index will be resumed as a foreground index and thus will block anything else from occurring until finished.
+
+EOF
+
 
     ### END UPGRADE CODE ###
 
