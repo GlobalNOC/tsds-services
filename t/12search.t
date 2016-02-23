@@ -108,9 +108,9 @@ $results = $ds->search( search               => undef,
 is($results->{'total'}, 20, "20 results reported in total");
 $results = $results->{'results'};
 is(@$results, 20, "got all 20 results back");
-is(_get_value("input", $results->[0])->{'aggregate'}, 362, "got first ordered value");
-is(_get_value("input", $results->[1])->{'aggregate'}, 9002, "got second ordered value");
-is(_get_value("input", $results->[19])->{'aggregate'}, 164522, "got last ordered value");
+is(_get_value("input", $results->[0])->{'aggregate'}, 361.25, "got first ordered value");
+is(_get_value("input", $results->[1])->{'aggregate'}, 9001.25, "got second ordered value");
+is(_get_value("input", $results->[19])->{'aggregate'}, 164521.25, "got last ordered value");
 
 # Same as above but descending order
 $results = $ds->search( search               => undef,		
@@ -124,9 +124,9 @@ $results = $ds->search( search               => undef,
 is($results->{'total'}, 20, "20 results reported in total");
 $results = $results->{'results'};
 is(@$results, 20, "got all 20 results back");
-is(_get_value("input", $results->[19])->{'aggregate'}, 362, "got last ordered value");
-is(_get_value("input", $results->[18])->{'aggregate'}, 9002, "got second to last ordered value");
-is(_get_value("input", $results->[0])->{'aggregate'}, 164522, "got first ordered value");
+is(_get_value("input", $results->[19])->{'aggregate'}, 361.25, "got last ordered value");
+is(_get_value("input", $results->[18])->{'aggregate'}, 9001.25, "got second to last ordered value");
+is(_get_value("input", $results->[0])->{'aggregate'}, 164521.25, "got first ordered value");
 
 
 # Ensure "having" still works in a single measurement type
@@ -145,7 +145,7 @@ $results = $ds->search( search               => undef,
 is($results->{'total'}, 18, "18 results reported in total");
 $results = $results->{'results'};
 is(@$results, 18, "got all 18 results back");
-is(_get_value("input", $results->[0])->{'aggregate'}, 164521.5, "got value");
+is(_get_value("input", $results->[0])->{'aggregate'}, 164521, "got value");
 
 
 # Ensuring that search while doing a limit/offset and
@@ -163,8 +163,8 @@ $results = $ds->search( search               => undef,
 is($results->{'total'}, 20, "20 results reported in total");
 $results = $results->{'results'};
 is(@$results, 2, "got the limited 2 results back");
-is(_get_value("input", $results->[0])->{'aggregate'}, 362, "got first ordered value");
-is(_get_value("input", $results->[1])->{'aggregate'}, 9002, "got second ordered value");
+is(_get_value("input", $results->[0])->{'aggregate'}, 361.25, "got first ordered value");
+is(_get_value("input", $results->[1])->{'aggregate'}, 9001.25, "got second ordered value");
 
 
 # Same as above but now with an offset to verify we paged correctly
@@ -181,8 +181,8 @@ $results = $ds->search( search               => undef,
 is($results->{'total'}, 20, "20 results reported in total");
 $results = $results->{'results'};
 is(@$results, 2, "got the limited 2 results back");
-is(_get_value("input", $results->[0])->{'aggregate'}, 17642, "got third ordered value");
-is(_get_value("input", $results->[1])->{'aggregate'}, 26282, "got fourth ordered value");
+is(_get_value("input", $results->[0])->{'aggregate'}, 17641.25, "got third ordered value");
+is(_get_value("input", $results->[1])->{'aggregate'}, 26281.25, "got fourth ordered value");
 
 
 
@@ -205,8 +205,8 @@ $results = $ds->search( search               => undef,
 is($results->{'total'}, 18, "18 results reported in total");
 $results = $results->{'results'};
 is(@$results, 2, "got all 2 results back");
-is(_get_value("input", $results->[0])->{'aggregate'}, 164521.5, "got value");
-is(_get_value("input", $results->[1])->{'aggregate'}, 138601.5, "got value");
+is(_get_value("input", $results->[0])->{'aggregate'}, 164521, "got value");
+is(_get_value("input", $results->[1])->{'aggregate'}, 138601, "got value");
 
 
 # Same as above with but offset
@@ -226,8 +226,8 @@ $results = $ds->search( search               => undef,
 is($results->{'total'}, 18, "18 results reported in total");
 $results = $results->{'results'};
 is(@$results, 2, "got all 2 results back");
-is(_get_value("input", $results->[0])->{'aggregate'}, 43561.5, "got value");
-is(_get_value("input", $results->[1])->{'aggregate'}, 60841.5, "got value");
+is(_get_value("input", $results->[0])->{'aggregate'}, 43561, "got value");
+is(_get_value("input", $results->[1])->{'aggregate'}, 60841, "got value");
 
 
 
