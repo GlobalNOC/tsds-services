@@ -225,33 +225,81 @@ sub tokenize {
     my $self  = shift;
     my $query = shift;
 
+    my $error;
+    my $value;
+
     my $parser = Marpa::R2::Scanless::R->new({grammar => $self->grammar(),
 					      #trace_terminals => 2,
 					      semantics_package => 'GRNOC::TSDS::Parser::Actions'});
-
 
     eval {
 	$parser->read(\$query);
     };
 
+    # There are two ways the query can fail. We can either have an invalid character
+    # along the path (part 1) or we can have an entirely missing component (part 2)
+
     # bad syntax for query, bail out
     if ($@){
-	# TODO - parse $@ and come up with a better error message
-	$self->error("Bad query syntax: \"$query\"\n$@\n\nProgress: " . $parser->show_progress());
-	return;
+        my $raw_error = $@;
+
+        log_debug("Found error while getting scanning query string: $raw_error");
+
+        # THIS IS AN EXAMPLE
+        # -------------------
+        # No lexeme found at line 1, column 103
+        # * String before error: ), aggregate(values.output, 182, average) between(
+        # * The error was at line 1, column 103, and at character 0x005c '\', ...
+        # * here: \\"02/23/2016 16:21:33 UTC\\",\\"02/24/2016 16:21:
+
+        my $string_before = "";
+        my $string_at     = "";
+        my $col;
+
+        if ($raw_error =~ /String before error: (.+)/){
+            $string_before = $1;
+        }
+        if ($raw_error =~ /at line \d+, column (\d+)/){
+            $col = $1;
+        }
+        if ($raw_error =~ /here: (.+)/){
+            $string_at = $1;
+            $string_at =~ s/\\\\/\\/g;
+        }
+     
+        $error  = "Syntax error in query: " . $string_before . "*HERE*>>>" . substr($string_at, 0, 1) . "<<<*HERE*" . substr($string_at, 1) . "\n";
+    }
+    # In this case we probably have an entire missing section vs having a section
+    # with bad syntax or wrong characters
+    else {
+        $value = $parser->value();
+
+        if (! defined $value){
+            log_debug("Found error while getting Marpa parser value");
+
+            # Figure out what the last successfully parsed part of the query was so that
+            # we can point the user to the right location
+            my ( $g1_start, $g1_length ) = $parser->last_completed('query');
+            if (defined $g1_start){
+                my $last_expression = $parser->substring( $g1_start, $g1_length );
+                my $quoted = quotemeta($last_expression);
+                $query =~ /$quoted(.+)/;
+                $error = "Syntx error in query: " . $last_expression . "*HERE*>>>" . $1 . "<<<*HERE*";
+            }
+            else {
+                $error = "Error getting parser value: " . $parser->show_progress();
+            }
+        }
     }
 
-    my $value = $parser->value();
-
-    if (! defined $value){
-	# TODO - same as above
-	$self->error("Bad query syntax: \"$query\"\n\nProgress: " . $parser->show_progress());
-	return;
+    if (defined $error){
+        $self->error($error);
+        return;
     }
-
+    
     my $tokens = ${$value};
-
-return $tokens;
+    
+    return $tokens;
 }
 
 ### private methods ###

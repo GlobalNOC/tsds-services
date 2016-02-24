@@ -69,7 +69,7 @@ sub run_query {
     my $results = $self->parser()->evaluate($query, force_constraint => 1);
 
     if ( !$results ) {
-        $self->error( $self->parser()->error() . "\nQuery: $query" );
+        $self->error( $self->parser()->error() );
         return;
     }
 
