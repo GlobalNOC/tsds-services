@@ -1,0 +1,21 @@
+<config>
+    <!-- where should we write our pid file to -->
+    <pid-file>/home/pruputta/work/db_stats_writer.pid</pid-file>
+
+    <!-- how often to collect from nodes (seconds) -->
+    <refresh-rate>60</refresh-rate>
+
+    <!-- How often to refresh nodes to collect on -->
+    <cache-refresh-rate>3600</cache-refresh-rate>
+    
+    <!-- rabbitmq connection info -->
+    <rabbit host="np-dev3.grnoc.iu.edu" port="5672" queue="timeseries_data" user="guest" password="guest"/>
+
+    <!-- mongodb connection info -->
+    <mongo host="127.0.0.1" port="27017">
+        <root user="root" password="root_password"/>
+        <readonly  user="tsds_ro" password="password"/>
+        <readwrite user="root" password="root_password"/>
+    </mongo>
+
+</config>

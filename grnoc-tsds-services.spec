@@ -12,7 +12,6 @@ BuildRequires: httpd-devel
 BuildRequires: mod_perl-devel
 BuildRequires: perl-Test-Simple
 Requires: perl >= 5.8.8
-Requires: python >= 2.6.6
 Requires: gcc
 Requires: mod_perl
 Requires: perl-rrdtool
@@ -61,13 +60,11 @@ Requires: perl-Proc-Daemon
 Requires: perl-Sort-Versions
 Requires: perl-List-Flatten-Recursive
 Requires: perl-GRNOC-TSDS-Aggregate-Histogram
-Requires: python-pymongo
-Requires: python-pika
-Requires: python-memcached
-Requires: python-daemon
-Requires: python-setproctitle
-Requires: python-argparse
 Requires: perl-DBI
+Requires: perl-GRNOC-Counter
+Requires: perl-Try-Tiny
+
+
 
 %description
 GRNOC TSDS Services
@@ -106,10 +103,12 @@ make pure_install
 %{__install} -d -p %{buildroot}/var/lib/mongo/shard3
 %{__install} -d -p %{buildroot}/usr/share/grnoc/tsds-services/temp
 
+
 %{__install} CHANGES.md %{buildroot}/usr/share/doc/grnoc/tsds/CHANGES.md
 %{__install} INSTALL.md %{buildroot}/usr/share/doc/grnoc/tsds/INSTALL.md
 
 %{__install} conf/config.xml.example %{buildroot}/etc/grnoc/tsds/services/config.xml
+%{__install} conf/meta_config.xml %{buildroot}/etc/grnoc/tsds/services/meta_config.xml
 %{__install} conf/mappings.xml.example %{buildroot}/etc/grnoc/tsds/services/mappings.xml
 %{__install} conf/constraints.xml.example %{buildroot}/etc/grnoc/tsds/services/constraints.xml
 %{__install} conf/logging.conf %{buildroot}/etc/grnoc/tsds/services/logging.conf
@@ -143,9 +142,9 @@ make pure_install
 %{__install} bin/tsds_expire.pl %{buildroot}/usr/bin/tsds_expire.pl
 %{__install} bin/tsds_firehose.pl %{buildroot}/usr/bin/tsds_firehose.pl
 %{__install} bin/tsds_install.pl %{buildroot}/usr/bin/tsds_install.pl
-%{__install} bin/tsds_meta.py %{buildroot}/usr/bin/tsds_meta.py
 %{__install} bin/tsds_upgrade.pl %{buildroot}/usr/bin/tsds_upgrade.pl
 %{__install} bin/tsds_writer %{buildroot}/usr/bin/tsds_writer
+%{__install} bin/tsds_meta.pl %{buildroot}/usr/bin/tsds_meta.pl
 
 %{__install} init.d/mongod-config1 %{buildroot}/etc/init.d/mongod-config1
 %{__install} init.d/mongod-config2 %{buildroot}/etc/init.d/mongod-config2
@@ -155,6 +154,7 @@ make pure_install
 %{__install} init.d/mongod-shard3 %{buildroot}/etc/init.d/mongod-shard3
 %{__install} init.d/mongos %{buildroot}/etc/init.d/mongos
 %{__install} init.d/tsds_writer %{buildroot}/etc/init.d/tsds_writer
+%{__install} init.d/tsds_meta %{buildroot}/etc/init.d/tsds_meta
 
 %{__install} www/atlas.cgi %{buildroot}/usr/lib/grnoc/tsds/services/cgi-bin/atlas.cgi
 %{__install} www/forge.cgi %{buildroot}/usr/lib/grnoc/tsds/services/cgi-bin/forge.cgi
@@ -180,6 +180,7 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(644, root, root, -)
 
 %config(noreplace) /etc/grnoc/tsds/services/config.xml
+%config(noreplace) /etc/grnoc/tsds/services/meta_config.xml
 %config(noreplace) /etc/grnoc/tsds/services/mappings.xml
 %config(noreplace) /etc/grnoc/tsds/services/constraints.xml
 %config(noreplace) /etc/grnoc/tsds/services/logging.conf
@@ -196,6 +197,7 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) /etc/mongod-shard2.conf
 %config(noreplace) /etc/mongod-shard3.conf
 %config(noreplace) /etc/mongos.conf
+
 /etc/sphinx/sphinx.conf.tsds
 
 /etc/grnoc/tsds/services/sphinx_templates/xmlpipe2_document.xml
@@ -257,6 +259,7 @@ rm -rf $RPM_BUILD_ROOT
 %{perl_vendorlib}/GRNOC/TSDS/Writer/DataMessage.pm
 %{perl_vendorlib}/GRNOC/TSDS/Writer/EventMessage.pm
 %{perl_vendorlib}/GRNOC/TSDS/Writer/Worker.pm
+%{perl_vendorlib}/GRNOC/TSDS/MetaStats.pm
 
 %defattr(754, apache, apache, -)
 
@@ -277,7 +280,7 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/tsds_expire.pl
 /usr/bin/tsds_firehose.pl
 /usr/bin/tsds_install.pl
-/usr/bin/tsds_meta.py
+/usr/bin/tsds_meta.pl
 /usr/bin/tsds_upgrade.pl
 /usr/bin/tsds_writer
 
@@ -288,7 +291,8 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) /etc/init.d/mongod-shard2
 %config(noreplace) /etc/init.d/mongod-shard3
 %config(noreplace) /etc/init.d/mongos
-/etc/init.d/tsds_writer
+%config(noreplace) /etc/init.d/tsds_writer
+%config(noreplace) /etc/init.d/tsds_meta
 
 %defattr(755, root, root, -)
 

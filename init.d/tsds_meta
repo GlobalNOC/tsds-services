@@ -1,0 +1,73 @@
+#!/bin/sh
+#
+# tsds_meta        init file for starting up the tsds meta daemon
+#
+# chkconfig:   2345 20 80
+# description: Starts and stops the tsds meta daemon.
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+name="tsds_meta"
+exec="/usr/bin/$name"
+pidfile="/home/pruputta/work/tsds_meta.pid"
+CONFIG="/etc/grnoc/tsds/services/meta_config.xml"
+
+start() {
+    [ -f $CONFIG ] || exit 6
+    [ -x $exec ] || exit 5
+    echo -n $"Starting $name: "
+    daemon "$exec --config $CONFIG"
+    retval=$?
+    echo
+    return $retval
+}
+
+stop() {
+    echo -n $"Stopping $name: "
+    if [ -f $pidfile ]
+    then
+        # shutdown haven't work, try old way
+        killproc -p $pidfile $name
+        retval=$?
+    else
+        success "$name shutdown"
+    fi
+    echo
+    return $retval
+}
+
+restart() {
+    stop
+    start
+}
+
+rh_status() {
+    status -p $pidfile $name
+}
+
+rh_status_q() {
+    rh_status >/dev/null 2>&1
+}
+
+
+case "$1" in
+    start)
+        rh_status_q && exit 0
+        $1
+        ;;
+    stop)
+        rh_status_q || exit 0
+        $1
+        ;;
+    restart)
+        $1
+        ;;
+    status)
+        rh_status
+        ;;
+    *)
+        echo $"Usage: $0 {start|stop|status|restart}"
+        exit 2
+esac
+exit $?
