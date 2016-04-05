@@ -222,7 +222,7 @@ Enter password:
 connecting to: admin
 mongos>
 ```
-Using the same steps as above, create root user on shards that were created before. Use the same username and passord used for creating user on mongo to maintain consistency. Connect to a shard using mongo port option and create a user by doing the following:
+Using the same steps as above, create root user on shards that were created before. Use the same username and password used for creating user on mongo to maintain consistency. Connect to a shard using mongo port option and create a user by doing the following:
 
 ```
 [root@tsds-smallboxdev tsds-stats]# mongo --port 27025 admin
