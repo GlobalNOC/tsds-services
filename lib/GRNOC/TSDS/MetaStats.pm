@@ -354,6 +354,15 @@ sub _rabbit_status {
 	$values{'object_totals_'.$key} = $value;
     }
 
+    delete $values{'os_pid'};
+    while ( my ( $key2, $value2 ) = each ( %values ) )
+    {
+       if($value2 !~ m/^-?\d+(\.\d+)?$/)
+       {
+           $values{$key2} = undef;
+       }
+    }
+
     $out_message{values}=\%values;
     $self->logger->debug("rabbitStatus -- done");
     
@@ -455,7 +464,7 @@ sub _shard_status{
 	tie %values, 'Tie::IxHash';
 	my $admin_db;
         try{
-	    my $rw_user    = $self->config->get( "/config/mongo/readwrite" );
+	    my $rw_user    = $self->config->get( "/config/mongo/root" );
 	    $connection = MongoDB::Connection->new(host => $host, username => $rw_user->{'user'}, password => $rw_user->{'password'} );
 	    $admin_db = $connection->get_database('admin');  
 	}
