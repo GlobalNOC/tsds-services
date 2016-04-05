@@ -222,6 +222,40 @@ Enter password:
 connecting to: admin
 mongos>
 ```
+Using the same steps as above, create root user on shards that were created before. Use the same username and passord used for creating user on mongo to maintain consistency. Connect to a shard using mongo port option and create a user by doing the following:
+
+```
+[root@tsds-smallboxdev tsds-stats]# mongo --port 27025 admin
+MongoDB shell version: 3.0.10
+connecting to: 127.0.0.1:27025/admin
+>db.createUser({ user: 'root', pwd: 'put password here', roles: [ {role: 'root', db: 'admin'} ] })
+```
+
+Verify this was successful by running the following and ensuring it returns this output:
+
+```
+[root@tsds-smallboxdev tsds-stats]# mongo --port 27025 admin -u root -p
+MongoDB shell version: 3.0.10
+Enter password: 
+connecting to: 127.0.0.1:27025/admin
+> db.getUsers()
+[
+	{
+		"_id" : "admin.root",
+	        "user" : "root",
+		"db" : "admin",
+       	        "roles" : [
+		   	{
+				"role" : "root",						         
+				"db" : "admin"
+   	                }
+		]
+	}
+]
+> exit
+bye
+```
+Do the same for the remaining ports 27026 and 27027. 
 
 ## MongoDB SSL Configuration
 
