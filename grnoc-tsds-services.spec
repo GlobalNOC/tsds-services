@@ -145,6 +145,7 @@ make pure_install
 %{__install} bin/tsds_upgrade.pl %{buildroot}/usr/bin/tsds_upgrade.pl
 %{__install} bin/tsds_writer %{buildroot}/usr/bin/tsds_writer
 %{__install} bin/tsds_meta.pl %{buildroot}/usr/bin/tsds_meta.pl
+%{__install} bin/setup.pl %{buildroot}/usr/bin/setup.pl
 
 %{__install} init.d/mongod-config1 %{buildroot}/etc/init.d/mongod-config1
 %{__install} init.d/mongod-config2 %{buildroot}/etc/init.d/mongod-config2
@@ -260,6 +261,7 @@ rm -rf $RPM_BUILD_ROOT
 %{perl_vendorlib}/GRNOC/TSDS/Writer/EventMessage.pm
 %{perl_vendorlib}/GRNOC/TSDS/Writer/Worker.pm
 %{perl_vendorlib}/GRNOC/TSDS/MetaStats.pm
+%{perl_vendorlib}/GRNOC/TSDS/Setup.pm
 
 %defattr(754, apache, apache, -)
 
@@ -283,6 +285,7 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/tsds_meta.pl
 /usr/bin/tsds_upgrade.pl
 /usr/bin/tsds_writer
+/usr/bin/setup.pl
 
 %config(noreplace) /etc/init.d/mongod-config1
 %config(noreplace) /etc/init.d/mongod-config2
