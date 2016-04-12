@@ -224,20 +224,6 @@ sub upgrade {
     if(system("sed -i 's#$old_str#$new_str#g' /etc/mongos.conf")!=0){
 	print "\n Error occured while editing /etc/mongos.conf file";
     }
-    print "\n Removing sharding and cluster role from mongos.conf file";
-    $old_str = "sharding:";
-    $new_str = "";
-
-    if(system("sed -i 's#$old_str#$new_str#g' /etc/mongos.conf")!=0){
-	print "\n Error occured while editing /etc/mongos.conf file";
-    }
-
-    $old_str = " clusterRole: \"configsvr\"";
-    $new_str = "";
-
-    if(system("sed -i 's#$old_str#$new_str#g' /etc/mongos.conf")!=0){
-	print "\n Error occured while editing /etc/mongos.conf file";
-    }
 
     print "\n Starting mongos";
 
