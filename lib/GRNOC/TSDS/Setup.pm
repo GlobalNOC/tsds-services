@@ -224,7 +224,12 @@ sub upgrade {
     if(system("sed -i 's#$old_str#$new_str#g' /etc/mongos.conf")!=0){
 	print "\n Error occured while editing /etc/mongos.conf file";
     }
-
+    
+    $old_str = "localhost";
+    $new_str = $hostname;
+    if(system("sed -i 's#$old_str#$new_str#g' /etc/mongos.conf")!=0){
+        print "\n Error occured while editing /etc/mongos.conf file";
+    }
     print "\n Starting mongos";
 
     if(system("service mongos start")!=0){
