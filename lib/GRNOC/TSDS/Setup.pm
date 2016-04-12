@@ -42,24 +42,6 @@ sub BUILD {
 
     $self->_set_config( $config );
 
-    my $mongo_host = $self->config->get( '/config/mongo/@host' );
-    my $mongo_port = $self->config->get( '/config/mongo/@port' );
-    my $root_user  = $self->config->get( "/config/mongo/root" );
-
-    my $mongo_root;
-    eval {
-        $mongo_root = MongoDB::MongoClient->new(
-            host => "$mongo_host:$mongo_port",
-            query_timeout => -1,
-            username => $root_user->{'user'},
-            password => $root_user->{'password'}
-            );
-    };
-    if($@){
-        die "Could not connect to Mongo: $@";
-    }
-
-    $self->_set_mongo_root( $mongo_root );
 }
 
 ### public methods ###
@@ -71,17 +53,18 @@ sub upgrade {
     $self->cli->clear_screen();
     $self->_print_banner();
     
-    my $repo_file = "/etc/yum.repos.d/mongodb-org-3.0.repo";
-    my $repo_content = "[mongodb-org-3.0]
-                        name=MongoDB 3.0 Repository
-                        baseurl=https://repo.mongodb.org/yum/redhat/6/mongodb-org/3.0/x86_64/
-                        gpgcheck=0
-                        enabled=1";
-
     print "\n Creating mongodb-org-3.0.repo file in /etc/yum.repos.d directory";
-    if(system("echo $repo_content >  /etc/yum.repos.d/mongodb-org-3.0.repo")!=0){
+    if(system("(                                                                                                                                                         
+                echo [mongodb-org-3.0]                                                                                                                                   
+                echo name=MongoDB 3.0 Repository                                                                                                                         
+                echo baseurl=https://repo.mongodb.org/yum/redhat/6/mongodb-org/3.0/x86_64/                                                                               
+                echo gpgcheck=0                                                                                                                                          
+                echo enabled=1                                                                                                                                           
+            )>> /etc/yum.repos.d/mongodb-org-3.0.repo")!=0)
+    {
 	print "\n ERROR: Could not write to /etc/yum.repos.d/mongodb-org-3.0.repo";
     }
+
     if(system("yum install -y mongodb-org")!=0){
         print "\n ERROR: Setup failed while installing mongodb-org";
     }
@@ -122,7 +105,10 @@ sub upgrade {
     if(system("chown mongod:mongod  /etc/mongodb-keyfile")!=0){
         print "\n Error occured while changing permissions of keyfile";
     }
-    
+
+    if(system("chmod 600 /etc/mongodb-keyfile")!=0){                                                                                                                     
+        print "\n Error occured while changing permissions of keyfile";                                                                                                  
+    }  
     print "\n MongoDB Config Server Configuration";
     print "\n Making necessary changes to mongo config files /etc/init.d directory";
 
@@ -163,7 +149,29 @@ sub upgrade {
 	if(system("sed -i 's#$old_str#$new_str#g' /etc/mongod-config$i.conf")!=0){
 	    print "\n Error occured while editing /etc/mongod-config$i.conf file";
 	}
+
+	$old_str = "/path/to/mongodb/keyfile";
+	$new_str = "/etc/mongodb-keyfile";
+
+	if(system("sed -i 's#$old_str#$new_str#g' /etc/mongod-config$i.conf")!=0){
+	    print "\n Error occured while editing /etc/mongod-config$i.conf file";
+	}
         
+	print "\n Removing sharding and cluster role from mongod-config$i file";
+	$old_str = "sharding:";
+        $new_str = "";
+
+        if(system("sed -i 's#$old_str#$new_str#g' /etc/mongod-config$i.conf")!=0){
+            print "\n Error occured while editing /etc/mongod-config$i.conf file";
+        }
+
+	$old_str = " clusterRole: \"configsvr\"";
+        $new_str = "";
+
+        if(system("sed -i 's#$old_str#$new_str#g' /etc/mongod-config$i.conf")!=0){
+            print "\n Error occured while editing /etc/mongod-config$i.conf file";
+        }
+
         print "\n Starting mongod-config$i";
 
         if(system("service mongod-config$i start")!=0){
@@ -210,6 +218,27 @@ sub upgrade {
         print "\n Error occured while editing /etc/mongos.conf file";                                                                                           
     }                                                                                                                                               
     
+    $old_str = "/path/to/mongodb/keyfile";
+    $new_str = "/etc/mongodb-keyfile";
+
+    if(system("sed -i 's#$old_str#$new_str#g' /etc/mongos.conf")!=0){
+	print "\n Error occured while editing /etc/mongos.conf file";
+    }
+    print "\n Removing sharding and cluster role from mongos.conf file";
+    $old_str = "sharding:";
+    $new_str = "";
+
+    if(system("sed -i 's#$old_str#$new_str#g' /etc/mongos.conf")!=0){
+	print "\n Error occured while editing /etc/mongos.conf file";
+    }
+
+    $old_str = " clusterRole: \"configsvr\"";
+    $new_str = "";
+
+    if(system("sed -i 's#$old_str#$new_str#g' /etc/mongos.conf")!=0){
+	print "\n Error occured while editing /etc/mongos.conf file";
+    }
+
     print "\n Starting mongos";
 
     if(system("service mongos start")!=0){
@@ -217,7 +246,7 @@ sub upgrade {
     }
     
     print "\n MongoDB Sharding Configuration";
-    print "\n Making necessary changes to mongod-shard config files /etc/init.d directory";                                                                    
+    print "\n Making necessary changes to mongod-shard config files /etc/ directory";                                                                    
     for (my $i=1; $i <= 3; $i++) {                                                                                                                             
         my $old_str = "/path/to/CA.crt";                                                                                                                         
         my $new_str = "/etc/pki/tls/certs/mongo-$hostname.crt";                                                                                                  
@@ -262,6 +291,21 @@ sub upgrade {
         if(system("sed -i 's#$old_str#$new_str#g' /etc/mongod-shard$i.conf")!=0){                                                                                   
             print "\n Error occured while editing /etc/mongod-shard$i.conf file";                                                                                 
         }  
+	
+	print "\n Removing sharding and cluster role from mongod-shard$i file";
+        $old_str = "sharding:";
+        $new_str = "";
+
+        if(system("sed -i 's#$old_str#$new_str#g' /etc/mongod-shard$i.conf")!=0){
+            print "\n Error occured while editing /etc/mongod-shard$i.conf file";
+        }
+
+        $old_str = " clusterRole: \"configsvr\"";
+        $new_str = "";
+
+        if(system("sed -i 's#$old_str#$new_str#g' /etc/mongod-shard$i.conf")!=0){
+            print "\n Error occured while editing /etc/mongod-shard$i.conf file";
+        }
 
         print "\n Starting mongod-shard$i";                                                                                                                     
 
@@ -366,7 +410,7 @@ sub upgrade {
     }
 
     if(system("echo [rabbitmq_management]. >> /etc/rabbitmq/enabled_plugins")!=0){
-	print("Error occured while editing /etc/rabbitmq/enabled_plugins file");
+	print "Error occured while editing /etc/rabbitmq/enabled_plugins file";
     }
 
     print "\n Creating rabbitmq config file";
@@ -388,19 +432,19 @@ sub upgrade {
                 echo ].
                 )>> /etc/rabbitmq/rabbitmq.config")!=0)
     {
-	print("\n Error occured while editing /etc/rabbitmq/rabbitmq.config file");
+	print "\n Error occured while editing /etc/rabbitmq/rabbitmq.config file";
     }
     
     print "\n Starting RabbitMQ server"; 
     if(system("service rabbitmq-server start")!=0)
     {
-	print "\n Error occured while starting rabbitmq-server");
+	print "\n Error occured while starting rabbitmq-server";
     }
    
     print "\n Starting TSDS Writer Service";
     if(system("service tsds_writer start")!=0)
     {   
-        print "\n Error occured while starting tsds_writer");
+        print "\n Error occured while starting tsds_writer";
     }
     
     print "\n Editing /etc/httpd/conf/httpd.conf file";
