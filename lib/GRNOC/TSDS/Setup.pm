@@ -331,7 +331,7 @@ sub upgrade {
     my $root_pwd = <>;
     chomp $root_pwd;
 
-    if(system("mongo admin --eval \"printjson(db.createUser({user: 'root', pwd: $root_pwd, roles: [{role: 'root', db: 'admin'}]}));\" ")!=0){
+    if(system("mongo admin --eval \"printjson(db.createUser({user: 'root', pwd: '$root_pwd', roles: [{role: 'root', db: 'admin'}]}));\" ")!=0){
         print "\n Error occured while adding root user to MongoDB";
     }
 
