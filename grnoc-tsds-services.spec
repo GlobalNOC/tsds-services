@@ -145,7 +145,7 @@ make pure_install
 %{__install} bin/tsds_upgrade.pl %{buildroot}/usr/bin/tsds_upgrade.pl
 %{__install} bin/tsds_writer %{buildroot}/usr/bin/tsds_writer
 %{__install} bin/tsds_meta.pl %{buildroot}/usr/bin/tsds_meta.pl
-%{__install} bin/setup.pl %{buildroot}/usr/bin/setup.pl
+%{__install} bin/tsds_setup.pl %{buildroot}/usr/bin/tsds_setup.pl
 
 %{__install} init.d/mongod-config1 %{buildroot}/etc/init.d/mongod-config1
 %{__install} init.d/mongod-config2 %{buildroot}/etc/init.d/mongod-config2
@@ -285,7 +285,7 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/tsds_meta.pl
 /usr/bin/tsds_upgrade.pl
 /usr/bin/tsds_writer
-/usr/bin/setup.pl
+/usr/bin/tsds_setup.pl
 
 %config(noreplace) /etc/init.d/mongod-config1
 %config(noreplace) /etc/init.d/mongod-config2
