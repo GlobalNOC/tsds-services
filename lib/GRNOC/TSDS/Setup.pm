@@ -52,7 +52,7 @@ sub upgrade {
 
     $self->cli->clear_screen();
     $self->_print_banner();
-    
+
     print "\n Creating mongodb-org-3.0.repo file in /etc/yum.repos.d directory";
     if(system("(                                                                                                                                                         
                 echo [mongodb-org-3.0]                                                                                                                                   
@@ -71,6 +71,7 @@ sub upgrade {
     print "what is your hostname?";
     my $hostname = <>;
     chomp $hostname;
+
     print "\n Creating key using certtool";
     if(system("certtool -p --outfile /etc/pki/tls/private/mongo-$hostname.key")!=0){
         print "\n Could not create a key file";
@@ -333,25 +334,35 @@ sub upgrade {
     if(system("mongo --eval \"printjson(db.createUser({user: 'root', pwd: $root_pwd, roles: [{role: 'root', db: 'admin'}]}));\" ")!=0){
         print "\n Error occured while adding root user to MongoDB";
     }
-   
-    print "Enter a password for read only user";
-    my $tsds_ro_pwd = <>;
-    print "Enter a password for read write user";
-    my $tsds_rw_pwd = <>;
-    
-    print "\n Editing credentials for read only user";
-    $old_str = "user=\"tsds_ro\" password=\"password\"";                                                                                                        
-    $new_str = "user=\"tsds_ro\" password=$tsds_ro_pwd"; 
 
-    if(system("sed -i 's#$old_str#$new_str#g' /etc/grnoc/tsds/services/config.xml")!=0){                                                                     
-	print "\n Error occured while editing /etc/grnoc/tsds/services/config.xml file";                                                                       
+    print "\n Editing credentials for root user in /etc/grnoc/tsds/services/config.xml \n";
+    $old_str = "user=\\\"root\\\" password=\\\"password\\\"";
+    $new_str = "user=\\\"root\\\" password=\\\"$root_pwd\\\"";
+
+    if(system("sed -i 's!$old_str!$new_str!g' /etc/grnoc/tsds/services/config.xml")!=0){
+        print "\n Error occured while editing /etc/grnoc/tsds/services/config.xml file";
+    }
+
+    print "\n Enter a password for read only user :";
+    my $tsds_ro_pwd = <>;
+    chomp $tsds_ro_pwd;
+    print "\n Enter a password for read write user :";
+    my $tsds_rw_pwd = <>;
+    chomp $tsds_rw_pwd;
+
+    print "\n Editing credentials for read only user";
+    $old_str = "user=\\\"tsds_ro\\\" password=\\\"password\\\"";
+    $new_str = "user=\\\"tsds_ro\\\" password=\\\"$tsds_ro_pwd\\\"";
+
+    if(system("sed -i 's!$old_str!$new_str!g' /etc/grnoc/tsds/services/config.xml")!=0){
+        print "\n Error occured while editing /etc/grnoc/tsds/services/config.xml file";
     }
 
     print "\n Editing credentials for read write user";
-    $old_str = "user=\"tsds_rw\" password=\"password\"";
-    $new_str = "user=\"tsds_rw\" password=$tsds_rw_pwd";
+    $old_str = "user=\\\"tsds_rw\\\" password=\\\"password\\\"";
+    $new_str = "user=\\\"tsds_rw\\\" password=\\\"$tsds_rw_pwd\\\"";
 
-    if(system("sed -i 's#$old_str#$new_str#g' /etc/grnoc/tsds/services/config.xml")!=0){
+    if(system("sed -i 's!$old_str!$new_str!g' /etc/grnoc/tsds/services/config.xml")!=0){
         print "\n Error occured while editing /etc/grnoc/tsds/services/config.xml file";
     }
     
@@ -360,7 +371,7 @@ sub upgrade {
     if(system("/usr/bin/tsds_install.pl")!=0){
         print "\n Error occured while performing TSDS Databse Bootstrap";
     }
-    
+
     print "\n Memcached Installation";
     print "\n Installing memcached";
 
@@ -403,7 +414,7 @@ sub upgrade {
     if(system("echo [rabbitmq_management]. >> /etc/rabbitmq/enabled_plugins")!=0){
 	print "Error occured while editing /etc/rabbitmq/enabled_plugins file";
     }
-
+=POD
     print "\n Creating rabbitmq config file";
     if(system("touch /etc/rabbitmq/rabbitmq.config")!=0){
         print "Error occured while creating /etc/rabbitmq/rabbitmq.config file";
@@ -425,7 +436,7 @@ sub upgrade {
     {
 	print "\n Error occured while editing /etc/rabbitmq/rabbitmq.config file";
     }
-    
+=cut
     print "\n Starting RabbitMQ server"; 
     if(system("service rabbitmq-server start")!=0)
     {
@@ -446,22 +457,22 @@ sub upgrade {
                 echo INCLUDE conf.d/grnoc/glue.conf
                 echo INCLUDE conf.d/grnoc/tsds-services-temp.conf
                 echo \\</VirtualHost\\>
-                )>> /etc/rabbitmq/rabbitmq.config ")!=0)      
+                )>> /etc/httpd/conf/httpd.conf ")!=0)      
     {                                                                                                                                                             
-        print("\n Error occured while editing /etc/rabbitmq/rabbitmq.config file");                                                                               
+        print("\n Error occured while editing /etc/httpd/conf/httpd.conf file");                                                                               
     }         
     
     print "\n Starting httpd service";
     if(system("service httpd start")!=0){
 	print "\n Error occured while starting httpd";
     }
-    
+
     print "\n Installing Sphinx";
     if(system("yum install sphinx")!=0) 
     {
 	print "\n Error occured while installing Sphinx";
     }
-    
+
     print "\n Configuring Sphinx search";
     if(system("cp /etc/sphinx/sphinx.conf.tsds /etc/sphinx/sphinx.conf")!=0){
 	print "\n Error occured while configuring sphinx search \n cp /etc/sphinx/sphinx.conf.tsds /etc/sphinx/sphinx.conf ";
