@@ -1,7 +1,8 @@
 package GRNOC::TSDS::AggregatePoint;
 
 use Moo;
-use Types::Standard qw( Str Int StrictNum InstanceOf Maybe Dict Map );
+use Types::Standard qw( Str Int StrictNum InstanceOf Maybe Dict Map Num);
+use Types::Common::Numeric qw( PositiveInt PositiveOrZeroInt PositiveNum );
 
 use Data::Dumper;
 
@@ -29,10 +30,10 @@ has 'value' => ( is => 'ro',
                  isa => Dict[ 'avg' => Maybe[StrictNum],
                               'min' => Maybe[StrictNum],
                               'max' => Maybe[StrictNum],
-                              'hist' => Maybe[ Dict[ 'num_bins' => Int,
-                                                     'bin_size' => Int,
-                                                     'min' => Int,
-                                                     'max' => Int,
+                              'hist' => Maybe[ Dict[ 'num_bins' => PositiveInt,
+                                                     'bin_size' => PositiveNum,
+                                                     'min' => Num,
+                                                     'max' => Num,
                                                      'bins' => Map[ Int, Int ],
                                                      'total' => Int ] ] ],
                  required => 1 );
