@@ -1,8 +1,7 @@
 bin/tsds_expire.pl
 bin/tsds_firehose.pl
 bin/tsds_install.pl
-bin/tsds_meta.py
-bin/tsds_receiver.py
+bin/tsds_meta.pl
 bin/tsds_search_indexer.pl
 bin/tsds_upgrade.pl
 bin/tsds_writer
@@ -10,6 +9,7 @@ CHANGES.md
 conf/apache-tsds-services-temp.conf.example
 conf/apache-tsds-services.conf.example
 conf/config.xml.example
+conf/meta_config.xml
 conf/mappings.xml.example
 conf/constraints.xml.example
 conf/install/cpu.json
@@ -44,6 +44,7 @@ init.d/mongod-shard2
 init.d/mongod-shard3
 init.d/mongos
 init.d/tsds_writer
+init.d/tsds_meta
 INSTALL.md
 lib/GRNOC/TSDS.pm
 lib/GRNOC/TSDS/AggregateDocument.pm
@@ -96,6 +97,7 @@ lib/GRNOC/TSDS/Writer/AggregateMessage.pm
 lib/GRNOC/TSDS/Writer/DataMessage.pm
 lib/GRNOC/TSDS/Writer/EventMessage.pm
 lib/GRNOC/TSDS/Writer/Worker.pm
+lib/GRNOC/TSDS/MetaStats.pm
 Makefile.PL
 MANIFEST			This list of files
 t/00init.t
@@ -128,5 +130,4 @@ www/push.cgi
 www/query.cgi
 www/report.cgi
 www/search.cgi
-META.yml                                 Module YAML meta-data (added by MakeMaker)
-META.json                                Module JSON meta-data (added by MakeMaker)
+

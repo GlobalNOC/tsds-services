@@ -670,19 +670,19 @@ sub _process_event_messages {
     # handle every distinct document that we'll need to update
     my @data_types = keys( %$unique_documents );
 
-    foreach my $data_type ( @data_types ) {
+    foreach my $data_type ( sort @data_types ) {
 
         my @types = keys( %{$unique_documents->{$data_type}} );
 
-        foreach my $type ( @types ) {
+        foreach my $type ( sort @types ) {
 
             my @starts = keys( %{$unique_documents->{$data_type}{$type}} );
 
-            foreach my $start ( @starts ) {
+            foreach my $start ( sort { $a <=> $b }@starts ) {
 
                 my @ends = keys( %{$unique_documents->{$data_type}{$type}{$start}} );
 
-                foreach my $end ( @ends ) {
+                foreach my $end ( sort { $a <=> $b } @ends ) {
 
                     my $document = $unique_documents->{$data_type}{$type}{$start}{$end};
 
@@ -813,11 +813,11 @@ sub _process_data_messages {
         # potentially create new measurement entries that we've never seen before
         @data_types = keys( %$unique_measurements );
 
-        foreach my $data_type ( @data_types ) {
+        foreach my $data_type ( sort @data_types ) {
 
             my @measurement_identifiers = keys( %{$unique_measurements->{$data_type}} );
 
-            foreach my $measurement_identifier ( @measurement_identifiers ) {
+            foreach my $measurement_identifier ( sort @measurement_identifiers ) {
 
                 my $cache_id = shift( @measurement_cache_ids );
 
@@ -854,19 +854,19 @@ sub _process_data_messages {
     # handle every distinct document that we'll need to update
     @data_types = keys( %$unique_documents );
 
-    foreach my $data_type ( @data_types ) {
+    foreach my $data_type ( sort @data_types ) {
 
         my @measurement_identifiers = sort keys( %{$unique_documents->{$data_type}} );
 
-        foreach my $measurement_identifier ( @measurement_identifiers ) {
+        foreach my $measurement_identifier ( sort @measurement_identifiers ) {
 
             my @starts = keys( %{$unique_documents->{$data_type}{$measurement_identifier}} );
 
-            foreach my $start ( @starts ) {
+            foreach my $start ( sort { $a <=> $b } @starts ) {
 
                 my @ends = keys( %{$unique_documents->{$data_type}{$measurement_identifier}{$start}} );
 
-                foreach my $end ( @ends ) {
+                foreach my $end ( sort { $a <=> $b } @ends ) {
 
                     my $document = $unique_documents->{$data_type}{$measurement_identifier}{$start}{$end};
 
@@ -956,19 +956,19 @@ sub _process_aggregate_messages {
     # handle every distinct document that we'll need to update
     my @data_types = keys( %$unique_documents );
 
-    foreach my $data_type ( @data_types ) {
+    foreach my $data_type ( sort @data_types ) {
 
         my @measurement_identifiers = keys( %{$unique_documents->{$data_type}} );
 
-        foreach my $measurement_identifier ( @measurement_identifiers ) {
+        foreach my $measurement_identifier ( sort @measurement_identifiers ) {
 
             my @starts = keys( %{$unique_documents->{$data_type}{$measurement_identifier}} );
 
-            foreach my $start ( @starts ) {
+            foreach my $start ( sort { $a <=> $b } @starts ) {
 
                 my @ends = keys( %{$unique_documents->{$data_type}{$measurement_identifier}{$start}} );
 
-                foreach my $end ( @ends ) {
+                foreach my $end ( sort { $a <=> $b } @ends ) {
 
                     my $document = $unique_documents->{$data_type}{$measurement_identifier}{$start}{$end};
 

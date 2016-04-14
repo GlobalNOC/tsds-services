@@ -177,7 +177,7 @@ $SIG{'ALRM'} = sub {
 my $sleep = 200;
 
 # sleep longer if running under Devel::Cover
-$sleep = 400 if ( $INC{'Devel/Cover.pm'} );
+$sleep = 800 if ( $INC{'Devel/Cover.pm'} );
 
 alarm( $sleep );
 
