@@ -777,11 +777,11 @@ sub add_measurement_type {
 	# TEMP HACK FOR TESTING NEW SHARD KEY
 	# THIS USED TO BE THE OLD SHARD KEY SO WE STILL NEED THE INDEX
 	# ##
-	$collection->ensure_index(Tie::IxHash->new(
-				      identifier => 1,
-				      start      => 1,
-				      end        => 1
-				  ));
+	#$collection->ensure_index(Tie::IxHash->new(
+	#			      identifier => 1,
+	#			      start      => 1,
+	#			      end        => 1
+	#			  ));
 	####
 
         if( $col_name eq 'data' ){
