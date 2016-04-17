@@ -3501,6 +3501,13 @@ sub _fix_document {
 	    }
 	}
 
+        # ISSUE=464:160 When figuring out where to stop on the
+        # right side of the doc we need to take the lower of the 
+        # query's end or the metadata's end
+        if ($meta_end > $full_end){
+            $meta_end = $full_end;
+        }
+
 	$clone->{'meta_end'} = $meta_end;
 
 	my @keys = keys %{$clone->{'values'}};
