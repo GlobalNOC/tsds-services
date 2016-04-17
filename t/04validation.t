@@ -148,7 +148,7 @@ ok($arr, "query request to get max(aggregate(values.input,360,max))  sent succes
 
 $result=$arr->[0]->{'MAXMAX'};
 ok(defined $result, "Compound statement max (aggregate function with max) executed and value returned back successfully ");
-is( $result,169027, "Compound statement max(aggregate function with  max) executed and returned value is validated");
+is( $result,169057, "Compound statement max(aggregate function with  max) executed and returned value is validated");
 
 $arr= $query->run_query( query =>'get sum(aggregate(values.input,360,max)) as MAXSUM between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") by intf from tsdstest where node="rtr.chic" ');
 ok($arr, "query request to get sum (aggregate(values.input,360,max)) ) sent successfully");
@@ -163,7 +163,7 @@ validatebucket($result,'7200');
 $arr= $query->run_query( query =>'get average(aggregate(values.input,7200,max)) as AVGWithMAX between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") from tsdstest where node="rtr.chic" ');
 $result=$arr->[0]->{'AVGWithMAX'};
 
-is(int($result),167016,"Compound statement average(aggregate function with  max) executed and returned value is validated");
+is(int($result),167041,"Compound statement average(aggregate function with  max) executed and returned value is validated");
 
 # aggregate function to compute  histogram
 $arr=$query->run_query( query => 'get aggregate(values.input,7200,histogram) as hists between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") by node,intf from tsdstest where node="rtr.chic" and intf="ge-0/0/0" ');

@@ -14,6 +14,7 @@ use Clone qw(clone);
 use Math::Round qw( nlowmult );
 use Data::Dumper;
 use Sys::Hostname;
+use POSIX;
 
 use GRNOC::Log;
 
@@ -106,6 +107,22 @@ sub total_raw {
 
     $self->{'query_total_raw'} = $total_raw if defined($total_raw);
     return $self->{'query_total_raw'};
+}
+
+sub actual_start {
+    my $self         = shift;
+    my $actual_start = shift;
+
+    $self->{'query_actual_start'} = $actual_start if defined($actual_start);
+    return $self->{'query_actual_start'};    
+}
+
+sub actual_end {
+    my $self       = shift;
+    my $actual_end = shift;
+
+    $self->{'query_actual_end'} = $actual_end if defined($actual_end);
+    return $self->{'query_actual_end'};    
 }
 
 sub mongo_ro {
@@ -1493,6 +1510,22 @@ sub _query_database {
                 if( $histogram ){
                     $data_field_hist_map->{$aggregate}{$name} = 1;
                 }
+
+                # if we're doing an extent > 1, we might need to adjust the start/end times
+                # to account for a misaligned query. ie if they're asking for day aggregates
+                # but our query doesn't even span a full day we need to expand the timerange to get
+                # the best possible fit
+                my $floored = floor($start / $extent) * $extent;
+                my $ceiled  = ceil($end / $extent) * $extent;
+
+                if ($floored != $start || $ceiled != $end){
+
+                    log_debug("Changing start from $start to $floored due to aggregation $extent");
+                    log_debug("Changing start from $end to $ceiled due to aggregation $extent");
+
+                    $start = $floored;
+                    $end   = $ceiled;
+                }
             }
             
             # regular get request, so use highest res data for this field
@@ -1502,10 +1535,16 @@ sub _query_database {
         }
     }
 
+    # At this point we will have figured out if we need to adjust
+    # the start/end timeframes at all and can report the actual
+    # data start/ends
+    $self->actual_start($start);
+    $self->actual_end($end);
+
     log_debug("Data field mapping: ", {filter => \&Data::Dumper::Dumper,
                                        value  => $data_field_map
               });
-
+    
     log_debug("Data histogram mapping: ", {filter => \&Data::Dumper::Dumper,
                                            value  => $data_field_hist_map
               });
@@ -1760,19 +1799,17 @@ sub _query_database {
             # if we're not selecting from a subqueries result, we have to fix up the multidimensional array
             # structure that exists on disk. This will also prune out any values that weren't actually in the
             # timeframe specified but were part of the document
-            if ( $db_name ne $self->temp_database() ) {
+            my $fixed_docs = $self->_fix_document( base_doc => $doc,
+                                                   start => $start,
+                                                   end => $end,
+                                                   aggregate_interval => $aggregate_interval,
+                                                   meta_merge_docs => \%meta_merge_docs );
 
-                my $fixed_docs = $self->_fix_document( base_doc => $doc,
-						       start => $start,
-						       end => $end,
-						       aggregate_interval => $aggregate_interval,
-						       meta_merge_docs => \%meta_merge_docs );
-
-                foreach my $fixed_doc (@$fixed_docs){
-
-                    push( @docs, $fixed_doc );
-                }
-            }
+            
+            foreach my $fixed_doc (@$fixed_docs){
+                
+                push( @docs, $fixed_doc );
+            }        
         }
     }
 
