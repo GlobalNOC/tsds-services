@@ -763,14 +763,26 @@ sub add_measurement_type {
                 $self->error( "Error adding collection shard for $col_name measurement_type: ".$self->mongo_root()->error() );
                 return;
             }
+	    
         } 
-	    else {
+	else {
             # otherwise explicitly create the collection
             $self->mongo_root()->create_collection( $measurement_type, $col_name, privilege => 'root' );
         }
         my $collection = $db->get_collection( $col_name );
         $collection->ensure_index({start => 1});
         $collection->ensure_index({end   => 1});
+
+	####
+	# TEMP HACK FOR TESTING NEW SHARD KEY
+	# THIS USED TO BE THE OLD SHARD KEY SO WE STILL NEED THE INDEX
+	# ##
+	#$collection->ensure_index(Tie::IxHash->new(
+	#			      identifier => 1,
+	#			      start      => 1,
+	#			      end        => 1
+	#			  ));
+	####
 
         if( $col_name eq 'data' ){
             my $index = Tie::IxHash->new(
@@ -841,7 +853,7 @@ sub add_measurement_type_value {
     my $descr            = $args{'description'};
     my $units            = $args{'units'};
     my $ordinal          = $args{'ordinal'};
-
+    
     my $db  = $self->mongo_rw()->get_database( $measurement_type );
     if(!$db){
         $self->error($self->mongo_rw()->error());

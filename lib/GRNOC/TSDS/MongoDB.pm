@@ -15,6 +15,7 @@ use Sys::Hostname;
 use Data::Dumper;
 
 our $DATA_SHARDING  = "{'identifier': 1, 'start': 1, 'end': 1}";
+#our $DATA_SHARDING  = "{'identifier': 1}";
 our $EVENT_SHARDING = "{'type': 1, 'start': 1, 'end': 1}";
 
 sub new {

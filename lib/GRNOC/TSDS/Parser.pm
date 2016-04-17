@@ -14,6 +14,7 @@ use Clone qw(clone);
 use Math::Round qw( nlowmult );
 use Data::Dumper;
 use Sys::Hostname;
+use POSIX;
 
 use GRNOC::Log;
 
@@ -106,6 +107,22 @@ sub total_raw {
 
     $self->{'query_total_raw'} = $total_raw if defined($total_raw);
     return $self->{'query_total_raw'};
+}
+
+sub actual_start {
+    my $self         = shift;
+    my $actual_start = shift;
+
+    $self->{'query_actual_start'} = $actual_start if defined($actual_start);
+    return $self->{'query_actual_start'};    
+}
+
+sub actual_end {
+    my $self       = shift;
+    my $actual_end = shift;
+
+    $self->{'query_actual_end'} = $actual_end if defined($actual_end);
+    return $self->{'query_actual_end'};    
 }
 
 sub mongo_ro {
@@ -225,33 +242,81 @@ sub tokenize {
     my $self  = shift;
     my $query = shift;
 
+    my $error;
+    my $value;
+
     my $parser = Marpa::R2::Scanless::R->new({grammar => $self->grammar(),
 					      #trace_terminals => 2,
 					      semantics_package => 'GRNOC::TSDS::Parser::Actions'});
-
 
     eval {
 	$parser->read(\$query);
     };
 
+    # There are two ways the query can fail. We can either have an invalid character
+    # along the path (part 1) or we can have an entirely missing component (part 2)
+
     # bad syntax for query, bail out
     if ($@){
-	# TODO - parse $@ and come up with a better error message
-	$self->error("Bad query syntax: \"$query\"\n$@\n\nProgress: " . $parser->show_progress());
-	return;
+        my $raw_error = $@;
+
+        log_debug("Found error while getting scanning query string: $raw_error");
+
+        # THIS IS AN EXAMPLE
+        # -------------------
+        # No lexeme found at line 1, column 103
+        # * String before error: ), aggregate(values.output, 182, average) between(
+        # * The error was at line 1, column 103, and at character 0x005c '\', ...
+        # * here: \\"02/23/2016 16:21:33 UTC\\",\\"02/24/2016 16:21:
+
+        my $string_before = "";
+        my $string_at     = "";
+        my $col;
+
+        if ($raw_error =~ /String before error: (.+)/){
+            $string_before = $1;
+        }
+        if ($raw_error =~ /at line \d+, column (\d+)/){
+            $col = $1;
+        }
+        if ($raw_error =~ /here: (.+)/){
+            $string_at = $1;
+            $string_at =~ s/\\\\/\\/g;
+        }
+     
+        $error  = "Syntax error in query: " . $string_before . "*HERE*>>>" . substr($string_at, 0, 1) . "<<<*HERE*" . substr($string_at, 1) . "\n";
+    }
+    # In this case we probably have an entire missing section vs having a section
+    # with bad syntax or wrong characters
+    else {
+        $value = $parser->value();
+
+        if (! defined $value){
+            log_debug("Found error while getting Marpa parser value");
+
+            # Figure out what the last successfully parsed part of the query was so that
+            # we can point the user to the right location
+            my ( $g1_start, $g1_length ) = $parser->last_completed('query');
+            if (defined $g1_start){
+                my $last_expression = $parser->substring( $g1_start, $g1_length );
+                my $quoted = quotemeta($last_expression);
+                $query =~ /$quoted(.+)/;
+                $error = "Syntx error in query: " . $last_expression . "*HERE*>>>" . $1 . "<<<*HERE*";
+            }
+            else {
+                $error = "Error getting parser value: " . $parser->show_progress();
+            }
+        }
     }
 
-    my $value = $parser->value();
-
-    if (! defined $value){
-	# TODO - same as above
-	$self->error("Bad query syntax: \"$query\"\n\nProgress: " . $parser->show_progress());
-	return;
+    if (defined $error){
+        $self->error($error);
+        return;
     }
-
+    
     my $tokens = ${$value};
-
-return $tokens;
+    
+    return $tokens;
 }
 
 ### private methods ###
@@ -1445,6 +1510,22 @@ sub _query_database {
                 if( $histogram ){
                     $data_field_hist_map->{$aggregate}{$name} = 1;
                 }
+
+                # if we're doing an extent > 1, we might need to adjust the start/end times
+                # to account for a misaligned query. ie if they're asking for day aggregates
+                # but our query doesn't even span a full day we need to expand the timerange to get
+                # the best possible fit
+                my $floored = floor($start / $extent) * $extent;
+                my $ceiled  = ceil($end / $extent) * $extent;
+
+                if ($floored != $start || $ceiled != $end){
+
+                    log_debug("Changing start from $start to $floored due to aggregation $extent");
+                    log_debug("Changing start from $end to $ceiled due to aggregation $extent");
+
+                    $start = $floored;
+                    $end   = $ceiled;
+                }
             }
             
             # regular get request, so use highest res data for this field
@@ -1454,10 +1535,16 @@ sub _query_database {
         }
     }
 
+    # At this point we will have figured out if we need to adjust
+    # the start/end timeframes at all and can report the actual
+    # data start/ends
+    $self->actual_start($start);
+    $self->actual_end($end);
+
     log_debug("Data field mapping: ", {filter => \&Data::Dumper::Dumper,
                                        value  => $data_field_map
               });
-
+    
     log_debug("Data histogram mapping: ", {filter => \&Data::Dumper::Dumper,
                                            value  => $data_field_hist_map
               });
@@ -1712,19 +1799,17 @@ sub _query_database {
             # if we're not selecting from a subqueries result, we have to fix up the multidimensional array
             # structure that exists on disk. This will also prune out any values that weren't actually in the
             # timeframe specified but were part of the document
-            if ( $db_name ne $self->temp_database() ) {
+            my $fixed_docs = $self->_fix_document( base_doc => $doc,
+                                                   start => $start,
+                                                   end => $end,
+                                                   aggregate_interval => $aggregate_interval,
+                                                   meta_merge_docs => \%meta_merge_docs );
 
-                my $fixed_docs = $self->_fix_document( base_doc => $doc,
-						       start => $start,
-						       end => $end,
-						       aggregate_interval => $aggregate_interval,
-						       meta_merge_docs => \%meta_merge_docs );
-
-                foreach my $fixed_doc (@$fixed_docs){
-
-                    push( @docs, $fixed_doc );
-                }
-            }
+            
+            foreach my $fixed_doc (@$fixed_docs){
+                
+                push( @docs, $fixed_doc );
+            }        
         }
     }
 
@@ -3452,6 +3537,13 @@ sub _fix_document {
 		$clone->{$meta_value} = clone($possible_meta_doc->{$meta_value});
 	    }
 	}
+
+        # ISSUE=464:160 When figuring out where to stop on the
+        # right side of the doc we need to take the lower of the 
+        # query's end or the metadata's end
+        if ($meta_end > $full_end){
+            $meta_end = $full_end;
+        }
 
 	$clone->{'meta_end'} = $meta_end;
 
