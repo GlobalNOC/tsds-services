@@ -11,7 +11,7 @@ use GRNOC::TSDS::Install;
 use Data::Dumper;
 use MongoDB;
 use Sort::Versions;
-
+use Sys::Hostname;
 ### required attributes ###
 
 has config_file => ( is => 'ro',
@@ -46,7 +46,7 @@ sub BUILD {
 
 ### public methods ###
 
-sub upgrade {
+sub setup {
 
     my ( $self ) = @_;
 
@@ -414,7 +414,7 @@ sub upgrade {
     if(system("echo [rabbitmq_management]. >> /etc/rabbitmq/enabled_plugins")!=0){
 	print "Error occured while editing /etc/rabbitmq/enabled_plugins file";
     }
-=POD
+
     print "\n Creating rabbitmq config file";
     if(system("touch /etc/rabbitmq/rabbitmq.config")!=0){
         print "Error occured while creating /etc/rabbitmq/rabbitmq.config file";
@@ -436,7 +436,15 @@ sub upgrade {
     {
 	print "\n Error occured while editing /etc/rabbitmq/rabbitmq.config file";
     }
-=cut
+
+    print "\n Adding hostname to /etc/hosts ";
+    my $full_hostname = hostname;
+    my $old_str = "127.0.0.1";                                                                                              
+    my $new_str = "127.0.0.1  @words[0]";                                                                                  
+    if(system("sed -i 's#$old_str#$new_str#g' /etc/hosts")!=0){                                                            
+  	print "\n Error occured while editing /etc/hosts file";                                                           
+    }
+
     print "\n Starting RabbitMQ server"; 
     if(system("service rabbitmq-server start")!=0)
     {
@@ -448,20 +456,45 @@ sub upgrade {
     {   
         print "\n Error occured while starting tsds_writer";
     }
-    
+
     print "\n Editing /etc/httpd/conf/httpd.conf file";
-    if(system("(
-                echo \\<VirtualHost *:80\\>
-                echo #RewriteEngine On
-                echo INCLUDE conf.d/grnoc/yui.conf
-                echo INCLUDE conf.d/grnoc/glue.conf
-                echo INCLUDE conf.d/grnoc/tsds-services-temp.conf
-                echo \\</VirtualHost\\>
-                )>> /etc/httpd/conf/httpd.conf ")!=0)      
-    {                                                                                                                                                             
-        print("\n Error occured while editing /etc/httpd/conf/httpd.conf file");                                                                               
-    }         
+    if(system("(                                                                                                                                                                      
+            echo \\<VirtualHost *:80\\>                                                                                                                                                 
+           )>> /etc/httpd/conf/httpd.conf ")!=0)
+    {
+	print("\n Error occured while editing /etc/httpd/conf/httpd.conf file");
+    }
     
+    print "\n checking if files exist before adding them to httpd.conf";
+    my $filename = '/etc/httpd/conf.d/grnoc/yui.conf'; 
+    if(-e $filename) {
+	print "\n /etc/httpd/conf.d/grnoc/yui.conf file exists!";
+	if(system("(                                                                                                                                                                        
+                echo INCLUDE conf.d/grnoc/yui.conf                                                                                                                                      
+               )>> /etc/httpd/conf/httpd.conf ")!=0)
+	{
+	    print("\n Error occured while editing /etc/httpd/conf/httpd.conf file");
+	}
+    }
+    
+    $filename = '/etc/httpd/conf.d/grnoc/glue.conf';
+    if(-e $filename) {
+	print "\n /etc/httpd/conf.d/grnoc/glue.conf file exists!";
+	if(system("(                                                                                                                                                                        
+                 echo INCLUDE conf.d/grnoc/glue.conf                                                                                                                                    
+               )>> /etc/httpd/conf/httpd.conf ")!=0)
+	{
+	    print("\n Error occured while editing /etc/httpd/conf/httpd.conf file");
+	}
+    }
+    if(system("(                                                                                                                                                                            
+             echo INCLUDE conf.d/grnoc/tsds-services-temp.conf                                                                                                                          
+             echo \\</VirtualHost\\>                                                                                                                                                    
+           )>> /etc/httpd/conf/httpd.conf ")!=0)
+    {
+	print("\n Error occured while editing /etc/httpd/conf/httpd.conf file");
+    }
+
     print "\n Starting httpd service";
     if(system("service httpd start")!=0){
 	print "\n Error occured while starting httpd";
