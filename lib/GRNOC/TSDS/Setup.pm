@@ -54,7 +54,7 @@ sub setup {
     $self->_print_banner();
 
     print "\n Creating mongodb-org-3.0.repo file in /etc/yum.repos.d directory";
-    if(system("(                                                                                                                                                         
+    if(system("(                                                                                                                                             
                 echo [mongodb-org-3.0]                                                                                                                                   
                 echo name=MongoDB 3.0 Repository                                                                                                                         
                 echo baseurl=https://repo.mongodb.org/yum/redhat/6/mongodb-org/3.0/x86_64/                                                                               
@@ -68,10 +68,20 @@ sub setup {
     if(system("yum install -y mongodb-org")!=0){
         print "\n ERROR: Setup failed while installing mongodb-org";
     }
+
+    print "\n Changing ownership of all files in /var/lib/mongod/ from root to mongod";
+    if(system("chown mongod:mongod /var/lib/mongo/*")!=0)
+        print "\n Error occured while changing ownership of all the files in /var/lib/mongo/ from root to mongod";
+    }
+
     print "what is your hostname?";
     my $hostname = <>;
     chomp $hostname;
-
+    
+    print "\n Installing gnutls package for certtool to work";
+    if(system("yum -y install gnutls-utils.x86_64 rsyslog-gnutls ")!=0){
+	print "\n Error occured while installing yum -y install gnutls-utils.x86_64 rsyslog-gnutls";
+    }
     print "\n Creating key using certtool";
     if(system("certtool -p --outfile /etc/pki/tls/private/mongo-$hostname.key")!=0){
         print "\n Could not create a key file";
@@ -231,6 +241,13 @@ sub setup {
     if(system("sed -i 's#$old_str#$new_str#g' /etc/mongos.conf")!=0){
         print "\n Error occured while editing /etc/mongos.conf file";
     }
+
+    print "\n Adding fqdn to /etc/hosts for mongos to start";
+    my $full_hostname = hostname;
+    my @words = split(/\./,$full_hostname);
+    $old_str = "127.0.0.1";
+    $new_str = "127.0.0.1 $full_hostname";
+    
     print "\n Starting mongos";
 
     if(system("service mongos start")!=0){
@@ -375,7 +392,7 @@ sub setup {
     print "\n Memcached Installation";
     print "\n Installing memcached";
 
-    if(system("yum install memcached")!=0){
+    if(system("yum install -y memcached")!=0){
 	print "Error occured while installing memcached server";
     }
     
@@ -388,7 +405,7 @@ sub setup {
     print "\n Redis Installation";
     print "\n Installing redis";
 
-    if(system("yum install redis")!=0){
+    if(system("yum install -y redis")!=0){
         print "Error occured while installing redis";
     }
 
@@ -401,7 +418,7 @@ sub setup {
     print "\n RabbitMQ Installation";
     print "\n Installing rabbitmq server";
 
-    if(system("yum install rabbitmq-server")!=0){
+    if(system("yum install -y rabbitmq-server")!=0){
         print "Error occured while installing rabbitmq-server";
     }
 
@@ -442,8 +459,7 @@ sub setup {
 	}
     }
     print "\n Adding hostname to /etc/hosts ";
-    my $full_hostname = hostname;
-    my @words = split(/\./,$full_hostname);
+
     $old_str = "127.0.0.1";                                                                                              
     $new_str = "127.0.0.1  $words[0]";                                                                                  
     if(system("sed -i 's#$old_str#$new_str#g' /etc/hosts")!=0){                                                            
@@ -506,7 +522,7 @@ sub setup {
     }
 
     print "\n Installing Sphinx";
-    if(system("yum install sphinx")!=0) 
+    if(system("yum -y install sphinx")!=0) 
     {
 	print "\n Error occured while installing Sphinx";
     }
@@ -543,7 +559,7 @@ sub setup {
     }
 
     print "\n Installing TSDS Aggregate Configuration";
-    if(system("yum install grnoc-tsds-aggregate")!=0){
+    if(system("yum -y install grnoc-tsds-aggregate")!=0){
 	print "\n Error occured while installing grnoc-tsds-aggregate";
     }
 
