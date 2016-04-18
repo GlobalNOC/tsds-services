@@ -344,8 +344,9 @@ sub setup {
 
     print "\n No admin or root user has been created yet";
     print "\n Adding root user to MongoDB";
+
     print "\n Enter password for the root user";
-    my $root_pwd = <>;
+    my $root_pwd = $cli->get_password("Password");
     chomp $root_pwd;
 
     if(system("mongo admin --eval \"printjson(db.createUser({user: 'root', pwd: '$root_pwd', roles: [{role: 'root', db: 'admin'}]}));\" ")!=0){
@@ -361,10 +362,10 @@ sub setup {
     }
 
     print "\n Enter a password for read only user :";
-    my $tsds_ro_pwd = <>;
+    my $tsds_ro_pwd = $cli->get_password("Password");
     chomp $tsds_ro_pwd;
     print "\n Enter a password for read write user :";
-    my $tsds_rw_pwd = <>;
+    my $tsds_rw_pwd =  $cli->get_password("Password");
     chomp $tsds_rw_pwd;
 
     print "\n Editing credentials for read only user";
