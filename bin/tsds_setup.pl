@@ -25,10 +25,10 @@ GetOptions( 'config=s'  => \$config_file,
 
 usage() if $help;
 
-my $upgrader = GRNOC::TSDS::Setup->new( config_file => $config_file,
+my $setuper = GRNOC::TSDS::Setup->new( config_file => $config_file,
                                           unattended  => $noconfirm);
 
-$upgrader->upgrade() or die( $upgrader->error );
+$setuper->setup() or die( $setuper->error );
 
 sub usage {
 

@@ -439,8 +439,9 @@ sub setup {
 
     print "\n Adding hostname to /etc/hosts ";
     my $full_hostname = hostname;
-    my $old_str = "127.0.0.1";                                                                                              
-    my $new_str = "127.0.0.1  @words[0]";                                                                                  
+    my @words = split(/\./,$full_hostname);
+    $old_str = "127.0.0.1";                                                                                              
+    $new_str = "127.0.0.1  $words[0]";                                                                                  
     if(system("sed -i 's#$old_str#$new_str#g' /etc/hosts")!=0){                                                            
   	print "\n Error occured while editing /etc/hosts file";                                                           
     }
