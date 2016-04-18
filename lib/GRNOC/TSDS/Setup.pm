@@ -428,7 +428,7 @@ sub setup {
                 echo {hipe_compile, false},
                 echo {vm_memory_high_watermark, 0.75},
                 echo {vm_memory_high_watermark_paging_ratio, 0.75},
-                echo {disk_free_limit, \"500MB\"}
+                echo {disk_free_limit, \\\"500MB\\\"}
                 echo ]}
 
                 echo ].
