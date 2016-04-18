@@ -406,21 +406,25 @@ sub setup {
     }
 
     print "\n Enabling rabbitmq-management plugin";
-
+  
     if(system("touch /etc/rabbitmq/enabled_plugins")!=0){
-        print "Error occured while creating /etc/rabbitmq/enabled_plugins file";
+	print "Error occured while creating /etc/rabbitmq/enabled_plugins file";
     }
 
     if(system("echo [rabbitmq_management]. >> /etc/rabbitmq/enabled_plugins")!=0){
-	print "Error occured while editing /etc/rabbitmq/enabled_plugins file";
+        print "Error occured while editing /etc/rabbitmq/enabled_plugins file";
     }
-
-    print "\n Creating rabbitmq config file";
-    if(system("touch /etc/rabbitmq/rabbitmq.config")!=0){
-        print "Error occured while creating /etc/rabbitmq/rabbitmq.config file";
+    my $filename = '/etc/rabbitmq/rabbitmq.config';
+    if(-e $filename) {
+	print "\n Rabbitmq config file exists";
     }
-
-    if(system("(
+    else
+    {
+	print "\n Creating rabbitmq config file";
+	if(system("touch /etc/rabbitmq/rabbitmq.config")!=0){
+	    print "Error occured while creating /etc/rabbitmq/rabbitmq.config file";
+	}
+	if(system("(
                 echo [ 
                 echo {mnesia, [{dump_log_write_threshold, 1000}]},
                 echo {rabbit, [
@@ -433,10 +437,10 @@ sub setup {
 
                 echo ].
                 )>> /etc/rabbitmq/rabbitmq.config")!=0)
-    {
-	print "\n Error occured while editing /etc/rabbitmq/rabbitmq.config file";
+	{
+	    print "\n Error occured while editing /etc/rabbitmq/rabbitmq.config file";
+	}
     }
-
     print "\n Adding hostname to /etc/hosts ";
     my $full_hostname = hostname;
     my @words = split(/\./,$full_hostname);
@@ -467,7 +471,7 @@ sub setup {
     }
     
     print "\n checking if files exist before adding them to httpd.conf";
-    my $filename = '/etc/httpd/conf.d/grnoc/yui.conf'; 
+    $filename = '/etc/httpd/conf.d/grnoc/yui.conf'; 
     if(-e $filename) {
 	print "\n /etc/httpd/conf.d/grnoc/yui.conf file exists!";
 	if(system("(                                                                                                                                                                        
