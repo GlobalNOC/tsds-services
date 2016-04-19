@@ -70,7 +70,7 @@ sub setup {
     }
 
     print "\n Changing ownership of all files in /var/lib/mongod/ from root to mongod";
-    if(system("chown mongod:mongod /var/lib/mongo/*")!=0)
+    if(system("chown mongod:mongod /var/lib/mongo/*")!=0){
         print "\n Error occured while changing ownership of all the files in /var/lib/mongo/ from root to mongod";
     }
 
@@ -247,7 +247,10 @@ sub setup {
     my @words = split(/\./,$full_hostname);
     $old_str = "127.0.0.1";
     $new_str = "127.0.0.1 $full_hostname";
-    
+    if(system("sed -i 's#$old_str#$new_str#g' /etc/hosts")!=0){
+	print "\n Error occured while editing /etc/hosts file";
+    }
+
     print "\n Starting mongos";
 
     if(system("service mongos start")!=0){
@@ -346,7 +349,7 @@ sub setup {
     print "\n Adding root user to MongoDB";
 
     print "\n Enter password for the root user";
-    my $root_pwd = $cli->get_password("Password");
+    my $root_pwd = $self->cli->get_password("Password");
     chomp $root_pwd;
 
     if(system("mongo admin --eval \"printjson(db.createUser({user: 'root', pwd: '$root_pwd', roles: [{role: 'root', db: 'admin'}]}));\" ")!=0){
@@ -362,10 +365,10 @@ sub setup {
     }
 
     print "\n Enter a password for read only user :";
-    my $tsds_ro_pwd = $cli->get_password("Password");
+    my $tsds_ro_pwd = $self->cli->get_password("Password");
     chomp $tsds_ro_pwd;
     print "\n Enter a password for read write user :";
-    my $tsds_rw_pwd =  $cli->get_password("Password");
+    my $tsds_rw_pwd =  $self->cli->get_password("Password");
     chomp $tsds_rw_pwd;
 
     print "\n Editing credentials for read only user";
