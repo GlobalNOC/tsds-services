@@ -5,7 +5,7 @@
 * ISSUE=458 Make aggregate queries expand the start and end times of the actual query to ensure that
 they align on a proper time boundary. The actual start and end times are returned as fields in the
 response.
-* ISSUE=13086 Improved human readability of query parse errors.
+* ISSUE=471 Improved human readability of query parse errors.
 * ISSUE=394 Rewrite of tsds_meta from python to perl and updated to work with Mongo 3.0 line of 
 code, removal of python dependencies from package.
 
