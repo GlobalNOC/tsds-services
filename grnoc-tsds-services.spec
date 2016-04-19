@@ -1,6 +1,6 @@
 Summary: GRNOC TSDS Services
 Name: grnoc-tsds-services
-Version: 1.5.0
+Version: 1.5.1
 Release: 1%{?dist}
 License: GRNOC
 Group: Measurement
@@ -11,6 +11,7 @@ BuildArch: noarch
 BuildRequires: httpd-devel
 BuildRequires: mod_perl-devel
 BuildRequires: perl-Test-Simple
+BuildRequires: perl-Net-RabbitMQ-Management-API
 Requires: perl >= 5.8.8
 Requires: gcc
 Requires: mod_perl

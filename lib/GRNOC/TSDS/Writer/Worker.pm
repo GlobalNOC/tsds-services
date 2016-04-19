@@ -725,7 +725,18 @@ sub _process_data_messages {
         my $data_type = $message->data_type;
         my $measurement_identifier = $message->measurement_identifier;
         my $interval = $message->interval;
-        my $data_points = $message->data_points;
+	my $data_points;
+
+	# this is lazily built so it might fail validation
+	try {
+	    $data_points = $message->data_points;
+	}
+	catch {
+	    $self->logger->error( "Error building data points for message: $_" );
+	};
+
+	next if (! defined $data_points);
+
         my $time = $message->time;
         my $meta = $message->meta;
 

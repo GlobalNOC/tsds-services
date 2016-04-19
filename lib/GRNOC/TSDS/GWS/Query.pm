@@ -99,10 +99,12 @@ sub _query {
     }
 
     my $response = {
-	total     => $self->query_ds()->total(),
-	total_raw => $self->query_ds()->total_raw(),
-	results   => $results,
-	query     => $args->{'query'}{'value'}
+	total        => $self->query_ds()->total(),
+	total_raw    => $self->query_ds()->total_raw(),
+        actual_start => $self->query_ds()->actual_start(),
+        actual_end   => $self->query_ds()->actual_end(),
+	results      => $results,
+	query        => $args->{'query'}{'value'}
     };
 
     my $output = $args->{'output'}{'value'};

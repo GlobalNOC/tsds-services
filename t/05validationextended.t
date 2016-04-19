@@ -11,6 +11,9 @@ use FindBin;
 
 my $config_file = "$FindBin::Bin/conf/config.xml";
 my $bnf_file = "$FindBin::Bin/../conf/query_language.bnf";
+my $logging_file = "$FindBin::Bin/conf/logging.conf";
+
+GRNOC::Log->new( config => $logging_file );
 
 my $first_value;
 my $last_value;
@@ -427,11 +430,11 @@ is($arr->[0]->{'diff_mult'}, 614381818743014400, "got right diff mult");
 
 
 # Test multiple embedded operators on single field
-$arr = $query->run_query( query =>'get count(min(values.input)) as first, average(aggregate(values.input, 3600, average)) as second, max(average(aggregate(values.input, 3600, average))) as third, count(max(average(aggregate(values.input, 3600, average)))) as fourth, sum(count(max(average(aggregate(values.input, 3600, average))))) as fifth between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") from tsdstest where intf = "ge-0/0/0" and node = "rtr.chic" ');
+$arr = $query->run_query( query =>'get count(min(values.input)) as first, average(aggregate(values.input, 3600, average)) as second, max(average(aggregate(values.input, 3600, average))) as third, count(max(average(aggregate(values.input, 3600, average)))) as fourth, sum(count(max(average(aggregate(values.input, 3600, average))))) as fifth between ("01/01/1970 00:00:00 UTC","01/01/1970 12:00:00 UTC") from tsdstest where intf = "ge-0/0/0" and node = "rtr.chic" ');
 ok($arr, "query request to fetch values.input sent successfully");
 
 is($arr->[0]->{'first'}, 1, "got count min chain");
-is($arr->[0]->{'second'}, 106195.25, "got average aggregate chain");
-is($arr->[0]->{'third'}, 106195.25, "got max average aggregate chain");
+is($arr->[0]->{'second'}, 105841.458333333, "got average aggregate chain");
+is($arr->[0]->{'third'}, 105841.458333333, "got max average aggregate chain");
 is($arr->[0]->{'fourth'}, 1, "got count max average aggregate chain");
 is($arr->[0]->{'fourth'}, 1, "got sum count max average aggregate chain");

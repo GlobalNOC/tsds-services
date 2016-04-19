@@ -60,6 +60,16 @@ sub total_raw {
     return $self->parser()->total_raw();
 }
 
+sub actual_start {
+    my $self = shift;
+    return $self->parser()->actual_start();
+}
+
+sub actual_end {
+    my $self = shift;
+    return $self->parser()->actual_end();
+}
+
 sub run_query {
 
     my ( $self, %args ) = @_;
@@ -69,7 +79,7 @@ sub run_query {
     my $results = $self->parser()->evaluate($query, force_constraint => 1);
 
     if ( !$results ) {
-        $self->error( $self->parser()->error() . "\nQuery: $query" );
+        $self->error( $self->parser()->error() );
         return;
     }
 
