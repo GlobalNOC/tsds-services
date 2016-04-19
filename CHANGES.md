@@ -1,3 +1,23 @@
+## GRNOC TSDS Services 1.5.1 -- Tue Apr 19 2016
+
+### Features:
+
+* ISSUE=458 Make aggregate queries expand the start and end times of the actual query to ensure that
+they align on a proper time boundary. The actual start and end times are returned as fields in the
+response.
+* ISSUE=13086 Improved human readability of query parse errors.
+
+### Bug Fixes:
+
+* ISSUE=464 Fixed issue where if the metadata for a particular measurement ended AFTER the query time,
+data from later than the query end could still be returned.
+* ISSUE=755 Fixed issue where writer would start to thrash when receiving messages with an invalid
+value for one of the "values" fields. Messages will properly be detected and skipped if so.
+* ISSUE=708 Fixed edge case where writer would complain about aggregate messages with a histogram width 
+with a floating point value. This was only seen in cases where data variances were very small, such
+as in optical readings.
+
+
 ## GRNOC TSDS Services 1.5.0 -- Tue Feb 16 2016
 
 ### Features:
