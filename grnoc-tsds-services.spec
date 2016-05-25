@@ -62,6 +62,7 @@ Requires: perl-Sort-Versions
 Requires: perl-List-Flatten-Recursive
 Requires: perl-GRNOC-TSDS-Aggregate-Histogram
 Requires: perl-DBI
+Requires: perl-DBD-MySQL
 Requires: perl-GRNOC-Counter
 Requires: perl-Try-Tiny
 
