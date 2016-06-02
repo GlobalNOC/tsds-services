@@ -2,7 +2,7 @@
 
 # mongos - Startup script for mongos
 
-# chkconfig: 35 85 15
+# chkconfig: 2345 85 15
 # description: Mongo is a scalable, document-oriented database.
 # processname: mongos
 # config: /etc/mongos.conf

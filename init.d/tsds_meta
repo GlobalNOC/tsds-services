@@ -2,7 +2,7 @@
 #
 # tsds_meta        init file for starting up the tsds meta daemon
 #
-# chkconfig:   2345 20 80
+# chkconfig:   2345 86 14
 # description: Starts and stops the tsds meta daemon.
 
 # Source function library.
