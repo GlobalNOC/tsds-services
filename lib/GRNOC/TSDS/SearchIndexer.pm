@@ -49,7 +49,7 @@ has sphinx_templates_dir => (
 
 has num_docs_per_fetch => (
     is => 'ro',
-    default => 100
+    default => 1000
 );
 
 has quiet => ( 
@@ -120,7 +120,7 @@ sub index_metadata {
     log_info('starting sphinx xmlpipe2 generation...');
     
     # start the xmlpipe2 doc 
-    print XMLPIPE2_HEADER . "\n";
+    print XMLPIPE2_HEADER . "\n"; 
 
     # loop through each of our measurement_types creating the fields and attributes needed
     # for our sphinx schema
@@ -158,9 +158,9 @@ sub index_metadata {
     # now loop through each of our measurement_types again indexing each measurements meta data 
     my $count = 1;
     foreach my $measurement_type (keys %$schemas){
+
         # log a status message
-        my $status_msg = "$measurement_type ($count/".keys(%$schemas).")";
-        log_debug( $status_msg );
+        log_debug( "$measurement_type ($count/".keys(%$schemas).")" );
 
         # index all of the metadata in this database 
         $self->_index_metadata( 
@@ -196,10 +196,14 @@ sub _index_metadata {
     my $start_time = time - ($self->last_updated_offset*60) if(defined($self->last_updated_offset) and 
                                                               ($self->last_updated_offset > 0));
     my $total      = $msmt_col->count();
-    my $limit      = ceil( scalar($total / $self->num_docs_per_fetch) );
+    my $limit      = $self->num_docs_per_fetch; 
+    $limit = $total if($total < $limit); 
 
-    # index num_docs_per_fetch measurements at a time
+    # index $limit measurements at a time
     for(my $offset = 0; $offset < $total; $offset += $limit){
+    
+    log_debug("creating sphinx xmlpipe2 documents for (limit: $limit, offset: $offset) of $total...");
+
         my $find = {};
         # if last_updated_offset is specified, use it to get only measurements updated in the past specified days
         if (defined($start_time)) {
@@ -207,47 +211,45 @@ sub _index_metadata {
         }
         my @msmts = $msmt_col->find($find)->hint( 'last_updated_1' )->limit($limit)->skip($offset)->all();
 
-        # flatten our measurements out to be indexed and make separate indexes for any 
-        # classifiers that are set
-        @msmts = $self->_format_measurements(
+        # flatten out measurements to be indexed and make separate indexes for any classifiers that are set.
+        # ISSUE=892 PROJ=160: Write out the xmlpipe2 docs as we go to avoid problems with excessively large 
+        # arrays/memory use in certain situations.
+        $self->_format_and_write_measurements(
             database_name   => $database->{'name'}, 
             measurements    => \@msmts,
             classifiers     => $classifiers,
             required_fields => $required_fields
         );
-        # skip if no measurements
-        if(@msmts < 1){
-            log_debug("skipping xmlpipe2 document creation for ".$database->{'name'}.", no measurements to insert...");
-            next;
-        }
 
-        # insert them into search's measurements collection
-        log_debug("creating sphinx xmlpipe2 documents for (limit: $limit, offset: $offset) of $total...");
-
-        # print an xml doc for each measurement
-        foreach my $msmt ( @msmts ) {
-
-            # set our main index for this measurement
-            my $index = {
-                id      => $self->sphinx_id,
-                fields  => $msmt
-            };
-
-            # sphinx xml2pipe formatted json documents for our index
-            my $xmlpipe2_doc;
-            if(!$self->tt()->process( XMLPIPE2_DOCUMENT_TMPL, $index, \$xmlpipe2_doc)){
-                log_error('Error processing, '.XMLPIPE2_DOCUMENT_TMPL.' with vars '._pp($index).': '.$self->tt()->error());
-                next;
-            }
-            $self->_set_sphinx_id( $self->sphinx_id + 1 );
-
-            # print out our sphinx xmlpipe2 document
-            print "$xmlpipe2_doc\n";
-        }
     }
         
     return 1;
 }
+
+
+# takes a flattened measurement and write out an xmlpipe2 doc 
+sub _write_doc  {
+    my ($self, $msmt) = @_;
+
+    # set our main index for this measurement
+    my $index = {
+        id      => $self->sphinx_id,
+        fields  => $msmt
+    };
+
+    # sphinx xml2pipe formatted json documents for our index
+    my $xmlpipe2_doc;
+    if(!$self->tt()->process( XMLPIPE2_DOCUMENT_TMPL, $index, \$xmlpipe2_doc)){
+        log_error('Error processing, '.XMLPIPE2_DOCUMENT_TMPL.' with vars '._pp($index).': '.$self->tt()->error());
+        return;
+    }
+    $self->_set_sphinx_id( $self->sphinx_id + 1 );
+
+    # print out our sphinx xmlpipe2 document
+    print "$xmlpipe2_doc\n"; 
+
+}
+
 
 # takes a perl hash and dot notation string.
 # splits the dot notation string and makes sure each string
@@ -277,9 +279,9 @@ sub _get_dot_notation_field {
     return $current_value;
 }
 
-# takes a hierarchal array of measurements hashes, flattens it, prefixes each with the measurement_type
-# and unwinds any classifiers out into there own indexes if need be
-sub _format_measurements {
+# takes a hierarchal array of measurements hashes, flattens them, prefixes each with the measurement_type
+# and unwinds any classifiers out into there own indexes if need be, writing each out as it is done.
+sub _format_and_write_measurements {
     my ($self, %args)   = @_;
     my $database_name   = $args{'database_name'};
     my $msmts           = $args{'measurements'};
@@ -287,36 +289,20 @@ sub _format_measurements {
     my $required_fields = $args{'required_fields'};
 
     # loop through each measurement
-    my $all_classifier_msmts = [];
     foreach my $msmt (@$msmts) {
+
         # add the measurement_type field to the measurement
         $msmt->{'measurement_type'} = $database_name;
 
-        ##
         ## HANDLE CLASSIFIER MEAUREMENTS
 
         # check to see if there are any classifier fields set on this measurement and if so 
-        # return an element for each in an array ref
-        my $classifier_msmts = $self->_unwind_classifiers(
+        # flatten and write out the docs
+        my $classifier_msmts = $self->_unwind_and_write_classifiers(
             measurement => $msmt,
             classifiers => $classifiers
         );
-        # flatten each of the classifier measurements returned pushing them on our array
-        foreach my $classifier_msmt (@$classifier_msmts){
-            my $flat_classifier_msmt = {};
-
-            (my $prefix = $classifier_msmt->{'measurement_type'}) =~ s/\./_/g;
-            $self->_flatten_measurement(
-                ref       => $classifier_msmt,
-                prefix    => $prefix.'_',
-                flat_hash => $flat_classifier_msmt
-            );
-
-            # push the classifer msmt on an array to be merged into the rest later
-            push(@$all_classifier_msmts, $flat_classifier_msmt);
-        }
         
-        ##
         ## HANDLE MAIN MEASURMENT
 
         # store the meta_id on the main measurement (array of the required field'ds keys and value) used
@@ -347,25 +333,22 @@ sub _format_measurements {
             prefix    => $msmt->{'measurement_type'}.'_',
             flat_hash => $flat_msmt
         );
-        $msmt = $flat_msmt;
+
+        # write out the measurement/doc
+        $self->_write_doc( $flat_msmt );
+
     }
 
-    # merge our classifier measurements into our complete list
-    $msmts = [@$msmts, @$all_classifier_msmts];
-
-    return @$msmts;
 }
 
-# checks a measurements for classifiers and returns seperate classifier record indexes for any
-# that it does find
-sub _unwind_classifiers {
+# checks a measurements for classifiers and flattens and writes out a doc for any that it does find
+sub _unwind_and_write_classifiers {
     my ($self, %args) = @_;
     my $msmt        = $args{'measurement'};
     my $classifiers = $args{'classifiers'};
 
     # if this measurement_type has classifiers and this measurement has the classifier fields
     # set/defined, create separate indexes for the classifier fields
-    my $unwound_classifiers = [];
 
     foreach my $classifier (keys %$classifiers) {
         # skip if the classifier field isn't set on this measurement
@@ -390,7 +373,7 @@ sub _unwind_classifiers {
             $msmt_classifiers = dclone($msmt->{$classifier});
         }
        
-        # loop through each classiifier measurement setting its meta_id and overwriting its 
+        # loop through each classifier measurement setting its meta_id and overwriting its 
         # measurement_type with the classifier field
         foreach my $msmt_classifier (@$msmt_classifiers){
             my $classifier_meta_id = [];
@@ -422,7 +405,7 @@ sub _unwind_classifiers {
             } 
 
             # if we found ordinal fields for the classifier that were set,
-            # add this measurement to our unwound classifier list
+            # "add this measurement to our unwound classifier list"
             if(@$classifier_meta_id){
                 my $classifier_msmt = dclone($msmt);
                 # create json meta id
@@ -438,13 +421,21 @@ sub _unwind_classifiers {
                 $classifier_msmt->{'measurement_type'} .= '.'.$classifier;
                 $classifier_msmt->{'meta_id'} = $classifier_meta_id_json;
 
-                # change the measurment_type
-                push(@$unwound_classifiers, $classifier_msmt);
+                # flatten it
+                my $flat_classifier_msmt = {};
+                (my $prefix = $classifier_msmt->{'measurement_type'}) =~ s/\./_/g;
+                $self->_flatten_measurement(
+                        ref       => $classifier_msmt,
+                        prefix    => $prefix.'_',
+                        flat_hash => $flat_classifier_msmt
+                    );
+                # and write it out 
+                $self->_write_doc( $flat_classifier_msmt );
             }
-        } 
-    }
 
-    return $unwound_classifiers;
+        } # end loop over msmt_classifiers 
+    } # end loop over classifiers
+
 }
 
 # Flattens a measurement with arbitrary meta data complexity and prefixes it with $measurement_type.'__'. 

@@ -26,6 +26,7 @@ my $config = DEFAULT_CONFIG_FILE;
 my $logging = DEFAULT_LOGGING_FILE;
 my $template_dir = DEFAULT_TEMPLATE_DIR;
 my $last_updated_offset = 0;
+my $num_docs_per_fetch = 1000;
 
 # parse options from command line
 GetOptions(
@@ -37,6 +38,7 @@ GetOptions(
     "logging=s"             => \$logging,
     "database=s"            => \$database,
     "last-updated-offset|u=i" => \$last_updated_offset,
+    "num-docs-per-fetch|u=i"  => \$num_docs_per_fetch,
     "template-dir=s"        => \$template_dir );
 
 # did they ask for help?
@@ -52,6 +54,7 @@ my $agent = GRNOC::TSDS::SearchIndexer->new(
     pretend              => $pretend,
     config_file          => $config,
     last_updated_offset  => $last_updated_offset,
+    num_docs_per_fetch   => $num_docs_per_fetch,
     sphinx_templates_dir => $template_dir );
 
 # run with options provided
@@ -68,6 +71,7 @@ sub usage {
         "  [--aggregate <name>]\n".
         "  [--query <query>]\n".
         "  [--last-updated-offset <num minutes>]\n".
+	"  [--num-docs-per-fetch <num>]\n".
         "  [--quiet]\n".
         "  [--pretend]\n".
         "  [--help]\n";
