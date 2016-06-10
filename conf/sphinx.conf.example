@@ -5,7 +5,7 @@ source tsds_metadata_source {
 
 source tsds_metadata_delta_source : tsds_metadata_source {
     type = xmlpipe2
-    xmlpipe_command = /usr/bin/perl /usr/bin/tsds_search_indexer.pl --last-updated-offset 32
+    xmlpipe_command = /usr/bin/perl /usr/bin/tsds_search_indexer.pl --last-updated-offset 32 --num-docs-per-fetch 1000
 }
 
 index tsds_metadata_index {
