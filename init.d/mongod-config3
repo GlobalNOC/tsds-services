@@ -2,7 +2,7 @@
 
 # mongod - Startup script for mongod
 
-# chkconfig: 35 85 15
+# chkconfig: 2345 84 16
 # description: Mongo is a scalable, document-oriented database.
 # processname: mongod
 # config: /etc/mongod-config3.conf

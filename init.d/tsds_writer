@@ -2,7 +2,7 @@
 #
 # tsds_writer        init file for starting up the tsds writer daemon
 #
-# chkconfig:   2345 20 80
+# chkconfig:   2345 86 14
 # description: Starts and stops the tsds writer daemon.
 
 # Source function library.
