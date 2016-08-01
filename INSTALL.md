@@ -106,18 +106,14 @@ Prior versions of MongoDB had shards which were single threaded, but it appears 
 
 Each instance of `mongod` running that is not a config server represents a shard and will store only a subset of all TSDS data.  These shards can be on the same machine or they can be on separate machines, or some combination of the two.  It is generally a good idea to make shards on equivalent machines as MongoDB will attempt to equally balance between all available shards.
 
-How many shards you need is very dependent on the number of things you are collecting on and how powerful the machines are both in terms of IO capacity and storage.  Shards can be added or removed later as necessary so it is not necessary to get it exactly correct the first time.  As a general rule of thumb, we recommend running three shards per host to help facilitate shard balancing in the future.
+How many shards you need is very dependent on the number of things you are collecting on and how powerful the machines are both in terms of IO capacity and storage.  Shards can be added or removed later as necessary so it is not necessary to get it exactly correct the first time.  As a general rule of thumb, we recommend running one shard per host to get started.
 
 Example init scripts and config files should have been installed with the `grnoc-tsds-services` package for a MongoDB shard:
 
 ```
 /etc/init.d/mongod-shard1
-/etc/init.d/mongod-shard2
-/etc/init.d/mongod-shard3
 
 /etc/mongod-shard1.conf
-/etc/mongod-shard2.conf
-/etc/mongod-shard3.conf
 ```
 
 If you're changing the directory path of the shards, make sure to fix the directory permissions after creating it (`chown mongod:mongod /new/path`).
@@ -126,16 +122,12 @@ Turning on the MongoDB shard servers can be done by:
 
 ```
 [root@tsds ~]# service mongod-shard1 start
-[root@tsds ~]# service mongod-shard2 start
-[root@tsds ~]# service mongod-shard3 start
 ```
 
 Remember to enable them to start up upon boot:
 
 ```
 [root@tsds ~]# chkconfig mongod-shard1 on
-[root@tsds ~]# chkconfig mongod-shard2 on
-[root@tsds ~]# chkconfig mongod-shard3 on
 ```
 
 All shards need to be added to the cluster and be known by the config servers via `mongos`.  Once again, connecting to `mongos` is done by using the `mongo` CLI client.  Replace with the appropriate hostname and port if the defaults have changed.
@@ -146,10 +138,6 @@ MongoDB shell version: 3.0.7
 connecting to: test
 mongos> sh.addShard("tsds.grnoc.iu.edu:27025")
 { "shardAdded" : "shard0000", "ok" : 1 }
-mongos> sh.addShard("tsds.grnoc.iu.edu:27026")
-{ "shardAdded" : "shard0001", "ok" : 1 }
-mongos> sh.addShard("tsds.grnoc.iu.edu:27027")
-{ "shardAdded" : "shard0002", "ok" : 1 }
 mongos>
 ```
 
