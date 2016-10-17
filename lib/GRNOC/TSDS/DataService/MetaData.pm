@@ -28,6 +28,8 @@ use DateTime::Format::Strptime;
 use Data::Dumper;
 use JSON;
 use Data::Compare;
+use Redis;
+use Redis::DistLock;
 
 ### constants ###
 use constant DEFAULT_COLLECTIONS => ['data', 'event', 'measurements', 'metadata', 'aggregate', 'expire'];
@@ -58,6 +60,8 @@ sub new {
     $self->mongo_root( GRNOC::TSDS::MongoDB->new( @_, privilege => 'root' ) );
 
     $self->parser( GRNOC::TSDS::Parser->new( @_ ) );
+
+    $self->_init_redis();
 
     return $self;
 }
@@ -1859,6 +1863,15 @@ sub _by_ordinal {
     }
     
     return $a->{'ordinal'} cmp $b->{'ordinal'};
+}
+
+sub _init_redis {
+    my ( $self ) = @_;
+
+    my $host = $self->config()->get('/config/redis/@host');
+    my $port = $self->config()->get('/config/redis/@port');
+
+    
 }
 
 sub _get_constraint_databases {
