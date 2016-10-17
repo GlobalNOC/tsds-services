@@ -217,7 +217,7 @@ phrase_start ~ '"'
 phrase_end ~ '"'
 optional_phrase_segment ::= phrase_segment*
 
-phrase_segment ~ [()\[\]_\.a-zA-Z0-9@\-/:'&|,\\ \t\n*<>;{}]+
+phrase_segment ~ [()\[\]_\.a-zA-Z0-9@\-/:'&|,\\ \t\n*<>;{}^]+
 
 # event databases are like regular databases except they have
 # a ".event" at the end, such as "interface.event"
