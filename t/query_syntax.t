@@ -7,7 +7,7 @@ use FindBin;
 use GRNOC::Log; 
 use GRNOC::TSDS::Parser;
 
-use Test::More tests => 78;
+use Test::More tests => 81;
 
 use Data::Dumper;
 
@@ -74,6 +74,9 @@ my @basic_queries = (
     'get output, description between ("01/02/2014", "01/03/2014") from collection where description = "EDGE1<->ALMA-CORE1"',
     'get output, description between ("01/02/2014", "01/03/2014") from collection where description like "semicolon;"',
     'get output, description between ("01/02/2014", "01/03/2014") from collection where description like "brackets [] {}"',
+    'get output, description between ("01/02/2014", "01/03/2014") from collection where description like "foo!"',
+    'get output, description between ("01/02/2014", "01/03/2014") from collection where description like "a comment?#"',
+    'get output, description between ("01/02/2014", "01/03/2014") from collection where description like "carot ^ percent % dollar $"',
 
     # having clause
     'get output, description, average(values.input) as avg between ("01/02/2014", "01/03/2014") from collection having avg > 50',
