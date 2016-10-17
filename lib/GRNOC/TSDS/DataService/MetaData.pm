@@ -1257,13 +1257,22 @@ sub _do_update_measurement_metadata {
 	# Keep a copy of the original doc for comparison
 	my %original = %$doc;
 	my $id       = $doc->{'identifier'};
-	$self->_merge_meta_fields($obj, $doc) or return;
+	if (! $self->_merge_meta_fields($obj, $doc) ){
+	    $self->redislock->unlock($lock);
+	    return;
+	}
 	
 	# Make sure all the array fields are in the same order
 	# before we compare them. This has no bearing on storage or 
 	# anything else, just for comparison purposes
-	$self->_meta_sort($doc) or return;
-	$self->_meta_sort(\%original) or return;
+	if (! $self->_meta_sort($doc) ){
+	    $self->redislock->unlock($lock);
+	    return;
+	} 
+	if (! $self->_meta_sort(\%original) ){
+	    $self->redislock->unlock($lock);
+	    return;
+	}
 	
 	my $is_same = Compare($doc, \%original, {ignore_hash_keys => ["identifier",
 								      "start", 
