@@ -129,6 +129,15 @@ sub mongo_root {
     return $self->{'mongo_root'};
 }
 
+sub redislock {
+
+    my ( $self, $redislock ) = @_;
+
+    $self->{'redislock'} = $redislock if ( defined( $redislock ) );
+
+    return $self->{'redislock'};
+}
+
 sub parse_int {
     my ($self, $int) = @_;
 

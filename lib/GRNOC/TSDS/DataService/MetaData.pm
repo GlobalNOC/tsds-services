@@ -21,6 +21,7 @@ use GRNOC::Log;
 use GRNOC::TSDS::MongoDB;
 use GRNOC::TSDS::Parser;
 use GRNOC::TSDS::Constraints;
+use GRNOC::TSDS::RedisLock;
 
 use Storable qw(dclone);
 use DateTime;
@@ -28,8 +29,6 @@ use DateTime::Format::Strptime;
 use Data::Dumper;
 use JSON;
 use Data::Compare;
-use Redis;
-use Redis::DistLock;
 
 ### constants ###
 use constant DEFAULT_COLLECTIONS => ['data', 'event', 'measurements', 'metadata', 'aggregate', 'expire'];
@@ -61,7 +60,7 @@ sub new {
 
     $self->parser( GRNOC::TSDS::Parser->new( @_ ) );
 
-    $self->_init_redis();
+    $self->redislock( GRNOC::TSDS::RedisLock->new( config => $self->config ) );
 
     return $self;
 }
@@ -1118,282 +1117,329 @@ sub update_measurement_metadata {
     my $modified = 0;
 
     foreach my $obj (@$updates){
-        my $start = delete $obj->{'start'};
-        my $end   = delete $obj->{'end'};
-        my $type  = delete $obj->{'type'};
+	my $num_updated = $self->_do_update_measurement_metadata($obj, $metadata_cache);
+	return if (! defined $num_updated);
 
-        my $metadata = $metadata_cache->{$type};
-
-        # Pull out the required fields so we can find the measurement series. This is the
-        # basis for our query
-        my $required = delete $obj->{'__required'};
-
-        # Find any measurement documents that this might be impacting
-        my $time;
-        
-        # If end for this message isn't defined, we need the current active one OR any that had an
-        # end time that falls after the start time specified
-        if (! defined $end){
-            $time = {
-                '$or' =>
-                    [
-                     {end => undef},
-                     {end => {'$gte' => $start}}
-                    ]
-            };
-        }
-        # If end IS specified, we need to find an active one with a start time
-        # earlier than this OR a no longer active one where the times are inside the range
-        else {
-            $time = {'$or' => [
-                         {
-                             '$and' => 
-                                 [
-                                  {end   => undef},
-                                  {start => {'$lte' => $end}}
-                                 ]
-                         },
-                         {
-                             '$and' => 
-                                 [
-                                  {end => {'$gte' => $start}},
-                                  {start => {'$lte' => $end}},
-                                 ]
-                         }
-                         ]
-            };
-        }
-               
-        push(@$required, $time);        
-        my $query = {'$and' => $required};
-
-        log_debug("Query is: ", {filter => \&Data::Dumper::Dumper,
-                                 value  => $query});
-
-        my $measurements = $self->mongo_rw()->get_collection($type, 'measurements');
-
-        my $cursor;
-        eval {
-            $cursor = $measurements->find($query)->sort({start => 1});
-        };
-        if ($@){
-            $self->error("Error querying Mongo measurements: $@");
-            return;
-        }
-
-        my @docs;
-        while (my $doc = $cursor->next()){
-            push(@docs, $doc);
-        }
-
-        log_debug("Found " . scalar(@docs) . " docs to update");
-
-        # First record all of the times so we can see which ones need changing
-        # if applicable
-
-        # Keep track of where the next start point needs to be. Since the find above
-        # is sorted by ascending start this allows us to grow/shrink each as necessary
-        # in order. Start this off as the start of the update provided
-        my $last_end = $start;
-
-        # For each document we need to merge the existing metadata
-        # in with the passed in metadata to see if anything
-        # changed.
-        log_debug("Remaining meta is " . Dumper($obj));
-        
-        for (my $i = 0; $i < @docs; $i++){
-            my $doc = $docs[$i];
-
-            # Keep a copy of the original doc for comparison
-            my %original = %$doc;
-            my $id       = $doc->{'identifier'};
-            $self->_merge_meta_fields($obj, $doc) or return;
-
-            # Make sure all the array fields are in the same order
-            # before we compare them. This has no bearing on storage or 
-            # anything else, just for comparison purposes
-            $self->_meta_sort($doc) or return;
-            $self->_meta_sort(\%original) or return;
-            
-            #warn "OLD IS " . Dumper(\%original);
-            #warn "NEW IS " . Dumper($doc);
-            
-            my $is_same = Compare($doc, \%original, {ignore_hash_keys => ["identifier",
-                                                                          "start", 
-                                                                          "end", 
-                                                                          "_id", 
-                                                                          "last_updated"]});
-            
-
-            my $orig_end   = $original{'end'};
-            my $orig_start = $original{'start'};
-            my $orig_id    = $original{'_id'};
-            
-            # if the docs ended up being exactly the same, we can skip ahead
-            # since there's nothing to do
-            if ($is_same){
-                log_debug("Skipping document since metadata is same");
-                $last_end = $orig_end;
-                next;
-            }
-
-            # This is a bit weird but makes later conditionals easier.
-            # If the update has no "end" time set in it, we assume the
-            # end is the same as the current doc's. The both undefined
-            # case gets handled specifically.
-            my $end_test = defined $end ? $end : $orig_end;
-
-            log_debug("Creating a new version of metdata for $id");
-
-            # There are a few cases here to reconcile the new data.
-            my $now = time();
-            $doc->{'last_updated'}    = $now;
-            $original{'last_updated'} = $now;
-            delete $doc->{'_id'}; # need to clear _id so Mongo autogen a new one
-
-            # If this document is entirely surrounded by this new
-            # metadata on both sides, we can just update it in place.
-            # We can only do this replacement for non-active 
-            # measurements since a change to an active measurement
-            # makes it unactive 
-            if (defined $orig_end && $orig_start >= $start && $orig_end <= $end_test){
-                log_debug("Replacing doc from $orig_start to $orig_end entirely for $id");
-                $measurements->update({_id => $orig_id}, $doc);
-                $last_end = $orig_end;                
-                $modified++;
-            }
-
-            # If this document is currently active, we need to decom
-            # it and create a new version. This inherently is the last
-            # update performed since the "no end" document is the current one
-            elsif (! defined $orig_end){
-
-                log_debug("Decomming current in service metadata for $id");
-
-                # We can't do an update on start/end because they're part of the
-                # sharding key, so we have to remove/insert. This is potentially
-                # risky since the remove could succeed and the insert could fail
-                # leaving us in a bad state. Mongo has no ACID or transactions or
-                # anything so this is life I suppose.
-                $measurements->remove({_id => $orig_id});
-                $original{'end'}   = $last_end;
-
-                # There's an edge case here that can cause a 0 duration document
-                # to be generated - we can drop this instead since it's useless
-                if ($original{'end'} != $original{'start'}){
-                    $measurements->insert(\%original);
-                }
-                else {
-                    log_debug("Omitting original due to 0 duration document");
-                }
-                
-                $doc->{'end'}   = undef;
-                $doc->{'start'} = $last_end;
-                $measurements->insert($doc);
-                $modified++;
-            }
-            # If this document DOES have an end AND it's not entirely
-            # contained in the update, we need to fragment it
-            else {
-
-                my $fragged_left = 0;
-
-                my %copy = %original;
-
-                # Fragment on the left
-                if ($orig_start <= $start){
-
-                    log_debug("Fragment existing metadata document on left for $id");
-
-                    if ($original{'end'} ne $start){
-                        $original{'end'} = $start;
-                        delete $original{'_id'};
-                        $measurements->remove({_id => $orig_id});
-                        
-                        # Don't create 0 duration document
-                        if ($original{'start'} != $original{'end'}){                        
-                            $measurements->insert(\%original);
-                            $modified++;
-                        }
-                        else {                    
-                            log_debug("Skipping left original due to 0 duration document");
-                        }
-                    }
-
-                    $doc->{'start'} = $start;
-
-                    # Figure out what the stopping point for this
-                    # fragment is
-                    my $next_end;
-                    if (defined $end && $orig_end < $end){
-                        $next_end = $orig_end;
-                    }
-                    else {
-                        $next_end = $end_test;
-                    }
-                    $doc->{'end'} = $next_end;
-
-                    # There is an edge case where if we're going to create a measurement
-                    # document of 0 duration, we can just skip it
-                    if ($doc->{'start'} != $doc->{'end'}){
-                        $measurements->insert($doc);
-                        $fragged_left = 1;                        
-                        $modified++;
-                    }
-                    else {
-                        log_debug("Skipping left fragment due to 0 duration document");
-                    }
-
-                    $last_end = $next_end;
-                }
-                
-                # If the previous one modified it, go back to the original data
-                %original = %copy;
-
-                # Fragment on the right - this can also happen with 
-                # the left above so not elsif
-                if (defined $end && $orig_end >= $end_test){
-
-                    log_debug("Fragment existing metadata document on right for $id");
-                    $original{'start'} = $last_end;
-                    delete $original{'_id'};
-                    $measurements->remove({_id => $orig_id});
-
-                    # If we're not going to generate a 0 duration doc, go ahead and insert                    
-                    if ($original{'start'} != $original{'end'}){
-                        $measurements->insert(\%original);
-                        $modified++;
-                    }
-                    else {
-                        log_debug("Skipping right original due to 0 duration document");
-                    }
-                    
-                    # If we fragmented on the left we don't need
-                    # to double insert the new document
-                    if (! $fragged_left){                        
-                        $doc->{'start'} = $last_end;
-                        $doc->{'end'}   = $orig_start;                        
-                        
-                        if ($doc->{'start'} != $doc->{'end'}){
-                            $measurements->insert($doc);
-                            $modified++;
-                        }
-                        else {
-                            log_debug("Skipping right fragment due to 0 duration document");
-                        }
-
-
-                    }
-
-                    $last_end = $orig_end;
-                }
-            }
-        }
+	$modified += $num_updated;
     }
     
     log_info("Modified $modified docs as a result of " . scalar(@$updates) . " update messages");
 
     return [{success => 1, modified => $modified}];
+}
+
+
+sub _do_update_measurement_metadata {
+    my ( $self, $obj, $metadata_cache ) = @_;
+
+    my $modified = 0;
+
+    my $start = delete $obj->{'start'};
+    my $end   = delete $obj->{'end'};
+    my $type  = delete $obj->{'type'};
+    
+    my $metadata = $metadata_cache->{$type};
+    
+    # Pull out the required fields so we can find the measurement series. This is the
+    # basis for our query
+    my $required = delete $obj->{'__required'};
+    my $base_required = dclone($required);
+
+    # Find any measurement documents that this might be impacting
+    my $time;
+    
+    # If end for this message isn't defined, we need the current active one OR any that had an
+    # end time that falls after the start time specified
+    if (! defined $end){
+	$time = {
+	    '$or' =>
+		[
+		 {end => undef},
+		 {end => {'$gte' => $start}}
+		]
+	};
+    }
+    # If end IS specified, we need to find an active one with a start time
+    # earlier than this OR a no longer active one where the times are inside the range
+    else {
+	$time = {'$or' => [
+		     {
+			 '$and' => 
+			     [
+			      {end   => undef},
+			      {start => {'$lte' => $end}}
+			     ]
+		     },
+		     {
+			 '$and' => 
+			     [
+			      {end => {'$gte' => $start}},
+			      {start => {'$lte' => $end}},
+			     ]
+		     }
+		     ]
+	};
+    }
+    
+    push(@$required, $time);        
+    my $query = {'$and' => $required};
+    
+    log_debug("Query is: ", {filter => \&Data::Dumper::Dumper,
+			     value  => $query});
+    
+    my $measurements = $self->mongo_rw()->get_collection($type, 'measurements');
+    
+    # We need to find the identifier for this measurement so we can lock it
+    my $identifier;
+    eval {
+	my $doc = $measurements->find({'$and' => $base_required})->next();
+	if ($doc){
+	    $identifier = $doc->{'identifier'};
+	}
+    };
+    if ($@){
+	$self->error("Error querying Mongo measurements for lock: $@");
+	return;
+    }
+
+    # some sanity checking
+    # one might argue this should be a fatal error, but it will never succeed so we're going to
+    # just skip it instead
+    if (! $identifier){
+	log_warn("Unable to find identifier in \"$type\" for " . Dumper($base_required) . ", skipping");
+	return 0;
+    }
+    
+    # lock this measurement
+    my $lock = $self->redislock()->lock(type       => $type,
+					collection => "measurements",
+					identifier => $identifier);
+    
+    if (! $lock){
+	$self->error("Unable to lock measurements for $identifier in $type");	    
+	return;
+    }   
+    
+    # Okay we're locked and loaded now, proceed as normal
+    my $cursor;
+    eval {
+	$cursor = $measurements->find($query)->sort({start => 1});
+    };
+    if ($@){
+	$self->error("Error querying Mongo measurements: $@");
+	$self->redislock->unlock($lock);
+	return;
+    }
+    
+    my @docs;
+    while (my $doc = $cursor->next()){
+	push(@docs, $doc);
+    }
+    
+    log_debug("Found " . scalar(@docs) . " docs to update");
+    
+    # First record all of the times so we can see which ones need changing
+    # if applicable
+    
+    # Keep track of where the next start point needs to be. Since the find above
+    # is sorted by ascending start this allows us to grow/shrink each as necessary
+    # in order. Start this off as the start of the update provided
+    my $last_end = $start;
+    
+    # For each document we need to merge the existing metadata
+    # in with the passed in metadata to see if anything
+    # changed.
+    log_debug("Remaining meta is " . Dumper($obj));
+    
+    for (my $i = 0; $i < @docs; $i++){
+	my $doc = $docs[$i];
+	
+	# Keep a copy of the original doc for comparison
+	my %original = %$doc;
+	my $id       = $doc->{'identifier'};
+	$self->_merge_meta_fields($obj, $doc) or return;
+	
+	# Make sure all the array fields are in the same order
+	# before we compare them. This has no bearing on storage or 
+	# anything else, just for comparison purposes
+	$self->_meta_sort($doc) or return;
+	$self->_meta_sort(\%original) or return;
+	
+	my $is_same = Compare($doc, \%original, {ignore_hash_keys => ["identifier",
+								      "start", 
+								      "end", 
+								      "_id", 
+								      "last_updated"]});
+	
+	
+	my $orig_end   = $original{'end'};
+	my $orig_start = $original{'start'};
+	my $orig_id    = $original{'_id'};
+	
+	# if the docs ended up being exactly the same, we can skip ahead
+	# since there's nothing to do
+	if ($is_same){
+	    log_debug("Skipping document since metadata is same");
+	    $last_end = $orig_end;
+	    next;
+	}
+	
+	# This is a bit weird but makes later conditionals easier.
+	# If the update has no "end" time set in it, we assume the
+	# end is the same as the current doc's. The both undefined
+	# case gets handled specifically.
+	my $end_test = defined $end ? $end : $orig_end;
+	
+	log_debug("Creating a new version of metdata for $id");
+	
+	# There are a few cases here to reconcile the new data.
+	my $now = time();
+	$doc->{'last_updated'}    = $now;
+	$original{'last_updated'} = $now;
+	delete $doc->{'_id'}; # need to clear _id so Mongo autogen a new one
+	
+	# If this document is entirely surrounded by this new
+	# metadata on both sides, we can just update it in place.
+	# We can only do this replacement for non-active 
+	# measurements since a change to an active measurement
+	# makes it unactive 
+	if (defined $orig_end && $orig_start >= $start && $orig_end <= $end_test){
+	    log_debug("Replacing doc from $orig_start to $orig_end entirely for $id");
+	    $measurements->update({_id => $orig_id}, $doc);
+	    $last_end = $orig_end;                
+	    $modified++;
+	}
+
+	# If this document is currently active, we need to decom
+	# it and create a new version. This inherently is the last
+	# update performed since the "no end" document is the current one
+	elsif (! defined $orig_end){
+
+	    log_debug("Decomming current in service metadata for $id");
+
+	    # We can't do an update on start/end because they're part of the
+	    # sharding key, so we have to remove/insert. This is potentially
+	    # risky since the remove could succeed and the insert could fail
+	    # leaving us in a bad state. Mongo has no ACID or transactions or
+	    # anything so this is life I suppose.
+	    $measurements->remove({_id => $orig_id});
+	    $original{'end'}   = $last_end;
+
+	    # There's an edge case here that can cause a 0 duration document
+	    # to be generated - we can drop this instead since it's useless
+	    if ($original{'end'} != $original{'start'}){
+		$measurements->insert(\%original);
+	    }
+	    else {
+		log_debug("Omitting original due to 0 duration document");
+	    }
+	    
+	    $doc->{'end'}   = undef;
+	    $doc->{'start'} = $last_end;
+	    $measurements->insert($doc);
+	    $modified++;
+	}
+	# If this document DOES have an end AND it's not entirely
+	# contained in the update, we need to fragment it
+	else {
+
+	    my $fragged_left = 0;
+
+	    my %copy = %original;
+
+	    # Fragment on the left
+	    if ($orig_start <= $start){
+
+		log_debug("Fragment existing metadata document on left for $id");
+
+		if ($original{'end'} ne $start){
+		    $original{'end'} = $start;
+		    delete $original{'_id'};
+		    $measurements->remove({_id => $orig_id});
+		    
+		    # Don't create 0 duration document
+		    if ($original{'start'} != $original{'end'}){                        
+			$measurements->insert(\%original);
+			$modified++;
+		    }
+		    else {                    
+			log_debug("Skipping left original due to 0 duration document");
+		    }
+		}
+
+		$doc->{'start'} = $start;
+
+		# Figure out what the stopping point for this
+		# fragment is
+		my $next_end;
+		if (defined $end && $orig_end < $end){
+		    $next_end = $orig_end;
+		}
+		else {
+		    $next_end = $end_test;
+		}
+		$doc->{'end'} = $next_end;
+
+		# There is an edge case where if we're going to create a measurement
+		# document of 0 duration, we can just skip it
+		if ($doc->{'start'} != $doc->{'end'}){
+		    $measurements->insert($doc);
+		    $fragged_left = 1;                        
+		    $modified++;
+		}
+		else {
+		    log_debug("Skipping left fragment due to 0 duration document");
+		}
+
+		$last_end = $next_end;
+	    }
+	    
+	    # If the previous one modified it, go back to the original data
+	    %original = %copy;
+
+	    # Fragment on the right - this can also happen with 
+	    # the left above so not elsif
+	    if (defined $end && $orig_end >= $end_test){
+
+		log_debug("Fragment existing metadata document on right for $id");
+		$original{'start'} = $last_end;
+		delete $original{'_id'};
+		$measurements->remove({_id => $orig_id});
+
+		# If we're not going to generate a 0 duration doc, go ahead and insert                    
+		if ($original{'start'} != $original{'end'}){
+		    $measurements->insert(\%original);
+		    $modified++;
+		}
+		else {
+		    log_debug("Skipping right original due to 0 duration document");
+		}
+		
+		# If we fragmented on the left we don't need
+		# to double insert the new document
+		if (! $fragged_left){                        
+		    $doc->{'start'} = $last_end;
+		    $doc->{'end'}   = $orig_start;                        
+		    
+		    if ($doc->{'start'} != $doc->{'end'}){
+			$measurements->insert($doc);
+			$modified++;
+		    }
+		    else {
+			log_debug("Skipping right fragment due to 0 duration document");
+		    }
+
+
+		}
+
+		$last_end = $orig_end;
+	    }
+	}
+    }
+
+    $self->redislock->unlock($lock);    
+
+    return $modified;
 }
 
 sub _merge_meta_fields {
@@ -1609,17 +1655,25 @@ sub _update_measurement_metadata_sanity_check {
             }
             $metadata_cache{$type} = $metadata;
         }
-
+	
+	# this checks to make sure they look like numbers
         if (! exists $obj->{'start'} || $obj->{'start'} !~ /^\d+$/){
             $self->error("An object is missing or has invalid required field \"start\"");
             return;
         }
+	# this makes sure it really is one, Mongo cares about the difference
+	$obj->{'start'} = int($obj->{'start'});
+
+
 
         # end must be present, but can be null
         if (! exists $obj->{'end'} || (defined $obj->{'end'} && $obj->{'end'} !~ /^\d+$/)){
             $self->error("An object is missing or has invalid required field \"end\"");
             return;
         }
+	# this makes sure it really is one, Mongo cares about the difference
+	$obj->{'end'} = int($obj->{'end'}) if (defined($obj->{'end'}));
+
 
         # make sure all the required fields were passed in, we have to be able to
         # uniquely identify each raw measurement series
@@ -1863,15 +1917,6 @@ sub _by_ordinal {
     }
     
     return $a->{'ordinal'} cmp $b->{'ordinal'};
-}
-
-sub _init_redis {
-    my ( $self ) = @_;
-
-    my $host = $self->config()->get('/config/redis/@host');
-    my $port = $self->config()->get('/config/redis/@port');
-
-    
 }
 
 sub _get_constraint_databases {
