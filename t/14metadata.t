@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 63;
+use Test::More tests => 84;
 
 use GRNOC::Config;
 use GRNOC::TSDS::DataService::MetaData;
@@ -109,6 +109,23 @@ $metadata->{'unknown_field'} = 'new_value';
 $res = $meta_ds->update_measurement_metadata(values => [$metadata], type_field => 'type');
 ok(! defined $res && $meta_ds->error() =~ /Invalid metadata field/, "update failed due to having undocumented metadata");
 delete $metadata->{'unknown_field'};
+
+
+# Bad values field
+$metadata->{'values'} = 'not a hash';
+$res = $meta_ds->update_measurement_metadata(values => [$metadata], type_field => 'type');
+ok(! defined $res && $meta_ds->error() =~ /values must be a hash of value/, "update failed due to bad 'values' field");
+
+# Missing values keys
+$metadata->{'values'} = {"not_a_value" => {}};
+$res = $meta_ds->update_measurement_metadata(values => [$metadata], type_field => 'type');
+ok(! defined $res && $meta_ds->error() =~ /Unknown values field/, "update failed due to unknown value type");
+
+# Bad min key
+$metadata->{'values'} = {"input" => {"min" => 'cat', "max" => 5}};
+$res = $meta_ds->update_measurement_metadata(values => [$metadata], type_field => 'type');
+ok(! defined $res && $meta_ds->error() =~ /must be an integer/, "update failed due to bad min values field");
+delete $metadata->{'values'};
 
 # Okay, enough bad sanity checking, let's test some real stuff.
 
@@ -266,6 +283,45 @@ ok(@{$docs->[4]{'circuit'}} == 2, "2 circuits listed on active document");
 ok(! grep({$_->{'name'} eq 'circuit1'} @{$docs->[4]{'circuit'}}), "circuit 1 is gone");
 ok(grep({$_->{'name'} eq 'circuit3'} @{$docs->[4]{'circuit'}}), "circuit 3 present");
 ok(grep({$_->{'name'} eq 'circuit2'} @{$docs->[4]{'circuit'}}), "circuit 2 still there");
+
+
+# Update values for a measurement
+$metadata->{'values'} = {'input' => {'min' => 0, 'max' => 100},
+			 'output' => {'min' => 5, 'max' => undef}};
+$res = $meta_ds->update_measurement_metadata(values => [$metadata], type_field => 'separate_type_field');
+ok(defined $res, "got positive response back");
+is($res->[0]{'modified'}, 1, "updated 1 doc");
+
+$docs = _get_all_docs();
+is(@$docs, 5, "have 5 measurement docs");
+my $values = $docs->[4]{'values'};
+ok(keys %$values == 2, "2 values listed");
+ok($values->{'input'}{'min'} == 0, "input min is good");
+ok($values->{'input'}{'max'} == 100, "input max is good");
+ok($values->{'output'}{'min'} == 5, "output min is good");
+ok(exists $values->{'output'}{'max'} && ! defined $values->{'output'}{'max'}, "output max is good");
+
+# Change the time and do another update, should cause a new instance
+$metadata->{'start'} = 250;
+$metadata->{'values'} = {'input' => {'min' => 0, 'max' => 100},
+			 'output' => {'min' => undef, 'max' => 4000},
+			 'status' => {'min' => 0, 'max' => 1}};
+$res = $meta_ds->update_measurement_metadata(values => [$metadata], type_field => 'separate_type_field');
+ok(defined $res, "got positive response back");
+is($res->[0]{'modified'}, 1, "updated 1 doc");
+
+$docs = _get_all_docs();
+
+is(@$docs, 6, "have 6 measurement docs");
+$values = $docs->[5]{'values'};
+ok(keys %$values == 3, "3 values listed");
+ok($values->{'input'}{'min'} == 0, "input min is good");
+ok($values->{'input'}{'max'} == 100, "input max is good");
+ok(exists $values->{'output'}{'min'} && ! defined $values->{'output'}{'min'}, "output min is good");
+ok($values->{'output'}{'max'} == 4000, "output max is good");
+ok($values->{'status'}{'min'} == 0, "status min is good");
+ok($values->{'status'}{'max'} == 1, "status max is good");
+
 
 
 sub _get_all_docs {

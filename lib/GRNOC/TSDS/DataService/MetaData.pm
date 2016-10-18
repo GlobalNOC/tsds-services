@@ -1259,15 +1259,17 @@ sub _do_update_measurement_metadata {
     
     for (my $i = 0; $i < @docs; $i++){
 	my $doc = $docs[$i];
-	
+
+
 	# Keep a copy of the original doc for comparison
-	my %original = %$doc;
-	my $id       = $doc->{'identifier'};
+	my %original = %{dclone($doc)};
+	my $id        = $doc->{'identifier'};
+
 	if (! $self->_merge_meta_fields($obj, $doc) ){
 	    $self->redislock->unlock($lock);
 	    return;
 	}
-	
+
 	# Make sure all the array fields are in the same order
 	# before we compare them. This has no bearing on storage or 
 	# anything else, just for comparison purposes
@@ -1279,7 +1281,7 @@ sub _do_update_measurement_metadata {
 	    $self->redislock->unlock($lock);
 	    return;
 	}
-	
+
 	my $is_same = Compare($doc, \%original, {ignore_hash_keys => ["identifier",
 								      "start", 
 								      "end", 
@@ -1360,7 +1362,7 @@ sub _do_update_measurement_metadata {
 
 	    my $fragged_left = 0;
 
-	    my %copy = %original;
+	    my %copy = %{dclone(\%original)};
 
 	    # Fragment on the left
 	    if ($orig_start <= $start){
@@ -1690,7 +1692,6 @@ sub _update_measurement_metadata_sanity_check {
 	# this makes sure it really is one, Mongo cares about the difference
 	$obj->{'end'} = int($obj->{'end'}) if (defined($obj->{'end'}));
 
-
         # make sure all the required fields were passed in, we have to be able to
         # uniquely identify each raw measurement series
         my $meta_fields = $metadata->{'meta_fields'};
@@ -1705,13 +1706,55 @@ sub _update_measurement_metadata_sanity_check {
             }
         }
 
+
+	# make sure if "values" was passed in to signify min/max values that they
+	# all exist correctly
+	my $value_fields = $metadata->{'values'};
+	my $obj_values   = $obj->{'values'};
+	if ($obj_values){
+	    if (ref($obj_values) ne 'HASH'){
+		$self->error("values must be a hash of value to min and max mapping");
+		return;
+	    }
+	    foreach my $val_key (keys %$obj_values){
+		if (! exists $value_fields->{$val_key}){
+		    $self->error("Unknown values field \"$val_key\" for type \"$type\"");
+		    return;
+		}
+
+		my $val_val = $obj_values->{$val_key};
+		if (ref($val_val) ne 'HASH'){
+		    $self->error("values mapping must be a hash containing min and max keys");
+		    return;
+		}
+		if (scalar(keys %$val_val) != 2){
+		    $self->error("values mapping must have exactly two keys, min and max");
+		    return;
+		}
+
+		foreach my $k (('min', 'max')){
+		    if (! exists $val_val->{$k}){
+			$self->error("values mapping for $val_key is missing '$k' key");
+			return;
+		    }
+		    if (defined $val_val->{$k} && $val_val->{$k} !~ /^\d+$/){
+			$self->error("values mapping for $val_key $k must be an integer");
+			return;
+		    }
+		    # enforce typing for mongo
+		    $val_val->{$k} = int($val_val->{$k}) if defined ($val_val->{$k});
+		}
+	    }
+	}
+
 	# Make a copy of this so we can scan it destructively without changing
 	# the base set of data
-        my %copy = %$obj;
+        my %copy = %{dclone($obj)};
         delete $copy{'start'};
         delete $copy{'end'};
         delete $copy{$type_field};
         delete $copy{'__required'};
+	delete $copy{'values'};
 
         # make sure all the other fields were good
         return if (! $self->_verify_meta_fields($type, \%copy, $meta_fields));
