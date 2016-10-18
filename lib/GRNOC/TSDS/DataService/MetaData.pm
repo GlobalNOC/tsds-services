@@ -1737,12 +1737,12 @@ sub _update_measurement_metadata_sanity_check {
 			$self->error("values mapping for $val_key is missing '$k' key");
 			return;
 		    }
-		    if (defined $val_val->{$k} && $val_val->{$k} !~ /^\d+$/){
-			$self->error("values mapping for $val_key $k must be an integer");
+		    if (defined $val_val->{$k} && $val_val->{$k} !~ /^\d+(\.\d+)?$/){
+			$self->error("values mapping for $val_key $k must be a number, got $val_val->{$k}");
 			return;
 		    }
 		    # enforce typing for mongo
-		    $val_val->{$k} = int($val_val->{$k}) if defined ($val_val->{$k});
+		    $val_val->{$k} = ($val_val->{$k} * 1) if defined ($val_val->{$k});
 		}
 	    }
 	}
