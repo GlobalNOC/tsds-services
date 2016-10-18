@@ -1102,41 +1102,47 @@ sub update_meta_fields {
 sub update_measurement_metadata {
     my ( $self, %args ) = @_;
 
-    my $updates = dclone($args{'values'});
+    my $updates    = dclone($args{'values'});
+    my $type_field = $args{'type_field'}; 
+
+    if (! $type_field){
+	$self->error("Missing 'type_field' argument");
+	return;
+    }
 
     # lots of sanity checking first. This is a little inefficient
     # because we want to make sure we can sanity check everything
     # first to avoid processing N of M messages and realizing there's
     # a bad message. Mongo has no ACID but this gets a bit closer.
-    my $metadata_cache = $self->_update_measurement_metadata_sanity_check($updates);
+    my $metadata_cache = $self->_update_measurement_metadata_sanity_check($updates, $type_field);
     return if (! defined $metadata_cache);
 
     # Okay at this point we know the messages look syntactically right according to
     # this method and the respective metadata docs, let's go ahead and start processing
     # the actual contents
     my $modified = 0;
-
+    
     foreach my $obj (@$updates){
-	my $num_updated = $self->_do_update_measurement_metadata($obj, $metadata_cache);
+	my $num_updated = $self->_do_update_measurement_metadata($obj, $type_field, $metadata_cache);
 	return if (! defined $num_updated);
-
+	
 	$modified += $num_updated;
     }
     
     log_info("Modified $modified docs as a result of " . scalar(@$updates) . " update messages");
-
+    
     return [{success => 1, modified => $modified}];
 }
 
 
 sub _do_update_measurement_metadata {
-    my ( $self, $obj, $metadata_cache ) = @_;
+    my ( $self, $obj, $type_field, $metadata_cache ) = @_;
 
     my $modified = 0;
 
     my $start = delete $obj->{'start'};
     my $end   = delete $obj->{'end'};
-    my $type  = delete $obj->{'type'};
+    my $type  = delete $obj->{$type_field};
     
     my $metadata = $metadata_cache->{$type};
     
@@ -1626,8 +1632,9 @@ sub _verify_meta_fields {
 
 
 sub _update_measurement_metadata_sanity_check {
-    my $self    = shift;
-    my $updates = shift;
+    my $self       = shift;
+    my $updates    = shift;
+    my $type_field = shift;
 
     if (ref $updates ne 'ARRAY'){
         $self->error("values must be an array of JSON objects");
@@ -1642,13 +1649,13 @@ sub _update_measurement_metadata_sanity_check {
             return;
         }
 
-        if (! exists $obj->{'type'}){
-            $self->error("Message is missing required field \"type\" to indicate which type of measurement this is.");
+        if (! exists $obj->{$type_field}){
+            $self->error("Message is missing required field \"$type_field\" to indicate which type of measurement this is.");
             return;
         }
 
 
-        my $type = $obj->{'type'};
+        my $type = $obj->{$type_field};
 
         if (! $self->mongo_rw()->get_database($type)){
             $self->error("Error processing message for type \"$type\": " . $self->mongo_rw()->error());
@@ -1698,11 +1705,12 @@ sub _update_measurement_metadata_sanity_check {
             }
         }
 
-
+	# Make a copy of this so we can scan it destructively without changing
+	# the base set of data
         my %copy = %$obj;
         delete $copy{'start'};
         delete $copy{'end'};
-        delete $copy{'type'};
+        delete $copy{$type_field};
         delete $copy{'__required'};
 
         # make sure all the other fields were good
