@@ -260,13 +260,13 @@ sub get_measurement_type_schemas {
         );
         
         # grab the label for the measurement_type 
-        my $metadata = $self->mongo_ro()->get_collection($measurement_type, 'metadata');
+        my $metadata = $self->mongo_ro()->get_collection($measurement_type, 'metadata')->find_one();
         if(!$metadata){
             $self->error("Invalid measurement_type, $measurement_type, skipping...");
             next;
         }
-        my $label = $metadata->find_one()->{'label'};
-        my $ignore_si = $metadata->find_one()->{'ignore_si'};
+        my $label = $metadata->{'label'};
+        my $ignore_si = $metadata->{'ignore_si'};
 
         $schemas->{$measurement_type} = {
             label => $label,
@@ -1544,23 +1544,16 @@ sub _meta_sort {
             elsif (ref $first eq 'HASH') {
                 my @keys = sort keys %$first;
 
-                # need to find a key that points to a simple scalar so
-                # that the sorting is predictable
-                my $chosen;                
-                while (my $test = shift @keys){
-                    if (! ref $first->{$test}){
-                        log_debug("Choosing key \"$test\" as sort key for array");
-                        $chosen = $test;
-                        last;
-                    }
-                }
+                my @sorted = sort {
+		    my $val = 0;
+		    foreach my $k (@keys){
+			next if (ref $a->{$k} || ref $b->{$k});
+			$val = ($a->{$k} ? $a->{$k} : "") cmp ($b->{$k} ? $b->{$k} : "");
+			return $val if $val;
+		    }
+		    return $val;
+		} @$val;
 
-                if (! defined $chosen){
-                    $self->error("Internal error: unable to find key to sort hash by - data structure too complex?");
-                    return;
-                }
-
-                my @sorted = sort {$a->{$chosen} cmp $b->{$chosen}} @$val;
                 $doc->{$key} = \@sorted;
 
                 # Further sort if any fields require it

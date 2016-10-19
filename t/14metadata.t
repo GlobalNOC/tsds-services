@@ -124,7 +124,7 @@ ok(! defined $res && $meta_ds->error() =~ /Unknown values field/, "update failed
 # Bad min key
 $metadata->{'values'} = {"input" => {"min" => 'cat', "max" => 5}};
 $res = $meta_ds->update_measurement_metadata(values => [$metadata], type_field => 'type');
-ok(! defined $res && $meta_ds->error() =~ /must be an integer/, "update failed due to bad min values field");
+ok(! defined $res && $meta_ds->error() =~ /must be a number/, "update failed due to bad min values field");
 delete $metadata->{'values'};
 
 # Okay, enough bad sanity checking, let's test some real stuff.
