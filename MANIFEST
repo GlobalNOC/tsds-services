@@ -78,6 +78,7 @@ lib/GRNOC/TSDS/GWS/Query.pm
 lib/GRNOC/TSDS/GWS/Report.pm
 lib/GRNOC/TSDS/GWS/Search.pm
 lib/GRNOC/TSDS/Install.pm
+lib/GRNOC/TSDS/MeasurementDecommer.pm
 lib/GRNOC/TSDS/MongoDB.pm
 lib/GRNOC/TSDS/Parser.pm
 lib/GRNOC/TSDS/Parser/Actions.pm

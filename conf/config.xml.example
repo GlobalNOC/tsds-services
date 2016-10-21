@@ -39,6 +39,9 @@
         <mysql host="127.0.0.1" port="9306"/>
     </sphinx>
 
+    <!-- how parallelized to be when checking to decomission measurement records -->
+    <decom max_procs="4" />
+
     <!-- list of databases we should ignore and not consider as having tsds data -->
     <ignore-databases>
         <database>admin</database>

@@ -250,6 +250,7 @@ rm -rf $RPM_BUILD_ROOT
 %{perl_vendorlib}/GRNOC/TSDS/GWS/Report.pm
 %{perl_vendorlib}/GRNOC/TSDS/GWS/Search.pm
 %{perl_vendorlib}/GRNOC/TSDS/Install.pm
+%{perl_vendorlib}/GRNOC/TSDS/MeasurementDecommer.pm
 %{perl_vendorlib}/GRNOC/TSDS/MongoDB.pm
 %{perl_vendorlib}/GRNOC/TSDS/Parser.pm
 %{perl_vendorlib}/GRNOC/TSDS/Parser/Actions.pm

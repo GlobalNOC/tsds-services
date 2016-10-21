@@ -24,6 +24,7 @@ sub upgrade {
     # These were missing as documented meta fields which the meta manager
     # had been setting, adding these properly now in upgrade script. New install
     # will have them as well
+    print "Adding missing indexes to interface...\n";
     $metadata->add_meta_field(measurement_type => "interface",
 			      name             => "pop.pop_id",
 			      classifier       => undef,
@@ -37,6 +38,16 @@ sub upgrade {
 			      ordinal          => undef,
 			      array            => 0,
 			      search_weight    => undef);
+
+    my @db_names = $mongo->database_names;
+    foreach my $db_name (@db_names){
+	my $metadata = $mongo->get_database($db_name)->get_collection('metadata')->find_one();
+
+	next if (! $metadata);
+
+	print "Adding expire attribute to $db_name metadata\n";	
+	$mongo->get_database($db_name)->get_collection('metadata')->update({}, {'$set' => {'expire_after' => 86400 * 2}});
+    }
 
     return 1;
 }
