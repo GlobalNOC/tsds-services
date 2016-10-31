@@ -1,5 +1,6 @@
 {
 	"label" : "Temperature",
+	"expire_after": 86400,
 	"meta_fields" : {
 		"name" : {
 			"required" : 1,

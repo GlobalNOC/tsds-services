@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 62;
+use Test::More tests => 84;
 
 use GRNOC::Config;
 use GRNOC::TSDS::DataService::MetaData;
@@ -63,54 +63,74 @@ my $res;
 my $docs;
 
 # Not an array
-$res = $meta_ds->update_measurement_metadata(values => {"this" => "is bad"});
+$res = $meta_ds->update_measurement_metadata(values => {"this" => "is bad"}, type_field => 'type');
 ok(! defined $res && $meta_ds->error() =~ /must be an array/, "update failed due to wrong data structure");
 
 # Elements aren't objects
-$res = $meta_ds->update_measurement_metadata(values => [1]);
+$res = $meta_ds->update_measurement_metadata(values => [1], type_field => 'type');
 ok(! defined $res && $meta_ds->error() =~ /must be an array/, "update failed due to wrong data structure");
 
 # Missing type
-$res = $meta_ds->update_measurement_metadata(values => [$metadata]);
+$res = $meta_ds->update_measurement_metadata(values => [$metadata], type_field => 'type');
 ok(! defined $res && $meta_ds->error() =~ /missing required field \"type\"/, "update failed due to missing type");
 
 # Bad type
 $metadata->{'type'} = '________not_present';
-$res = $meta_ds->update_measurement_metadata(values => [$metadata]);
+$res = $meta_ds->update_measurement_metadata(values => [$metadata], type_field => 'type');
 ok(! defined $res && $meta_ds->error() =~ /Unknown database/, "update failed due to bad type");
+
+# Bad type_field
+$res = $meta_ds->update_measurement_metadata(values => [$metadata], type_field => 'not_existing_type_field');
+ok(! defined $res && $meta_ds->error() =~ /indicate which type of measurement this is/, "Missing type field");
 
 # Set good type now
 $metadata->{'type'} = $testdb;
 
 # Missing start
 my $start = delete $metadata->{'start'};
-$res = $meta_ds->update_measurement_metadata(values => [$metadata]);
+$res = $meta_ds->update_measurement_metadata(values => [$metadata], type_field => 'type');
 ok(! defined $res && $meta_ds->error() =~ /required field \"start\"/, "update failed due to missing start");
 $metadata->{'start'} = $start;
 
 # Missing end
 my $end = delete $metadata->{'end'};
-$res = $meta_ds->update_measurement_metadata(values => [$metadata]);
+$res = $meta_ds->update_measurement_metadata(values => [$metadata], type_field => 'type');
 ok(! defined $res && $meta_ds->error() =~ /required field \"end\"/, "update failed due to missing end");
 $metadata->{'end'} = $end;
 
 # Missing required metadata
 my $node = delete $metadata->{'node'};
-$res = $meta_ds->update_measurement_metadata(values => [$metadata]);
+$res = $meta_ds->update_measurement_metadata(values => [$metadata], type_field => 'type');
 ok(! defined $res && $meta_ds->error() =~ /missing required field \"node\" for type/, "update failed due to missing required metadata");
 $metadata->{'node'} = $node;
 
 # Unknown metadata field
 $metadata->{'unknown_field'} = 'new_value';
-$res = $meta_ds->update_measurement_metadata(values => [$metadata]);
+$res = $meta_ds->update_measurement_metadata(values => [$metadata], type_field => 'type');
 ok(! defined $res && $meta_ds->error() =~ /Invalid metadata field/, "update failed due to having undocumented metadata");
 delete $metadata->{'unknown_field'};
 
 
+# Bad values field
+$metadata->{'values'} = 'not a hash';
+$res = $meta_ds->update_measurement_metadata(values => [$metadata], type_field => 'type');
+ok(! defined $res && $meta_ds->error() =~ /values must be a hash of value/, "update failed due to bad 'values' field");
+
+# Missing values keys
+$metadata->{'values'} = {"not_a_value" => {}};
+$res = $meta_ds->update_measurement_metadata(values => [$metadata], type_field => 'type');
+ok(! defined $res && $meta_ds->error() =~ /Unknown values field/, "update failed due to unknown value type");
+
+# Bad min key
+$metadata->{'values'} = {"input" => {"min" => 'cat', "max" => 5}};
+$res = $meta_ds->update_measurement_metadata(values => [$metadata], type_field => 'type');
+ok(! defined $res && $meta_ds->error() =~ /must be a number/, "update failed due to bad min values field");
+delete $metadata->{'values'};
+
 # Okay, enough bad sanity checking, let's test some real stuff.
 
 # First a simple case - let's send the same thing.
-$res = $meta_ds->update_measurement_metadata(values => [$metadata]);
+$res = $meta_ds->update_measurement_metadata(values => [$metadata], type_field => 'type');
 ok(defined $res, "got positive response back");
 is($res->[0]{'modified'}, 0, "modified 0 documents");
 
@@ -122,7 +142,7 @@ $metadata->{'start'} = 150;
 $metadata->{'end'}   = undef;
 $metadata->{'description'} = 'new description';
 
-$res = $meta_ds->update_measurement_metadata(values => [$metadata]);
+$res = $meta_ds->update_measurement_metadata(values => [$metadata], type_field => 'type');
 ok(defined $res, "got positive response back");
 
 is($res->[0]{'modified'}, 1, "modified 1 document");
@@ -140,7 +160,7 @@ is($docs->[1]{'end'}, undef, "new doc has null end time");
 $metadata->{'start'} = 120; # this goes in between the other two docs
 $metadata->{'end'}   = undef;
 
-$res = $meta_ds->update_measurement_metadata(values => [$metadata]);
+$res = $meta_ds->update_measurement_metadata(values => [$metadata], type_field => 'type');
 ok(defined $res, "got positive response back");
 
 is($res->[0]{'modified'}, 2, "modified 2 document");
@@ -155,6 +175,10 @@ is($docs->[2]{'start'}, 150, "existing doc has same start time");
 is($docs->[2]{'end'}, undef, "existing doc has same end time");
 
 
+### Change the "type_field" for all future tests, should have no bearing
+### on any of the results
+# Same thing but changing the type_field argument
+$metadata->{'separate_type_field'} = delete $metadata->{'type'};
 
 # Try an update that complete covers the middle document, this should
 # do basically an in-place update
@@ -162,7 +186,7 @@ $metadata->{'start'} = 120;
 $metadata->{'end'}   = 150;
 $metadata->{'description'} = "second description";
 
-$res = $meta_ds->update_measurement_metadata(values => [$metadata]);
+$res = $meta_ds->update_measurement_metadata(values => [$metadata], type_field => 'separate_type_field');
 ok(defined $res, "got positive response back");
 
 is($res->[0]{'modified'}, 2, "modified 2 document");
@@ -179,7 +203,7 @@ $metadata->{'start'} = 100;
 $metadata->{'end'}   = 110;
 $metadata->{'description'} = 'third description';
 
-$res = $meta_ds->update_measurement_metadata(values => [$metadata]);
+$res = $meta_ds->update_measurement_metadata(values => [$metadata], type_field => 'separate_type_field');
 ok(defined $res, "got positive response back");
 
 is($res->[0]{'modified'}, 2, "modified 2 documents");
@@ -200,18 +224,18 @@ is($docs->[2]{'start'}, 120, "third doc start time");
 # First a few error checks for array fields
 # Check for all same type verification
 $metadata->{'tags'} = ["foo", "bar", {"this" => "object"}];
-$res = $meta_ds->update_measurement_metadata(values => [$metadata]);
+$res = $meta_ds->update_measurement_metadata(values => [$metadata], type_field => 'separate_type_field');
 ok(! defined $res && $meta_ds->error() =~ /Not all values in array are of same type/, "got error about invalid subfields");
 delete $metadata->{'tags'};
 
 # Check for ensuring it's an array based on metadata spec
 $metadata->{'circuit'} = 1;
-$res = $meta_ds->update_measurement_metadata(values => [$metadata]);
+$res = $meta_ds->update_measurement_metadata(values => [$metadata], type_field => 'separate_type_field');
 ok(! defined $res && $meta_ds->error() =~ /must be an array/, "got error about wrong type");
 
 # Check for subfield verification
 $metadata->{'circuit'} = [{blah => 1}];
-$res = $meta_ds->update_measurement_metadata(values => [$metadata]);
+$res = $meta_ds->update_measurement_metadata(values => [$metadata], type_field => 'separate_type_field');
 ok(! defined $res && $meta_ds->error() =~ /Invalid metadata field/, "got error about invalid subfields");
 
 
@@ -223,7 +247,7 @@ $metadata->{'start'} = 200;
 $metadata->{'end'}   = undef;
 
 
-$res = $meta_ds->update_measurement_metadata(values => [$metadata]);
+$res = $meta_ds->update_measurement_metadata(values => [$metadata], type_field => 'separate_type_field');
 ok(defined $res, "got positive response back");
 is($res->[0]{'modified'}, 1, "modified 1 document");
 
@@ -240,7 +264,7 @@ is($docs->[3]{'end'}, 200, "correct previous end time");
 $metadata->{'circuit'} = [{name => "circuit2", description => "circuit2", type => "ENET"},
                           {name => "circuit1", description => "circuit1", type => "10GE"}];
 
-$res = $meta_ds->update_measurement_metadata(values => [$metadata]);
+$res = $meta_ds->update_measurement_metadata(values => [$metadata], type_field => 'separate_type_field');
 ok(defined $res, "got positive response back");
 is($res->[0]{'modified'}, 0, "realized arrays were the same content");
 
@@ -249,7 +273,7 @@ is($res->[0]{'modified'}, 0, "realized arrays were the same content");
 # the array
 $metadata->{'circuit'} = [{name => "circuit2", description => "circuit2", type => "ENET"},
                           {name => "circuit3", description => "circuit3", type => "100GE"}];
-$res = $meta_ds->update_measurement_metadata(values => [$metadata]);
+$res = $meta_ds->update_measurement_metadata(values => [$metadata], type_field => 'separate_type_field');
 ok(defined $res, "got positive response back");
 is($res->[0]{'modified'}, 1, "updated 1 doc");
 
@@ -259,6 +283,45 @@ ok(@{$docs->[4]{'circuit'}} == 2, "2 circuits listed on active document");
 ok(! grep({$_->{'name'} eq 'circuit1'} @{$docs->[4]{'circuit'}}), "circuit 1 is gone");
 ok(grep({$_->{'name'} eq 'circuit3'} @{$docs->[4]{'circuit'}}), "circuit 3 present");
 ok(grep({$_->{'name'} eq 'circuit2'} @{$docs->[4]{'circuit'}}), "circuit 2 still there");
+
+
+# Update values for a measurement
+$metadata->{'values'} = {'input' => {'min' => 0, 'max' => 100},
+			 'output' => {'min' => 5, 'max' => undef}};
+$res = $meta_ds->update_measurement_metadata(values => [$metadata], type_field => 'separate_type_field');
+ok(defined $res, "got positive response back");
+is($res->[0]{'modified'}, 1, "updated 1 doc");
+
+$docs = _get_all_docs();
+is(@$docs, 5, "have 5 measurement docs");
+my $values = $docs->[4]{'values'};
+ok(keys %$values == 2, "2 values listed");
+ok($values->{'input'}{'min'} == 0, "input min is good");
+ok($values->{'input'}{'max'} == 100, "input max is good");
+ok($values->{'output'}{'min'} == 5, "output min is good");
+ok(exists $values->{'output'}{'max'} && ! defined $values->{'output'}{'max'}, "output max is good");
+
+# Change the time and do another update, should cause a new instance
+$metadata->{'start'} = 250;
+$metadata->{'values'} = {'input' => {'min' => 0, 'max' => 100},
+			 'output' => {'min' => undef, 'max' => 4000},
+			 'status' => {'min' => 0, 'max' => 1}};
+$res = $meta_ds->update_measurement_metadata(values => [$metadata], type_field => 'separate_type_field');
+ok(defined $res, "got positive response back");
+is($res->[0]{'modified'}, 1, "updated 1 doc");
+
+$docs = _get_all_docs();
+
+is(@$docs, 6, "have 6 measurement docs");
+$values = $docs->[5]{'values'};
+ok(keys %$values == 3, "3 values listed");
+ok($values->{'input'}{'min'} == 0, "input min is good");
+ok($values->{'input'}{'max'} == 100, "input max is good");
+ok(exists $values->{'output'}{'min'} && ! defined $values->{'output'}{'min'}, "output min is good");
+ok($values->{'output'}{'max'} == 4000, "output max is good");
+ok($values->{'status'}{'min'} == 0, "status min is good");
+ok($values->{'status'}{'max'} == 1, "status max is good");
+
 
 
 sub _get_all_docs {

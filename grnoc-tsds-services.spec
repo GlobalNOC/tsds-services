@@ -1,6 +1,6 @@
 Summary: GRNOC TSDS Services
 Name: grnoc-tsds-services
-Version: 1.5.1
+Version: 1.5.2
 Release: 1%{?dist}
 License: GRNOC
 Group: Measurement
@@ -250,9 +250,11 @@ rm -rf $RPM_BUILD_ROOT
 %{perl_vendorlib}/GRNOC/TSDS/GWS/Report.pm
 %{perl_vendorlib}/GRNOC/TSDS/GWS/Search.pm
 %{perl_vendorlib}/GRNOC/TSDS/Install.pm
+%{perl_vendorlib}/GRNOC/TSDS/MeasurementDecommer.pm
 %{perl_vendorlib}/GRNOC/TSDS/MongoDB.pm
 %{perl_vendorlib}/GRNOC/TSDS/Parser.pm
 %{perl_vendorlib}/GRNOC/TSDS/Parser/Actions.pm
+%{perl_vendorlib}/GRNOC/TSDS/RedisLock.pm
 %{perl_vendorlib}/GRNOC/TSDS/Upgrade.pm
 %{perl_vendorlib}/GRNOC/TSDS/Upgrade/*.pm
 %{perl_vendorlib}/GRNOC/TSDS/Util/ConfigChooser.pm

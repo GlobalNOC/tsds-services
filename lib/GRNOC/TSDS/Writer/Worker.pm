@@ -1,6 +1,7 @@
 package GRNOC::TSDS::Writer::Worker;
 
 use Moo;
+use Types::Standard qw( Str Int HashRef Object Maybe );
 
 use GRNOC::TSDS::DataType;
 use GRNOC::TSDS::Constants;
@@ -10,11 +11,10 @@ use GRNOC::TSDS::EventDocument;
 use GRNOC::TSDS::Writer::AggregateMessage;
 use GRNOC::TSDS::Writer::DataMessage;
 use GRNOC::TSDS::Writer::EventMessage;
+use GRNOC::TSDS::RedisLock;
 
 use MongoDB;
 use Net::AMQP::RabbitMQ;
-use Redis;
-use Redis::DistLock;
 use Cache::Memcached::Fast;
 use Tie::IxHash;
 use JSON::XS;
@@ -26,8 +26,6 @@ use Data::Dumper;
 
 ### constants ###
 
-use constant LOCK_TIMEOUT => 120;
-use constant LOCK_RETRIES => 20;
 use constant DATA_CACHE_EXPIRATION => 60 * 60;
 use constant AGGREGATE_CACHE_EXPIRATION => 60 * 60;
 use constant MEASUREMENT_CACHE_EXPIRATION => 60 * 60;
@@ -58,7 +56,7 @@ has mongo_rw => ( is => 'rwp' );
 
 has rabbit => ( is => 'rwp' );
 
-has redis => ( is => 'rwp' );
+has redislock => ( is => 'rwp' );
 
 has memcache => ( is => 'rwp' );
 
@@ -123,35 +121,7 @@ sub start {
 
     $self->_set_mongo_rw( $mongo );
 
-    # connect to redis
-    my $redis_host = $self->config->get( '/config/redis/@host' );
-    my $redis_port = $self->config->get( '/config/redis/@port' );
-
-    $self->logger->debug( "Connecting to Redis $redis_host:$redis_port." );
-
-    my $redis;
-
-    try {
-
-        $redis = Redis->new( server => "$redis_host:$redis_port" );
-    }
-
-    catch {
-
-        $self->logger->error( "Error connecting to Redis: $_" );
-        die( "Error connecting to Redis: $_" );
-    };
-
-    $self->_set_redis( $redis );
-
-    # create locker
-    $self->logger->debug( 'Creating locker.' );
-
-    my $locker = Redis::DistLock->new( servers => [$redis],
-                                       retry_count => LOCK_RETRIES,
-                                       retry_delay => 0.5);
-
-    $self->_set_locker( $locker );
+    $self->_set_redislock( GRNOC::TSDS::RedisLock->new( config => $self->config ) );
 
     # connect to memcache
     my $memcache_host = $self->config->get( '/config/memcache/@host' );
@@ -585,7 +555,7 @@ sub _release_locks {
 
     foreach my $lock ( @$locks ) {
 
-        $self->locker->release( $lock );
+        $self->redislock->unlock( $lock );
     }
 }
 
@@ -808,9 +778,9 @@ sub _process_data_messages {
 
         foreach my $measurement_identifier ( @measurement_identifiers ) {
 
-            my $cache_id = $self->_get_cache_id( type => $data_type,
-                                                 collection => 'measurements',
-                                                 identifier => $measurement_identifier );
+            my $cache_id = $self->redislock->get_cache_id( type       => $data_type,
+							   collection => 'measurements',
+							   identifier => $measurement_identifier );
 
             push( @measurement_cache_ids, $cache_id );
         }
@@ -1015,21 +985,20 @@ sub _process_event_document {
     $self->logger->debug( "Processing event document $data_type_name / $type / $start / $end." );
 
     # get lock for this event document
-    my $lock_id = $self->_get_lock_id( type => $data_type_name,
+    my $lock = $self->redislock->lock( type       => $data_type_name,
                                        collection => 'event',
                                        identifier => $type,
-                                       start => $start,
-                                       end => $end );
+                                       start      => $start,
+                                       end        => $end ) or die "Unable to lock event document $data_type_name / $type / $start / $end, requeueing";
 
-    my $lock = $self->locker->lock( $lock_id, LOCK_TIMEOUT ) or die "Unable to lock event document $data_type_name / $type / $start / $end, requeueing";
     push( @$acquired_locks, $lock );
 
-    my $cache_id = $self->_get_cache_id( type => $data_type_name,
-                                         collection => 'event',
-                                         identifier => $type,
-                                         start => $start,
-                                         end => $end );
-
+    my $cache_id = $self->redislock->get_cache_id( type       => $data_type_name,
+						   collection => 'event',
+						   identifier => $type,
+						   start      => $start,
+						   end        => $end );
+    
     # its already in our cache, seen it before
     if ( my $cached = $self->memcache->get( $cache_id ) ) {
 
@@ -1125,20 +1094,19 @@ sub _process_data_document {
     $self->logger->debug( "Processing data document $data_type / $measurement_identifier / $start / $end." );
 
     # get lock for this data document
-    my $lock_id = $self->_get_lock_id( type => $data_type,
-                                       collection => 'data',
-                                       identifier => $measurement_identifier,
-                                       start => $start,
-                                       end => $end );
+    my $lock = $self->redislock->lock( type       => $data_type,
+				       collection => 'data',
+				       identifier => $measurement_identifier,
+				       start      => $start,
+				       end        => $end ) or die "Can't lock data document for $data_type / $measurement_identifier / $start / $end";
 
-    my $lock = $self->locker->lock( $lock_id, LOCK_TIMEOUT ) or die "Can't lock data document for $data_type / $measurement_identifier / $start / $end";
     push( @$acquired_locks, $lock );
 
-    my $cache_id = $self->_get_cache_id( type => $data_type,
-                                         collection => 'data',
-                                         identifier => $measurement_identifier,
-                                         start => $start,
-                                         end => $end );
+    my $cache_id = $self->redislock->get_cache_id( type       => $data_type,
+						   collection => 'data',
+						   identifier => $measurement_identifier,
+						   start      => $start,
+						   end        => $end );
 
     # its already in our cache, seen it before
     if ( my $cached = $self->memcache->get( $cache_id ) ) {
@@ -1239,21 +1207,19 @@ sub _process_aggregate_document {
     $self->logger->debug( "Processing aggregate document $data_type_name - $interval / $measurement_identifier / $start / $end." );
 
     # get lock for this aggregate document
-    my $lock_id = $self->_get_lock_id( type => $data_type_name,
+    my $lock = $self->redislock->lock( type       => $data_type_name,
                                        collection => "data_$interval",
                                        identifier => $measurement_identifier,
-                                       start => $start,
-                                       end => $end );
-
-    my $lock = $self->locker->lock( $lock_id, LOCK_TIMEOUT ) or die "Can't lock aggregate data doc for $data_type_name - $interval / $measurement_identifier / $start / $end.";
+                                       start      => $start,
+                                       end        => $end ) or die "Can't lock aggregate data doc for $data_type_name - $interval / $measurement_identifier / $start / $end.";
     push( @$acquired_locks, $lock );
 
-    my $cache_id = $self->_get_cache_id( type => $data_type_name,
-                                         collection => "data_$interval",
-                                         identifier => $measurement_identifier,
-                                         start => $start,
-                                         end => $end );
-
+    my $cache_id = $self->redislock->get_cache_id( type       => $data_type_name,
+						   collection => "data_$interval",
+						   identifier => $measurement_identifier,
+						   start      => $start,
+						   end        => $end );
+    
     # its already in our cache, seen it before
     if ( my $cached = $self->memcache->get( $cache_id ) ) {
 
@@ -1465,22 +1431,21 @@ sub _create_data_document {
         push( @overlap_ids, $id );
 
         # determine cache id for this doc
-        my $cache_id = $self->_get_cache_id( type => $data_type->name,
-                                             collection => 'data',
-                                             identifier => $identifier,
-                                             start => $overlap_start,
-                                             end => $overlap_end );
+        my $cache_id = $self->redislock->get_cache_id( type       => $data_type->name,
+						       collection => 'data',
+						       identifier => $identifier,
+						       start      => $overlap_start,
+						       end        => $overlap_end );
 
         push( @overlap_cache_ids, $cache_id );
 
         # grab lock for this doc
-        my $lock_id = $self->_get_lock_id( type => $data_type->name,
+        my $lock = $self->redislock->lock( type       => $data_type->name,
                                            collection => 'data',
                                            identifier => $identifier,
-                                           start => $overlap_start,
-                                           end => $overlap_end );
+                                           start      => $overlap_start,
+                                           end        => $overlap_end ) or die "Can't lock overlapping data doc for $identifier";
 
-        my $lock = $self->locker->lock( $lock_id, LOCK_TIMEOUT ) or die "Can't lock overlapping data doc for $identifier";
         push( @$acquired_locks, $lock );
 
         $self->logger->debug( "Found overlapping data document with interval: $overlap_interval start: $overlap_start end: $overlap_end." );
@@ -1674,47 +1639,6 @@ sub _update_aggregate_document {
     return ( $document, \@value_types_to_add );
 }
 
-sub _get_lock_id {
-
-    my ( $self, %args ) = @_;
-
-    my $cache_id = $self->_get_cache_id( %args );
-    my $lock_id = "lock__$cache_id";
-
-    $self->logger->debug( "Getting lock id $lock_id." );
-
-    return $lock_id;
-}
-
-sub _get_cache_id {
-
-    my ( $self, %args ) = @_;
-
-    my $type = $args{'type'};
-    my $collection = $args{'collection'};
-    my $identifier = $args{'identifier'};
-    my $start = $args{'start'};
-    my $end = $args{'end'};
-
-    my $id = $type . '__' . $collection;
-
-    # include identifier in id if its given
-    if ( defined( $identifier ) ) {
-
-        $id .= '__' . $identifier;
-    }
-
-    if ( defined( $start ) || defined( $end ) ) {
-
-        $id .= '__' . $start;
-        $id .= '__' . $end;
-    }
-
-    $self->logger->debug( "Getting cache id $id." );
-
-    return $id;
-}
-
 sub _update_metadata_value_types {
 
     my ( $self, %args ) = @_;
@@ -1731,9 +1655,9 @@ sub _update_metadata_value_types {
         $self->data_types->{$data_type->name}->value_types->{$new_value_type} = {'description' => $new_value_type,
                                                                                  'units' => $new_value_type};
 
-        my $cache_id = $self->_get_cache_id( type => $data_type->name,
-                                             collection => 'metadata',
-                                             identifier => $new_value_type );
+        my $cache_id = $self->redislock->get_cache_id( type => $data_type->name,
+						       collection => 'metadata',
+						       identifier => $new_value_type );
 
         push( @cache_ids, $cache_id );
     }
@@ -1760,10 +1684,8 @@ sub _update_metadata_value_types {
     my $metadata_collection = $data_type->database->get_collection( 'metadata' );
 
     # get lock for this metadata document
-    my $lock_id = $self->_get_lock_id( type => $data_type->name,
-                                       collection => 'metadata' );
-
-    my $lock = $self->locker->lock( $lock_id, LOCK_TIMEOUT ) or die "Can't lock metadata for " . $data_type->name;
+    my $lock = $self->redislock->lock( type => $data_type->name,
+				       collection => 'metadata' ) or die "Can't lock metadata for " . $data_type->name;
 
     # grab the current metadata document
     my $doc = $metadata_collection->find_one( {}, {'values' => 1} );
@@ -1771,7 +1693,7 @@ sub _update_metadata_value_types {
     # error if there is none present
     if ( !$doc ) {
 
-        $self->locker->release( $lock );
+        $self->redislock->unlock( $lock );
 
         die( 'No metadata document found for database ' . $data_type->name . '.' );
     }
@@ -1804,7 +1726,7 @@ sub _update_metadata_value_types {
     $self->memcache->set_multi( @multi );
 
     # all done, release our lock on this metadata document
-    $self->locker->release( $lock );
+    $self->redislock->unlock( $lock );
 }
 
 sub _create_measurement_document {
@@ -1822,11 +1744,10 @@ sub _create_measurement_document {
     $self->logger->debug( "Measurement $identifier in database " . $data_type->name . " not found in cache." );
 
     # get lock for this measurement identifier
-    my $lock_id = $self->_get_lock_id( type => $data_type->name,
-                                       collection => 'measurements',
-                                       identifier => $identifier );
-
-    my $lock = $self->locker->lock( $lock_id, LOCK_TIMEOUT ) or die "Can't lock measurements for $identifier";
+    my $lock = $self->redislock->lock( type       => $data_type->name,
+				       collection => 'measurements',
+				       identifier => $identifier ) or die "Can't lock measurements for $identifier";
+    
     push( @$acquired_locks, $lock );
 
     # get measurement collection for this data type
@@ -1863,9 +1784,9 @@ sub _create_measurement_document {
     }
 
     # mark it in our known cache so no one ever tries to add it again
-    my $cache_id = $self->_get_cache_id( type => $data_type->name,
-                                         collection => 'measurements',
-                                         identifier => $identifier );
+    my $cache_id = $self->redislock->get_cache_id( type       => $data_type->name,
+						   collection => 'measurements',
+						   identifier => $identifier );
 
     my $cache_duration = MEASUREMENT_CACHE_EXPIRATION;
 

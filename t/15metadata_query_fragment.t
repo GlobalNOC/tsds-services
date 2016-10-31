@@ -38,13 +38,13 @@ my $metadata = {
     description => "test123"  # this is new
 };
 
-my $res = $meta_ds->update_measurement_metadata(values => [$metadata]);
+my $res = $meta_ds->update_measurement_metadata(values => [$metadata], type_field => 'type');
 ok(defined $res, "got positive response back");
 
 $metadata->{'description'} = undef;
 $metadata->{'start'} = 100;
 $metadata->{'end'} = undef;
-$res = $meta_ds->update_measurement_metadata(values => [$metadata]);
+$res = $meta_ds->update_measurement_metadata(values => [$metadata], type_field => 'type');
 ok(defined $res, "got positive response back");
 
 

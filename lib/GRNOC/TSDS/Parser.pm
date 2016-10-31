@@ -2545,9 +2545,9 @@ sub _apply_aggregation_functions {
                 my $operator = $get_field->[1];
 
                 # Resolve both parts and calculate their final results
-                my $res_a = $self->_apply_aggregation_functions([$original_group], [$parts->[0]], $with_details);
+                my $res_a = $self->_apply_aggregation_functions([$original_group], [[$parts->[0]]], $with_details);
                 return if (! defined $res_a);
-                my $res_b = $self->_apply_aggregation_functions([$original_group], [$parts->[1]], $with_details);
+                my $res_b = $self->_apply_aggregation_functions([$original_group], [[$parts->[1]]], $with_details);
                 return if (! defined $res_b);
 
                 # returns something like [{foo => [1, 2, 3, 4]}]

@@ -333,6 +333,13 @@ sub _init_methods {
                                   multiple      => 0,
                                   description   => 'The array of JSON encoded data.');
 
+    $method->add_input_parameter( name          => 'type_field',
+                                  pattern       => $NAME_ID,
+                                  required      => 0,
+                                  multiple      => 0,
+                                  default       => 'type',
+                                  description   => 'What the name of the "type" field in the JSON will be. Useful in case the word "type" is an actual meta field for this measurement type and would otherwise name conflict.');
+
     $self->websvc()->register_method( $method );
 
     # DELETE METHODS
@@ -489,8 +496,10 @@ sub _update_measurement_metadata {
         return;
     }
 
+    my $type_field = $args->{'type_field'}{'value'};
 
-    my $results = $self->metadata_ds()->update_measurement_metadata( values => $vals );
+    my $results = $self->metadata_ds()->update_measurement_metadata( values     => $vals,
+								     type_field => $type_field );
 
     # handle error
     if ( !$results ) {
