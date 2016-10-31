@@ -37,5 +37,6 @@
       "description" : "Output Bits/s",
       "units" : "bps"
     }
-  }
+  },
+  "expire_after": 86400
 }

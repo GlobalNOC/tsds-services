@@ -709,6 +709,7 @@ sub add_measurement_type {
     my $label = $args{'label'};
     my $ignore_si = $args{'ignore_si'} || 0;
     my $required_meta_fields = $args{'required_meta_field'};
+    my $expire_after = $args{'expire_after'};
     my $search_weight;
     $search_weight = $self->parse_int($args{'search_weight'}) if(exists($args{'search_weight'}));
 
@@ -731,6 +732,11 @@ sub add_measurement_type {
         $self->error("Search weight must be a positive integer, or blank.");
         return;
     }
+    if (defined $expire_after && $expire_after !~ /^\d+$/){
+	$self->error("expire_after must be a positive integer, or blank.");
+	return;
+    }
+    $expire_after = $expire_after + 0 if (defined $expire_after); # cast to number
 
     # format the meta data fields with just the required field and name set
     my $meta_fields = {};
@@ -814,7 +820,8 @@ sub add_measurement_type {
         label         => $label,
         ignore_si     => $ignore_si,
         meta_fields   => $meta_fields,
-        search_weight => $search_weight
+        search_weight => $search_weight,
+	expire_after  => $expire_after
     });
     $db->get_collection( 'metadata' )->update({}, { '$set' => { values => {} } } );
 

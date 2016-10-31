@@ -22,6 +22,11 @@ use Data::Dumper;
 has config_file => ( is => 'ro',
                      required => 1 );
 
+### attributes ###
+
+has database => ( is => 'rw' );
+		  
+
 ### internal attributes ###
 
 has config => ( is => 'rwp' );
@@ -69,7 +74,11 @@ sub decom_metadata {
 
     foreach my $db_name (@dbs){
 
+	# skip known non tsds ones
 	next if ($db_name eq 'admin' || $db_name eq 'config');
+
+	# skip if we have a specified one and this isn't it
+	next if ($self->database() && $db_name ne $self->database());
 
 	my $db = $self->mongo()->get_database($db_name);
 

@@ -551,7 +551,8 @@ sub _create_databases {
         my $res = $self->metadata_ds()->add_measurement_type(
             name => $database_name,
             label => $metadata->{'label'},
-            required_meta_field => $required_meta_fields
+            required_meta_field => $required_meta_fields,
+	    expire_after => $metadata->{'expire_after'}
         );
         if(!$res){
             $self->error( "Couldn't add measurement type $database_name: ".$self->metadata_ds->error());

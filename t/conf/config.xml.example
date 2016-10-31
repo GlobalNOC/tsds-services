@@ -37,6 +37,9 @@
         <username>bar</username>
     </proxy-users>
 
+    <!-- how parallelized to be when checking to decomission measurement records -->
+    <decom max_procs="1" />
+
     <!-- list of databases we should ignore and not consider as having tsds data -->
     <ignore-databases>
         <database>admin</database>
