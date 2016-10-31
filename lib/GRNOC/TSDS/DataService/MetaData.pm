@@ -625,6 +625,18 @@ sub get_distinct_meta_field_values {
         $query = { '$and' => $filter_array };
     }
 
+    # add our constraints
+    my $constraints = $self->_get_constraint_query($measurement_type);
+    if ($constraints){
+        if (exists $query->{'$and'}){
+            push(@{$query->{'$and'}}, @{$constraints->{'$and'}} );
+        }
+        else {
+            push(@{$constraints->{'$and'}}, $query);
+            $query = $constraints;
+        }
+    }
+
     # Determine from meta_field how to process this request
     # if it's a classifier and an array (e.g., circuit.name), we need to use aggregate
     # otherwise, simply use distinct command
@@ -1999,6 +2011,22 @@ sub _get_constraint_databases {
     }
     
     return;
+}
+
+sub _get_constraint_query {
+    my ( $self, $db_name ) = @_;
+
+    my $constraints_file = $self->parser()->{'constraints_file'};
+
+    if (defined($constraints_file)) {
+
+        my $constraint_obj = GRNOC::TSDS::Constraints->new( config_file => $constraints_file );
+        my $constraints = $constraint_obj->parse_constraints( database => $db_name );
+
+	return $constraints;
+    }
+    
+    return;    
 }
 
 sub _is_meta_field_array {
