@@ -261,18 +261,19 @@ sub get_collection {
 
 
     # make sure collection already exists
-    my $collections = $db->run_command([listCollections => 1])->{'cursor'}{'firstBatch'};
-    my $found_collection = 0;
-    foreach my $collection (@$collections){
-        if($collection->{'name'} eq $col_name){
-            $found_collection = 1;
-            last;
-        }
-    }
-    if(!$found_collection){
-        $self->error("Unknown collection \"$col_name\"");
-        return;
-    }
+    # Removed, this is extremely slow and offers no real benefit
+    # my $collections = $db->run_command([listCollections => 1])->{'cursor'}{'firstBatch'};
+    # my $found_collection = 0;
+    # foreach my $collection (@$collections){
+    #     if($collection->{'name'} eq $col_name){
+    #         $found_collection = 1;
+    #         last;
+    #     }
+    # }
+    # if(!$found_collection){
+    #     $self->error("Unknown collection \"$col_name\"");
+    #     return;
+    # }
     
     return $db->get_collection($col_name);    
 }

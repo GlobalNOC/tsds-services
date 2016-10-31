@@ -1,5 +1,8 @@
 # do all expirations once per day
-# 0 0 * * * /usr/bin/tsds_expire.pl > /dev/null 2>&1
+# 0 0 * * * root /usr/bin/tsds_expire.pl > /dev/null 2>&1
+
+# do measurement decomming once per day
+# 0 0 * * * root /usr/bin/tsds_decom.pl > /dev/null 2>&1
 
 # do the tsds self measuring every 5 minutes
 # */5 * * * * root /usr/bin/tsds_meta.py > /dev/null 2>&1
