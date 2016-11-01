@@ -5,6 +5,7 @@ bin/tsds_meta.pl
 bin/tsds_search_indexer.pl
 bin/tsds_upgrade.pl
 bin/tsds_writer
+bin/tsds_fix_measurements.pl
 CHANGES.md
 conf/apache-tsds-services-temp.conf.example
 conf/apache-tsds-services.conf.example
