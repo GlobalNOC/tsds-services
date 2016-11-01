@@ -1,3 +1,24 @@
+## GRNOC TSDS Services 1.5.2 -- Tue Nov 1 2016
+
+### Features:
+
+* ISSUE=2194 Added several new support symbols to the query BNF, including +, !, #, $, %, and ?
+
+* ISSUE=2221 Revamped the way that measurement entries get decommed after not receiving
+new data for a configurable period of time. Fixed several issues related to incorrectly
+detecting data during historical migrations, fixed a few race conditions.
+
+* ISSUE=2222 A series of fixes and enhancements to better support parallelization, including
+better locking around race conditions in the metadata management API.
+
+* ISSUE=2166 Added "tsds_fix_measurements.pl" script to fix any outstanding problems that should
+be addressed going forward by changes in 2221 and 2222.
+
+### Bug Fixes:
+
+Fixed issue where "get_distinct_meta_fields" function was not respecting constraints.
+
+
 ## GRNOC TSDS Services 1.5.1 -- Tue Apr 19 2016
 
 ### Features:
