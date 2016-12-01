@@ -125,10 +125,52 @@ sub _process_db {
 
     my @measurements = $measurements->find( {'end' => undef} )->hint( 'end_1' )->all();
 
+    log_info("found " . scalar(@measurements) . " measurements");
+
     # no active measurements?
     if ( @measurements == 0 ) {
 	log_info( "$db_name has no active measurements, skipping" );
 	return 0;
+    }
+
+    log_debug( "retrieving all recent doc ids in database $db_name" );
+    
+    my %recent_data;
+
+    my $offset = 0;
+    my $limit  = 1000;
+    my @seen;
+
+    my $ids = $db->run_command(["distinct" => 'data',
+				"key"      => '_id',
+				"query"    => {'_id' => {'$gte' => MongoDB::OID->new(value => sprintf("%X", $expired_time - $expire_after))}},
+			       ])->{'values'};
+
+
+    log_info("found " . scalar(@$ids) . " recent data documents");
+
+    my $i = 0;
+    foreach my $id (@$ids){
+	if (++$i % 1000 == 0){
+	    log_debug("Operated on $i ids");
+	}
+
+	my $data_doc = $data->find({"_id" => $id})	    
+	    ->hint('_id_')
+	    ->fields({"identifier" => 1, "end" => 1})->next();
+
+	my $identifier = $data_doc->{'identifier'};
+	my $data_end   = $data_doc->{'end'};
+
+	my $existing = $recent_data{$identifier};
+	
+	if (! defined $existing || 
+	    $existing->{'_id'}->get_time() < $id->get_time() ){ 
+	    
+	    $recent_data{$identifier} = {'_id' => $id,
+					 'identifier' => $identifier,
+					 'end'  => $data_end};
+	}
     }
 
     my $max_procs = $self->max_procs();
@@ -176,7 +218,6 @@ sub _process_db {
 		my $identifier = $doc->{'identifier'};
 		
 		log_debug( "handling identifier $identifier in database $db_name" );
-		log_debug( "finding most recent data doc for identifier $identifier in database $db_name" );
 
 		# need to grab the lock and then fetch the measurement again to make sure it's still
 		# decom, something could have come along and updated it since we last fetched it
@@ -198,24 +239,34 @@ sub _process_db {
 		    next;
 		}
 
-		my $id = $doc->{'_id'};
+		my $recent_doc = $recent_data{$identifier};
 
-		my $recent_doc = $data->find( {'identifier' => $identifier } )
-		    ->hint( 'identifier_1_start_1_end_1' )
-		    ->fields({'_id' => 1, 'end' => 1}) # project in only the values we need
-		    ->sort( {'_id' => -1} )
-		    ->limit( 1 )
-		    ->next();
-		
+		# if we can't find the most recent doc by opportunistically looking at the last set of highrest
+		# data docs, we need to do a slightly deeper scan to find the last "end" date of the data
+		# This should be very uncommon
 		if ( !defined( $recent_doc ) ) {
 		    $num_decommed++;
+
+		    my $ends = $db->run_command(["distinct" => 'data',
+						 "key"      => 'end',
+						 "query"    => {'identifier' => $identifier}
+						])->{'values'};
+
+		    @$ends = sort {$b <=> $a} @$ends;
+
+		    my $last_end = $ends->[0];
 		    
-		    log_debug( "no recent data doc found for identifier $identifier in database $db_name, decomming it" );
-		    
-		    # If we can't find any docs, we have to just assume $now is the end point
+		    # If we can't find any docs, we have to just assume $now is the end point. I don't
+		    # think this should ever be true but safety first
+		    if (! defined $last_end){
+			$last_end = $now;
+		    }	    
+
+		    log_debug( "no recent data doc found for identifier $identifier in database $db_name, decomming it at $last_end" );
+
 		    $self->_decom_doc( doc        => $doc,
 				       collection => $measurements,
-				       end        => $now );
+				       end        => $last_end );
 		    
 		}
 		else {
@@ -230,19 +281,19 @@ sub _process_db {
 
 		    log_debug("$db_name / $identifier most recent created at = $created_at");
 		    
-		    # dumb safety check, I don't think this be possible to hit but just in case since
+		    # safety check, I don't think this be possible to hit but just in case since
 		    # the consequences would be bad
 		    if (! $created_at){
-			log_error("Unable to determine time from _id field for $identifier in $db_name");
+		    	log_error("Unable to determine time from _id field for $identifier in $db_name");
 		    }
 		    elsif ( $created_at < $expired_time ) {			
-			$num_decommed++;			
+		    	$num_decommed++;			
 			
-			log_debug( "identifier $identifier in database $db_name most recent document was created at $created_at which is earlier than the last expiration time at $expired_time" );		
-
-			$self->_decom_doc( doc        => $doc,
-					   collection => $measurements,
-					   end        => $doc_end );
+		    	log_debug( "identifier $identifier in database $db_name most recent document was created at $created_at which is earlier than the last expiration time at $expired_time" );		
+			
+		    	$self->_decom_doc( doc        => $doc,
+		    			   collection => $measurements,
+		    			   end        => $doc_end );
 		    }
 		}
 		
@@ -270,6 +321,11 @@ sub _decom_doc {
     my $doc = $args{'doc'};
     my $collection = $args{'collection'};
     my $end = $args{'end'};
+
+    if (! defined $end){
+	log_warn("Missing end time to _decom_doc, bailing on request");
+	return;
+    }
 
     my $doc_start = $doc->{'start'};
 
@@ -308,6 +364,7 @@ sub _mongo_connect {
             username => $rw_user->{'user'},
             password => $rw_user->{'password'}
         );
+	$mongo->query_timeout(120 * 1000);
     };
     if($@){
         die "Could not connect to Mongo: $@";
