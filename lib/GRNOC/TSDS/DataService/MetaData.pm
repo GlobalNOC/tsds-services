@@ -791,51 +791,33 @@ sub add_measurement_type {
             $self->mongo_root()->create_collection( $measurement_type, $col_name, privilege => 'root' );
         }
         my $collection = $db->get_collection( $col_name );
-        $collection->ensure_index({start => 1});
-        $collection->ensure_index({end   => 1});
+	my $indexes    = $collection->indexes();
 
-	####
-	# TEMP HACK FOR TESTING NEW SHARD KEY
-	# THIS USED TO BE THE OLD SHARD KEY SO WE STILL NEED THE INDEX
-	# ##
-	#$collection->ensure_index(Tie::IxHash->new(
-	#			      identifier => 1,
-	#			      start      => 1,
-	#			      end        => 1
-	#			  ));
-	####
+        $indexes->create_one([start => 1]);
+        $indexes->create_one([end   => 1]);
 
         if( $col_name eq 'data' ){
-            my $index = Tie::IxHash->new(
-                identifier => 1,
-                start      => 1,
-                end        => 1
-            );
-
-            $collection->ensure_index($index);
+	    $indexes->create_one([identifier => 1, start => 1, end => 1]);
 
 	    # Ensure we add index for agg daemon to query against
-	    $collection->ensure_index(Tie::IxHash->new(
-					  updated    => 1,
-					  identifier => 1
-				      ));
+	    $indexes->create_one([updated => 1, identifier => 1]);
         }
 
 	if ( $col_name eq 'measurements' ){
-	    $collection->ensure_index({identifier => 1});
-	    $collection->ensure_index({last_updated => 1});
+	    $indexes->create_one([identifier => 1]);
+	    $indexes->create_one([last_updated => 1]);
 	}
     }
 
     # insert meta data into the metadata collections
-    $db->get_collection( 'metadata' )->insert({ 
+    $db->get_collection( 'metadata' )->insert_one({ 
         label         => $label,
         ignore_si     => $ignore_si,
         meta_fields   => $meta_fields,
         search_weight => $search_weight,
 	expire_after  => $expire_after
     });
-    $db->get_collection( 'metadata' )->update({}, { '$set' => { values => {} } } );
+    $db->get_collection( 'metadata' )->update_one({}, { '$set' => { values => {} } } );
 
     # now create indexes for all of the combinations of meta data
     $meta_fields = $db->get_collection( 'metadata' )->find_one( {} )->{'meta_fields'};
@@ -853,7 +835,7 @@ sub add_measurement_type {
         $self->error($self->mongo_root()->error());
         return;
     }
-    my $id = $exp_col->insert({
+    my $id = $exp_col->insert_one({
         name          => 'default',
         max_age       => 630720000,
         meta          => "{}",
@@ -893,7 +875,7 @@ sub add_measurement_type_value {
     };
     $value->{'ordinal'} = int($ordinal) if(defined($ordinal));
 
-    my $id = $col->update({}, { '$set' => { "values.$name" => $value } } );
+    my $id = $col->update_one({}, { '$set' => { "values.$name" => $value } } );
     if(!$id) {
         $self->error( "Error adding new value, $name to measurement type, $measurement_type");
         return;
@@ -940,7 +922,7 @@ sub add_meta_field {
     $meta_field->{'array'}         = int($array)         if(defined($array));
     $meta_field->{'search_weight'} = int($search_weight) if(defined($search_weight));
 
-    my $id = $col->update({}, { '$set' => { "meta_fields.$name" => $meta_field } } );
+    my $id = $col->update_one({}, { '$set' => { "meta_fields.$name" => $meta_field } } );
     if(!$id) {
         $self->error( "Error adding new meta field, $name to measurement type, $measurement_type");
         return;
@@ -988,7 +970,7 @@ sub update_measurement_types {
     $set->{'search_weight'}  = $self->parse_int($args{'search_weight'})  if(exists($args{'search_weight'}));
 
     if(%$set){
-        my $id = $col->update({}, {'$set' => $set} );
+        my $id = $col->update_one({}, {'$set' => $set} );
         if(!$id) {
             $self->error( "Error updating measurement type, $measurement_type, label" );
             return;
@@ -1034,7 +1016,7 @@ sub update_measurement_type_values {
         return;
     }
 
-    my $id = $col->update({}, { '$set' => $set } );
+    my $id = $col->update_one({}, { '$set' => $set } );
     if(!$id) {
         $self->error( "Error updating value, $name in measurement type, $measurement_type");
         return;
@@ -1096,7 +1078,7 @@ sub update_meta_fields {
         return;
     }
 
-    my $id = $col->update({}, { '$set' => $set } );
+    my $id = $col->update_one({}, { '$set' => $set } );
     if(!$id) {
         $self->error( "Error updating value, $name in measurement type, $measurement_type");
         return;
@@ -1341,7 +1323,7 @@ sub _do_update_measurement_metadata {
 	# makes it unactive 
 	if (defined $orig_end && $orig_start >= $start && $orig_end <= $end_test){
 	    log_debug("Replacing doc from $orig_start to $orig_end entirely for $id");
-	    $measurements->update({_id => $orig_id}, $doc);
+	    $measurements->update_one({_id => $orig_id}, $doc);
 	    $last_end = $orig_end;                
 	    $modified++;
 	}
@@ -1364,7 +1346,7 @@ sub _do_update_measurement_metadata {
 	    # There's an edge case here that can cause a 0 duration document
 	    # to be generated - we can drop this instead since it's useless
 	    if ($original{'end'} != $original{'start'}){
-		$measurements->insert(\%original);
+		$measurements->insert_one(\%original);
 	    }
 	    else {
 		log_debug("Omitting original due to 0 duration document");
@@ -1372,7 +1354,7 @@ sub _do_update_measurement_metadata {
 	    
 	    $doc->{'end'}   = undef;
 	    $doc->{'start'} = $last_end;
-	    $measurements->insert($doc);
+	    $measurements->insert_one($doc);
 	    $modified++;
 	}
 	# If this document DOES have an end AND it's not entirely
@@ -1395,7 +1377,7 @@ sub _do_update_measurement_metadata {
 		    
 		    # Don't create 0 duration document
 		    if ($original{'start'} != $original{'end'}){                        
-			$measurements->insert(\%original);
+			$measurements->insert_one(\%original);
 			$modified++;
 		    }
 		    else {                    
@@ -1419,7 +1401,7 @@ sub _do_update_measurement_metadata {
 		# There is an edge case where if we're going to create a measurement
 		# document of 0 duration, we can just skip it
 		if ($doc->{'start'} != $doc->{'end'}){
-		    $measurements->insert($doc);
+		    $measurements->insert_one($doc);
 		    $fragged_left = 1;                        
 		    $modified++;
 		}
@@ -1444,7 +1426,7 @@ sub _do_update_measurement_metadata {
 
 		# If we're not going to generate a 0 duration doc, go ahead and insert                    
 		if ($original{'start'} != $original{'end'}){
-		    $measurements->insert(\%original);
+		    $measurements->insert_one(\%original);
 		    $modified++;
 		}
 		else {
@@ -1458,7 +1440,7 @@ sub _do_update_measurement_metadata {
 		    $doc->{'end'}   = $orig_start;                        
 		    
 		    if ($doc->{'start'} != $doc->{'end'}){
-			$measurements->insert($doc);
+			$measurements->insert_one($doc);
 			$modified++;
 		    }
 		    else {
@@ -1826,7 +1808,7 @@ sub delete_measurement_type_values {
     }
    
     # remove the field 
-    my $id = $col->update({}, { '$unset' => { "values.$name" => 1} } );
+    my $id = $col->update_one({}, { '$unset' => { "values.$name" => 1} } );
     if(!$id) {
         $self->error( "Error deleting value, $name in measurement type, $measurement_type");
         return;
@@ -1867,7 +1849,7 @@ sub delete_meta_fields {
     $name = $self->_format_meta_field_name( $name, collection => $col, exists => 1, not_required => 1 ) || return;
 
     # remove the field 
-    my $id = $col->update({}, { '$unset' => { "meta_fields.$name" => 1}  } );
+    my $id = $col->update_one({}, { '$unset' => { "meta_fields.$name" => 1}  } );
     if(!$id) {
         $self->error( "Error deleting meta field, $name in measurement type, $measurement_type");
         return;
@@ -1906,24 +1888,21 @@ sub _format_meta_field_name {
 
         # if its an add and theres only 1 field left make sure the field doesn't already exists
         if( $add && ( ($i + 1) == @meta_fields ) ){
-            my $cur = $col->find({ "meta_fields.".$name => { '$exists' => 1 }  });
-            if( $exists && $cur->count() ){
+            if( $exists && $col->count({ "meta_fields.".$name => { '$exists' => 1 } } )){
                 $self->error("Meta field, $name, already exists");
-                return;
+               return;
             }
             last;
         }
 
         # check that field exists
-        my $cur = $col->find({ "meta_fields.".$name => { '$exists' => 1 }  });
-        if( $exists && !$cur->count() ){
+        if( $exists && !$col->count({ "meta_fields.".$name => { '$exists' => 1 }})){
             $self->error("Meta field, $name, does not exist");
             return;
         }
 
         # make sure the field is not a required field
-        $cur = $col->find({ "meta_fields.$name.required" => 1 });
-        if($not_required && $cur->count()){
+        if($not_required && $col->count({ "meta_fields.$name.required" => 1 })){
             $self->error("Meta field, $name, is required and therefore can not be deleted or have the array flag modified");
             return;
         }

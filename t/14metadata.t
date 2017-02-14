@@ -53,7 +53,7 @@ my $metadata = {
 
 $measurements->remove({"identifier" => $IDENTIFIER});
 
-$measurements->insert($metadata);
+$measurements->insert_one($metadata);
 
 # identifier isn't used anymore and causes errors below
 delete $metadata->{'identifier'};

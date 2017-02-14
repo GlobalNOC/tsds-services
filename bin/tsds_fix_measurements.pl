@@ -115,7 +115,7 @@ foreach my $db_name (@dbs){
 	    # above actually takes effect since perl can't easily test for string vs int
 	    if ($doit){
 		$measurements_col->remove({"_id" => $doc_id});
-		$measurements_col->insert($measurement);
+		$measurements_col->insert_one($measurement);
 	    }	    	    
 	}
 
@@ -195,7 +195,7 @@ foreach my $db_name (@dbs){
 			print "Start time on $doc_id for $identifier needs moving forward, adjusting\n";
 			$measurements_col->remove({"_id" => $doc_id});
 			$measurement->{'start'} = $last_end;
-			$measurements_col->insert($measurement);
+			$measurements_col->insert_one($measurement);
 		    }
 		    else {
 			print "Start time on $doc_id for $identifier needs moving forward\n";
@@ -212,7 +212,7 @@ foreach my $db_name (@dbs){
 		    print "End time on $doc_id for $identifier needs moving forward, adjusting\n";
 		    $measurements_col->remove({"_id" => $doc_id});
 		    $measurement->{'end'} = $last_end;
-		    $measurements_col->insert($measurement);
+		    $measurements_col->insert_one($measurement);
 		}
 		else {
 		    print "End time on $doc_id for $identifier needs moving foward\n";

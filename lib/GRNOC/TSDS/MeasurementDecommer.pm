@@ -342,7 +342,7 @@ sub _decom_doc {
     # we cannot update the 'end' field, so we need to remove and insert with the updated 'end'
     delete $doc->{'_id'};
     $doc->{'end'} = $end;
-    $collection->insert( $doc );
+    $collection->insert_one( $doc );
 }
 
 

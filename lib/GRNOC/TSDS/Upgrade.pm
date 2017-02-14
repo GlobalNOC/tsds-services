@@ -130,7 +130,7 @@ sub upgrade {
         $module_name->upgrade( $self );
 	
         # bump up the version in the schema
-        $self->mongo_root->get_database( 'tsds_version' )->get_collection( 'tsds_version' )->update( {}, $update );
+        $self->mongo_root->get_database( 'tsds_version' )->get_collection( 'tsds_version' )->update_one( {}, $update );
 	
         # store this new version #
         $old_version = $self->_get_old_version();

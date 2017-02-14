@@ -349,7 +349,7 @@ sub install {
         return;
     }
 
-
+    
     if ( !$self->_create_shards() ) {
 
 	$self->error( 'An error occurred attempting to create the shards.' );
@@ -418,9 +418,9 @@ sub _set_version {
     }
 
     # upsert so we either insert or update accordingly
-    $collection->update( {},
-                         {'$set' => {'version' => $GRNOC::TSDS::VERSION}},
-                         {'upsert' => 1} );
+    $collection->update_one( {},
+			     {'$set' => {'version' => $GRNOC::TSDS::VERSION}},
+			     {'upsert' => 1} );
 }
 
 sub _create_users {

@@ -571,7 +571,7 @@ sub _write_temp_table {
         $result->{'__tsds_temp_id'} = $self->temp_id();
 
 	eval {
-	    my $res    = $temp_collection->insert($result);
+	    my $res    = $temp_collection->insert_one($result);
 	    my $doc_id = $res->{'value'};
 	};
 
