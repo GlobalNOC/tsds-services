@@ -342,9 +342,9 @@ sub _expire {
     # only remove things if not in pretend mode
     if ( !$self->pretend ) {
 
-        my $ret = $data_collection->remove( $query,
-                                            {'safe' => true,
-                                             'just_one' => false} );
+        my $ret = $data_collection->delete_many( $query,
+                                                 {'safe' => true,
+                                                  'just_one' => false} );
 
         # determine how many documents were removed
         my $num_removed = $ret->{'n'};

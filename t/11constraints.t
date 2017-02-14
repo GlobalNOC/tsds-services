@@ -29,5 +29,5 @@ is_deeply( $query, {'$and' => [{'node' => {'$regex' => '^rtr'}},
 
 my $collection = $mongo->get_collection( 'tsdstest', 'measurements' );
 
-my $num_measurements = $collection->find( $query )->count();
+my $num_measurements = $collection->count( $query );
 is( $num_measurements, 20, "20 measurements" );

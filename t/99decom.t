@@ -38,8 +38,8 @@ my $data         = $mongo->get_database($unit_test_db)->get_collection("data");
 my $IDENTIFIER = "100decom.t";
 
 # clear out anything left in test db from a previous test here
-$measurements->remove({"identifier" => $IDENTIFIER});
-$data->remove({"identifier" => $IDENTIFIER});
+$measurements->delete_many({"identifier" => $IDENTIFIER});
+$data->delete_many({"identifier" => $IDENTIFIER});
 
 
 my $decommer = GRNOC::TSDS::MeasurementDecommer->new( config_file => $config_file,

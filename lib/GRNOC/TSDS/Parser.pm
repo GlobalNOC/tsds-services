@@ -2208,7 +2208,7 @@ sub _verify_where_fields {
     my $database     = shift;
     my $where_names  = shift;
 
-    my @indexes = $database->get_collection(MEASUREMENTS)->get_indexes();
+    my @indexes = $database->get_collection(MEASUREMENTS)->indexes->list->all;
 
     foreach my $where_name (keys %$where_names){
 	my $found = 0;

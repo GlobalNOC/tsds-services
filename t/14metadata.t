@@ -51,7 +51,7 @@ my $metadata = {
     end         => undef
 };
 
-$measurements->remove({"identifier" => $IDENTIFIER});
+$measurements->delete_many({"identifier" => $IDENTIFIER});
 
 $measurements->insert_one($metadata);
 

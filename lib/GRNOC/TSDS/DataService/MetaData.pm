@@ -1340,7 +1340,7 @@ sub _do_update_measurement_metadata {
 	    # risky since the remove could succeed and the insert could fail
 	    # leaving us in a bad state. Mongo has no ACID or transactions or
 	    # anything so this is life I suppose.
-	    $measurements->remove({_id => $orig_id});
+	    $measurements->delete_one({_id => $orig_id});
 	    $original{'end'}   = $last_end;
 
 	    # There's an edge case here that can cause a 0 duration document
@@ -1373,7 +1373,7 @@ sub _do_update_measurement_metadata {
 		if ($original{'end'} ne $start){
 		    $original{'end'} = $start;
 		    delete $original{'_id'};
-		    $measurements->remove({_id => $orig_id});
+		    $measurements->delete_one({_id => $orig_id});
 		    
 		    # Don't create 0 duration document
 		    if ($original{'start'} != $original{'end'}){                        

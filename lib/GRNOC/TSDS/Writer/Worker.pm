@@ -1530,7 +1530,7 @@ sub _create_data_document {
     if ( @overlap_ids > 0 ) {
 
         # first remove from mongo
-        $data_collection->remove( {'_id' => {'$in' => \@overlap_ids}} );
+        $data_collection->delete_many( {'_id' => {'$in' => \@overlap_ids}} );
 
         # also must remove them from our cache since they should no longer exist
         $self->memcache->delete_multi( @overlap_cache_ids );
@@ -1717,8 +1717,8 @@ sub _update_metadata_value_types {
     if ( keys( %$updates ) > 0 ) {
 
         # update the single metadata document with all new value types found
-        $metadata_collection->update( {},
-                                      {'$set' => $updates} );
+        $metadata_collection->update_one( {},
+                                          {'$set' => $updates} );
     }
 
     # mark all value types in our cache
@@ -1780,7 +1780,7 @@ sub _create_measurement_document {
         }
 
         # create it
-        $measurement_collection->insert( $fields );
+        $measurement_collection->insert_one( $fields );
     }
 
     # mark it in our known cache so no one ever tries to add it again
