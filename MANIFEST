@@ -117,7 +117,12 @@ t/09events.t
 t/10bad_data.t
 t/11constraints.t
 t/12search.t
-t/99expire.t
+t/13between.t
+t/14metadata.t
+t/15metadata_query_fragment.t
+t/16misaligned_query_time_aggregate.t
+t/98expire.t
+t/99decom.t
 t/conf/config.xml.example
 t/conf/databases/tsdstest.json
 t/conf/extra.conf.in
