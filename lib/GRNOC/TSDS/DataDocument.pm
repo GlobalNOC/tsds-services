@@ -82,7 +82,8 @@ sub add_value_types {
                                   start => $self->start,
                                   end => $self->end );
 
-    return $data_collection->update_many( $query, {'$set' => $updates} );
+    $data_collection->update_one( $query, {'$set' => $updates} );
+    return 1;
 }
 
 sub update {
@@ -122,9 +123,10 @@ sub update {
     # doing this as part of a bulk operation?
     if ( $bulk ) {
 
-        return $bulk->find( $query )->update_many( {'$set' => $updates,
-                                                    '$min' => {'updated_start' => $min},
-                                                    '$max' => {'updated_end'   => $max}} );
+        $bulk->find( $query )->update_one( {'$set' => $updates,
+                                            '$min' => {'updated_start' => $min},
+                                            '$max' => {'updated_end'   => $max}} );
+        return;
     }
 
     # single doc update
@@ -132,9 +134,10 @@ sub update {
 
         my $data_collection = $self->data_type->database->get_collection( 'data' );
 
-        return $data_collection->update_many( $query, {'$set' => $updates,
-                                                       '$min' => {'updated_start' => $min},
-                                                       '$max' => {'updated_end'   => $max} } );
+        $data_collection->update_one( $query, {'$set' => $updates,
+                                               '$min' => {'updated_start' => $min},
+                                               '$max' => {'updated_end'   => $max} } );
+        return 1;
     }
 }
 

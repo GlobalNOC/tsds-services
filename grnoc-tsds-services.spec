@@ -88,6 +88,7 @@ make pure_install
 %{__install} -d -p %{buildroot}/etc/httpd/conf.d/grnoc/
 %{__install} -d -p %{buildroot}/etc/cron.d/
 %{__install} -d -p %{buildroot}/etc/sphinx/
+%{__install} -d -p %{buildroot}/usr/lib/systemd/system/
 %{__install} -d -p %{buildroot}/etc/init.d/
 %{__install} -d -p %{buildroot}/usr/bin/
 %{__install} -d -p %{buildroot}/usr/lib/grnoc/tsds/services/cgi-bin/
@@ -149,13 +150,13 @@ make pure_install
 %{__install} bin/tsds_meta.pl %{buildroot}/usr/bin/tsds_meta.pl
 %{__install} bin/tsds_fix_measurements.pl %{buildroot}/usr/bin/tsds_fix_measurements.pl
 
-%{__install} init.d/mongod-config1 %{buildroot}/etc/init.d/mongod-config1
-%{__install} init.d/mongod-config2 %{buildroot}/etc/init.d/mongod-config2
-%{__install} init.d/mongod-config3 %{buildroot}/etc/init.d/mongod-config3
-%{__install} init.d/mongod-shard1 %{buildroot}/etc/init.d/mongod-shard1
-%{__install} init.d/mongod-shard2 %{buildroot}/etc/init.d/mongod-shard2
-%{__install} init.d/mongod-shard3 %{buildroot}/etc/init.d/mongod-shard3
-%{__install} init.d/mongos %{buildroot}/etc/init.d/mongos
+%{__install} systemd/mongod-config1.service %{buildroot}/usr/lib/systemd/system/mongod-config1.service
+%{__install} systemd/mongod-config2.service %{buildroot}/usr/lib/systemd/system/mongod-config2.service
+%{__install} systemd/mongod-config3.service %{buildroot}/usr/lib/systemd/system/mongod-config3.service
+%{__install} systemd/mongod-shard1.service %{buildroot}/usr/lib/systemd/system/mongod-shard1.service
+%{__install} systemd/mongod-shard2.service %{buildroot}/usr/lib/systemd/system/mongod-shard2.service
+%{__install} systemd/mongod-shard3.service %{buildroot}/usr/lib/systemd/system/mongod-shard3.service
+%{__install} systemd/mongos.service %{buildroot}/usr/lib/systemd/system/mongos.service
 %{__install} init.d/tsds_writer %{buildroot}/etc/init.d/tsds_writer
 %{__install} init.d/tsds_meta %{buildroot}/etc/init.d/tsds_meta
 
@@ -180,7 +181,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 
-%defattr(644, root, root, -)
+%defattr(644, root, root, 755)
 
 %config(noreplace) /etc/grnoc/tsds/services/config.xml
 %config(noreplace) /etc/grnoc/tsds/services/meta_config.xml
@@ -290,22 +291,25 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/tsds_upgrade.pl
 /usr/bin/tsds_writer
 
-%config(noreplace) /etc/init.d/mongod-config1
-%config(noreplace) /etc/init.d/mongod-config2
-%config(noreplace) /etc/init.d/mongod-config3
-%config(noreplace) /etc/init.d/mongod-shard1
-%config(noreplace) /etc/init.d/mongod-shard2
-%config(noreplace) /etc/init.d/mongod-shard3
-%config(noreplace) /etc/init.d/mongos
 %config(noreplace) /etc/init.d/tsds_writer
 %config(noreplace) /etc/init.d/tsds_meta
 
-%defattr(755, root, root, -)
+%defattr(444, root, root, -)
+
+/usr/lib/systemd/system/mongod-config1.service
+/usr/lib/systemd/system/mongod-config2.service
+/usr/lib/systemd/system/mongod-config3.service
+/usr/lib/systemd/system/mongod-shard1.service
+/usr/lib/systemd/system/mongod-shard2.service
+/usr/lib/systemd/system/mongod-shard3.service
+/usr/lib/systemd/system/mongos.service
+
+%defattr(-, root, root, 755)
 
 %dir /var/lib/grnoc/tsds/
 %dir /var/run/grnoc/tsds/services/
 
-%defattr(755, mongod, mongod, -)
+%defattr(-, mongod, mongod, 755)
 
 %dir /var/lib/mongo/config1
 %dir /var/lib/mongo/config2
@@ -314,6 +318,6 @@ rm -rf $RPM_BUILD_ROOT
 %dir /var/lib/mongo/shard2
 %dir /var/lib/mongo/shard3
 
-%defattr(755, apache, apache, -)
+%defattr(-, apache, apache, 755)
 
 %dir /usr/share/grnoc/tsds-services/temp

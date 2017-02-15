@@ -95,7 +95,8 @@ sub update {
     # doing this as part of a bulk operation?
     if ( $bulk ) {
 
-        return $bulk->find( $query )->update_many( {'$set' => $updates} );
+        $bulk->find( $query )->update_one( {'$set' => $updates} );
+        return;
     }
 
     # single doc update
@@ -103,7 +104,8 @@ sub update {
 
         my $event_collection = $self->data_type->database->get_collection( 'event' );
 
-        return $event_collection->update_many( $query, {'$set' => $updates} );
+        $event_collection->update_one( $query, {'$set' => $updates} );
+        return 1;
     }
 }
 
