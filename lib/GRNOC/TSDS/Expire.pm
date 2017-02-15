@@ -343,11 +343,11 @@ sub _expire {
     if ( !$self->pretend ) {
 
         my $ret = $data_collection->delete_many( $query,
-                                                 {'safe' => true,
-                                                  'just_one' => false} );
+                                                 {'safe' => true} );
 
         # determine how many documents were removed
-        my $num_removed = $ret->{'n'};
+        my $num_removed = 0;
+        $num_removed = $ret->deleted_count if $ret->acknowledged;
 
         $self->logger()->info( "Removed $num_removed documents from the $data_collection->{'name'} collection in the $database->{'name'} database." );
 
