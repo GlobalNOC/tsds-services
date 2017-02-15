@@ -1445,7 +1445,7 @@ sub _query_database {
             return;
         }
 
-        foreach my $doc (@$aggregate_results){
+        while (my $doc = $aggregate_results->next()){
             my $identifier = $doc->{'identifier'};
             my $start      = $doc->{'start'};
             push(@{$meta_merge_docs{$identifier}},  $doc);

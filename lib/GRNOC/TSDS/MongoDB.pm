@@ -355,13 +355,19 @@ sub enable_sharding {
 
     my ( $self, $db_name ) = @_;
 
-    my $db = $self->get_database("admin");
-    if(!$db->run_command([enableSharding => $db_name])){
-        $self->error( "Unable to enable sharding on $db_name" );
-        return;
-    }
 
-    return 1;
+    my $db = $self->get_database("admin");
+
+    my $error;
+    eval {
+	$db->run_command([enableSharding => $db_name]);
+    };
+    $error = $@->message if ($@);
+
+    return 1 if (! $error || $error =~ /sharding already enabled/);
+
+    $self->error( "Unable to enable sharding on $db_name: $error" );
+    return;
 }
 
 sub add_collection_shard {
@@ -373,7 +379,7 @@ sub add_collection_shard {
 
     if ( $response_json->{'ok'} ne '1') {
         # ignore error if its due to it already being sharded
-        if ( $response_json->{'errmsg'} !~ /already sharded/ ) {
+        if ( $response_json->{'errmsg'} !~ /already enabled/ ) {
             $self->error( "Error while sharding $db_name $col_name: " . $response_json->{'errmsg'} );
             return;
         }
