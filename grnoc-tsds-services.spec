@@ -181,7 +181,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 
-%defattr(644, root, root, -)
+%defattr(644, root, root, 755)
 
 %config(noreplace) /etc/grnoc/tsds/services/config.xml
 %config(noreplace) /etc/grnoc/tsds/services/meta_config.xml
@@ -304,12 +304,12 @@ rm -rf $RPM_BUILD_ROOT
 /usr/lib/systemd/system/mongod-shard3.service
 /usr/lib/systemd/system/mongos.service
 
-%defattr(755, root, root, -)
+%defattr(-, root, root, 755)
 
 %dir /var/lib/grnoc/tsds/
 %dir /var/run/grnoc/tsds/services/
 
-%defattr(755, mongod, mongod, -)
+%defattr(-, mongod, mongod, 755)
 
 %dir /var/lib/mongo/config1
 %dir /var/lib/mongo/config2
@@ -318,6 +318,6 @@ rm -rf $RPM_BUILD_ROOT
 %dir /var/lib/mongo/shard2
 %dir /var/lib/mongo/shard3
 
-%defattr(755, apache, apache, -)
+%defattr(-, apache, apache, 755)
 
 %dir /usr/share/grnoc/tsds-services/temp
