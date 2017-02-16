@@ -1323,7 +1323,7 @@ sub _do_update_measurement_metadata {
 	# makes it unactive 
 	if (defined $orig_end && $orig_start >= $start && $orig_end <= $end_test){
 	    log_debug("Replacing doc from $orig_start to $orig_end entirely for $id");
-	    $measurements->update_one({_id => $orig_id}, $doc);
+	    $measurements->replace_one({_id => $orig_id}, $doc);
 	    $last_end = $orig_end;                
 	    $modified++;
 	}
@@ -1422,7 +1422,7 @@ sub _do_update_measurement_metadata {
 		log_debug("Fragment existing metadata document on right for $id");
 		$original{'start'} = $last_end;
 		delete $original{'_id'};
-		$measurements->remove({_id => $orig_id});
+		$measurements->delete_one({_id => $orig_id});
 
 		# If we're not going to generate a 0 duration doc, go ahead and insert                    
 		if ($original{'start'} != $original{'end'}){

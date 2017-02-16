@@ -593,7 +593,7 @@ sub _clean_temp_table {
     my $temp_collection = $self->mongo_rw()->get_collection($self->temp_database(),
                                                             $self->temp_table());
 
-    my $res = $temp_collection->remove({"__tsds_temp_id" => $self->temp_id()});    
+    my $res = $temp_collection->delete_many({"__tsds_temp_id" => $self->temp_id()});    
 
     $self->_used_temp_table(0);
 
@@ -1137,7 +1137,7 @@ sub _query_event_database {
         if($metadata->{'event_limit'}){
             # push on a count aggregate op
             push(@aggregate_ops, {'$group' => { _id => undef, 'count' => { '$sum' => 1 }}});
-            $event_count = $collection->aggregate(\@aggregate_ops)->[0]{'count'};
+            $event_count = [$collection->aggregate(\@aggregate_ops)->all()]->[0]{'count'};
             log_debug("got $event_count results with a event_limit of ".$metadata->{'event_limit'});
             if($event_count > $metadata->{'event_limit'}){
                 $is_over_event_limit = 1;
@@ -1146,7 +1146,7 @@ sub _query_event_database {
             # pop off count aggregate op
             pop(@aggregate_ops);
         }
-        $results = $collection->aggregate(\@aggregate_ops);
+        $results = [$collection->aggregate(\@aggregate_ops)->all()];
     };
     if ($is_over_event_limit) {
         $self->error( "Your query generated $event_count events which is greater than the configured limit of ".$metadata->{'event_limit'}.". Either refactor your query or use limit and offset to page your results.");
@@ -1424,7 +1424,7 @@ sub _query_database {
         log_debug("Measurements query issued to Mongo: ", {filter => \&Data::Dumper::Dumper,
                                    value  => $meta_where_fields});
 
-        my $aggregate_results;
+        my @aggregate_results;
         eval {
 
 	    my @keys = keys( %$queried_field_names );
@@ -1434,10 +1434,10 @@ sub _query_database {
 		delete( $queried_field_names->{$key} ) if ( $key =~ /^values\./ );
 	    }
 	    
-            $aggregate_results = $measurements->aggregate([{'$match' => $meta_where_fields},
+            @aggregate_results = $measurements->aggregate([{'$match' => $meta_where_fields},
                                                            @unwind,
                                                            {'$project' => $queried_field_names}
-                                                          ]);
+                                                          ])->all();
         };
 
         if ($@){
@@ -1445,7 +1445,7 @@ sub _query_database {
             return;
         }
 
-        while (my $doc = $aggregate_results->next()){
+        foreach my $doc (@aggregate_results){
             my $identifier = $doc->{'identifier'};
             my $start      = $doc->{'start'};
             push(@{$meta_merge_docs{$identifier}},  $doc);
@@ -1675,7 +1675,7 @@ sub _query_database {
         }
 
 	# ISSUE=11635 no docs found in high res, fall back to using aggregate
-        if ( $data_source eq DATA && $database->name ne $self->temp_database() && $cursor->count == 0 ) {
+        if ( $data_source eq DATA && $database->name ne $self->temp_database() && $collection->count($where_fields) == 0 ) {
 
             log_warn( "No documents found in high res data source $data_source, falling back to use aggregate data!" );
 
@@ -1722,7 +1722,7 @@ sub _query_database {
 	}
 
         # ISSUE=10430 no docs found using this aggregate data source
-        elsif ( $data_source ne DATA && $database->name ne $self->temp_database() && $cursor->count == 0 ) {
+        elsif ( $data_source ne DATA && $database->name ne $self->temp_database() && $collection->count($where_fields) == 0 ) {
 
             log_warn( "No documents found in aggregate data source $data_source, falling back to use high res data!" );
 
@@ -2032,7 +2032,7 @@ sub _get_meta_limit_result {
 
 
     # query
-    my $limit_result;
+    my @limit_result;
     eval {
         # mapreduce is generally regarded as slow in the community and empirical testing
         # shows that it is generally worse off than the aggregation pipeline for
@@ -2052,23 +2052,23 @@ sub _get_meta_limit_result {
             push(@unwind, {'$match' => $limit_query});
         }
 
-        $limit_result = $collection->aggregate([{'$match' => $limit_query}, 
+        @limit_result = $collection->aggregate([{'$match' => $limit_query}, 
                                                 @unwind, 
                                                 {
                                                     '$group'   => {
                                                         '_id'   => $group_clause,
                                                         'count' => {'$sum' => 1}
                                                     }
-                                                }]);
+                                                }])->all();
         
         my $total_count = 0;
-        foreach my $item (@$limit_result){
+        foreach my $item (@limit_result){
             $total_count += $item->{'count'};
         }
 
         # keep track of how many total matched
         # vs just the ones we limit/offset'd
-        $self->total(scalar @$limit_result);
+        $self->total(scalar @limit_result);
         $self->total_raw($total_count);
 
         # Default sort ordering to the "by" clause elements
@@ -2101,15 +2101,15 @@ sub _get_meta_limit_result {
 
         log_debug("Inner meta sort is ", {filter => \&Data::Dumper::Dumper, value  => $sort});
 
-        $limit_result = $collection->aggregate([{'$match'  => $limit_query},
+        @limit_result = $collection->aggregate([{'$match'  => $limit_query},
                                                 @unwind,
                                                 {'$group'  => $group},
                                                 $sort,
                                                 {'$limit'  => $limit + $offset},
                                                 {'$skip'   => $offset}
-                                               ]);
+                                               ])->all();
 
-        return $limit_result;
+        return \@limit_result;
     };
 
     if ($@){
@@ -2117,7 +2117,7 @@ sub _get_meta_limit_result {
         return;
     }
 
-    return $limit_result;
+    return \@limit_result;
 }
 
 sub _get_unwind_operations {
