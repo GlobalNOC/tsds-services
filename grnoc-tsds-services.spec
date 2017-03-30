@@ -26,7 +26,7 @@ Requires: perl-GRNOC-LockFile >= 1.0.1
 Requires: ImageMagick-perl
 Requires: perl-JSON
 Requires: perl-JSON-XS
-Requires: perl-MongoDB >= 0.707.2.0
+Requires: perl-MongoDB >= 0.708.4.0
 Requires: perl-Data-Compare
 Requires: perl-Time-HiRes
 Requires: perl-DateTime
