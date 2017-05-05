@@ -29,8 +29,10 @@ use GRNOC::WebService::Regex;
 use JSON::XS;
 
 # Get access to encode/decode_bson
-use XSLoader;
-XSLoader::load("MongoDB");
+#use XSLoader;
+#XSLoader::load("MongoDB");
+
+use MongoDB::BSON;
 
 use Data::Dumper;
 
@@ -111,7 +113,7 @@ sub _query {
 
     if ($output =~ /^bson$/i){
 	$method->{'output_type'} = "application/bson";
-	$response = MongoDB::BSON::encode_bson($response);
+	$response = MongoDB::BSON->new()->encode_one($response);
     }
     else {
 	$method->{'output_type'} = "application/json";
