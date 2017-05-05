@@ -20,7 +20,7 @@ my $help        = 0;
 
 GetOptions(
     'config|c=s'    => \$config_file,
-    'logging|l=s'   => \$config_file,
+    'logging|l=s'   => \$log_config,
     'help|h|?'      => \$help,
     ) or die USAGE;
 
