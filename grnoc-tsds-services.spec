@@ -1,6 +1,6 @@
 Summary: GRNOC TSDS Services
 Name: grnoc-tsds-services
-Version: 1.5.2
+Version: 1.5.3
 Release: 1%{?dist}
 License: GRNOC
 Group: Measurement
@@ -148,6 +148,8 @@ make pure_install
 %{__install} bin/tsds_writer %{buildroot}/usr/bin/tsds_writer
 %{__install} bin/tsds_meta.pl %{buildroot}/usr/bin/tsds_meta.pl
 %{__install} bin/tsds_fix_measurements.pl %{buildroot}/usr/bin/tsds_fix_measurements.pl
+%{__install} bin/tsds-decom.pl %{buildroot}/usr/bin/tsds-decom.pl
+
 
 %{__install} init.d/mongod-config1 %{buildroot}/etc/init.d/mongod-config1
 %{__install} init.d/mongod-config2 %{buildroot}/etc/init.d/mongod-config2
@@ -287,6 +289,7 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/tsds_install.pl
 /usr/bin/tsds_meta.pl
 /usr/bin/tsds_fix_measurements.pl
+/usr/bin/tsds-decom.pl
 /usr/bin/tsds_upgrade.pl
 /usr/bin/tsds_writer
 

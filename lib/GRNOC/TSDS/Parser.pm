@@ -224,7 +224,7 @@ sub evaluate {
     # if there are problems
     my $res;
     eval {
-        $res = $self->_process_tokens($tokens);
+        $res = $self->_process_tokens($tokens, 0, $query);
     };
     if ($@){
         $self->error($@);
@@ -333,6 +333,7 @@ sub _process_tokens {
     my $self        = shift;
     my $tokens      = shift;
     my $is_subquery = shift;
+    my $text_query  = shift;
 
     my $query_time_start = [gettimeofday];
 
@@ -373,7 +374,7 @@ sub _process_tokens {
         # the subquery will be stored in a temp table in mongo and it will return the
         # field mappings from the last query. This is to get around the fact that you cannot
         # store certain characters as mongo fields so it arbitrarily assigns them new ones
-        $doc_symbols = $self->_process_tokens($inner_query, 1);
+        $doc_symbols = $self->_process_tokens($inner_query, 1, $text_query);
         $from_field  = $self->temp_database();
 
         return if (! defined $doc_symbols);
@@ -450,7 +451,8 @@ sub _process_tokens {
             need_all       => $need_all,
             limit          => $limit,
             offset         => $offset,
-            symbols        => $doc_symbols
+            symbols        => $doc_symbols,
+	    text_query     => $text_query
         );
     }
     return if (! defined $inner_result);
@@ -510,6 +512,13 @@ sub _process_tokens {
             $self->total(scalar @$final_results);
             $self->total_raw(scalar @$final_results);
         }
+
+	# If we were doing a data fetch we only set the "raw" limit in
+	# query database, now that we have done all of the grouping
+	# we know what the final set looks like before doing limit
+	if (! defined $self->total()){
+            $self->total(scalar @$final_results);
+	}
 
         $final_results = $self->_apply_limit_offset($final_results, $limit, $offset);
     }
@@ -1204,6 +1213,7 @@ sub _query_database {
     my $limit           = $args{'limit'};
     my $offset          = $args{'offset'};
     my $doc_symbols     = $args{'symbols'};
+    my $text_query      = $args{'text_query'};
 
     my $queried_field_names = $self->_get_field_names( $fields );
 
@@ -1674,10 +1684,12 @@ sub _query_database {
             return;
         }
 
+	log_debug("where fields = " . Dumper($where_fields));
+
 	# ISSUE=11635 no docs found in high res, fall back to using aggregate
         if ( $data_source eq DATA && $database->name ne $self->temp_database() && $cursor->count == 0 ) {
 
-            log_warn( "No documents found in high res data source $data_source, falling back to use aggregate data!" );
+            log_warn( "No documents found in high res data source $data_source, falling back to use aggregate data! Query was \"$text_query\"" );
 
 	    $cursor = undef;
 
@@ -2319,6 +2331,16 @@ sub _apply_order {
 	    else {
 		$val_a = $b->{$token_name};
 		$val_b = $a->{$token_name};
+	    }
+
+	    # undefined is always sorted differently than defined
+	    if (! defined $val_a && defined $val_b){
+		$res = $res || -1;
+		next;
+	    }
+	    if (defined $val_a && ! defined $val_b){
+		$res = $res || 1;
+		next;
 	    }
 
 	    # are we sorting numbers or text?
