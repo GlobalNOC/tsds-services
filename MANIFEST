@@ -97,6 +97,7 @@ lib/GRNOC/TSDS/Upgrade/1_4_2.pm
 lib/GRNOC/TSDS/Upgrade/1_5_0.pm
 lib/GRNOC/TSDS/Upgrade/1_5_1.pm
 lib/GRNOC/TSDS/Upgrade/1_5_2.pm
+lib/GRNOC/TSDS/Upgrade/1_5_3.pm
 lib/GRNOC/TSDS/Util/ConfigChooser.pm
 lib/GRNOC/TSDS/Writer.pm
 lib/GRNOC/TSDS/Writer/AggregateMessage.pm
