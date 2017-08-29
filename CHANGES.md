@@ -1,3 +1,12 @@
+## GRNOC TSDS Services 1.5.3 -- Tue Aug 29 2017
+
+### Features:
+
+### Bug Fixes:
+
+* ISSUE=2633 Fixed missing inclusion of tsds-decom.pl script
+
+
 ## GRNOC TSDS Services 1.5.2 -- Tue Nov 1 2016
 
 ### Features:
