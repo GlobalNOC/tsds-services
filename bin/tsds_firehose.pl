@@ -13,7 +13,7 @@ use Data::Dumper;
 
 use constant TYPE => 'interface';
 use constant INTERVAL => 30;
-use constant MESSAGE_SIZE => 100;
+use constant MESSAGE_SIZE => 1000;
 
 ### command line options ###
 
@@ -58,14 +58,20 @@ while ( 1 ) {
 
     push( @$messages, @$data );
 
-    if ( @$messages >= MESSAGE_SIZE ) {
+    # Push arrays of size at most MESSAGE_SIZE to RabbitMQ:
+    while ( scalar(@$messages) >= MESSAGE_SIZE ) {
 
-        $rabbit->publish( 1, $rabbit_queue, encode_json( $messages ), {'exchange' => ''} );
-        $messages = [];
+        my @chunk = splice @$messages, 0, MESSAGE_SIZE;
+        $rabbit->publish( 1, $rabbit_queue, encode_json( \@chunk ), {'exchange' => ''} );
     }
 
     $counter++;
     $timestamp += $interval;
+}
+
+# Push any remaining messages to RabbitMQ:
+if ( scalar(@$messages) > 0) {
+    $rabbit->publish( 1, $rabbit_queue, encode_json( $messages ), {'exchange' => ''} );
 }
 
 # all done
