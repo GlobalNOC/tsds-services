@@ -1,3 +1,16 @@
+## GRNOC TSDS Services 1.5.3 -- Tue Aug 29 2017
+
+### Features:
+
+* ISSUE=5057 Added aggregate chart to Portal section. Also added additional metadata to the
+Portal section display, such as interface descriptions.
+
+### Bug Fixes:
+
+* ISSUE=2633 Fixed missing inclusion of tsds-decom.pl script
+* ISSUE=5057 Fixed sorting issue with Portal section not being respected.
+
+
 ## GRNOC TSDS Services 1.5.2 -- Tue Nov 1 2016
 
 ### Features:
