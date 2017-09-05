@@ -370,6 +370,7 @@ sub _mongo_connect {
             password => $rw_user->{'password'},
 	    socket_timeout_ms => 120 * 1000	    
         );
+
     };
     if($@){
         die "Could not connect to Mongo: $@";

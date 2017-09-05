@@ -1293,7 +1293,19 @@ sub _do_update_measurement_metadata {
 	my $orig_end   = $original{'end'};
 	my $orig_start = $original{'start'};
 	my $orig_id    = $original{'_id'};
-	
+
+        # specifically check to see if end time is different,
+        # ie we're just decomming this thing but changing
+        # nothing else
+        if ($is_same && $orig_end ne $end){
+            $last_end = $end;
+            $original{'end'} = $end;
+            $measurements->remove({_id => $orig_id});
+            $measurements->insert(\%original);
+            $modified++;
+            next;
+        }	
+
 	# if the docs ended up being exactly the same, we can skip ahead
 	# since there's nothing to do
 	if ($is_same){

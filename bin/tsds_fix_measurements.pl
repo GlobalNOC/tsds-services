@@ -39,8 +39,8 @@ my $redis_port = $config->get('/config/redis/@port')->[0];
 
 my $redis  = Redis->new( server => "$redis_host:$redis_port" );
 my $locker = Redis::DistLock->new( servers => [$redis],
-				   retry_count => 10,
-				   retry_delay => 0.5);
+				   retry_count => 100,
+				   retry_delay => 0.1);
 
 my @dbs = $mongo->database_names();
 
@@ -102,8 +102,11 @@ foreach my $db_name (@dbs){
 
 	my $is_bad = 0;
 
+	my $count = 0;
+
 	# type fixing on the start/end times
 	foreach my $measurement (@measurements){
+	    $count++;
 
 	    # type fixing maybe
 	    $measurement->{'start'} = int($measurement->{'start'});
@@ -122,6 +125,15 @@ foreach my $db_name (@dbs){
 
 	my $last_end = $measurements[0]->{'end'};
 	my $first    = shift @measurements;
+
+	# have to check to see if the first one was active, somewhat of an edge 
+	# case where only two docs exist and both are active
+	if (! defined $last_end){
+	    $active = 1;
+	    if (@measurements > 0){
+		print "First doc was active for $identifier, but we found other docs with later start times\n";
+	    }
+	}
 
 	foreach my $measurement (@measurements){
 
@@ -165,7 +177,7 @@ foreach my $db_name (@dbs){
 	    # if this record overlaps with the last one, there's a problem
 	    # (works because of sort above)
 	    if ($current_start < $last_end){
-		print "Start time $current_start less than last end $last_end for $identifier\n";
+		print "Start time $current_start less than last end $last_end for $identifier (count = $count)\n";
 		$is_bad = 1;
 
 		# two cases here, either just the start is less than the end
