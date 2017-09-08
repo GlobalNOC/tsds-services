@@ -304,7 +304,7 @@ sub _get_meta_field_values {
 
     return {
 	    total   => $self->metadata_ds()->parser()->total(),
-        results => $results
+	    results => $results
     };
 }
 
@@ -320,7 +320,10 @@ sub _get_distinct_meta_field_values {
         return;
     }
 
-    return $results;
+    return {
+	total   => @$results,
+	results => $results
+    };
 }
 
 sub _get_meta_field_values_dynamic_parameters {

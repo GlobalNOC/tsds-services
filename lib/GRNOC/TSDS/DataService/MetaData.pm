@@ -144,7 +144,7 @@ sub get_measurement_types {
                 # get count if flag was passed in
                 if($args{'show_measurement_count'}){
                     my $empty = ($classifier->{'array'}) ? [] : undef;
-                    my $c_count = $meas_collection->count( { $classifier->{'name'} => { '$ne' => $empty } });
+                    my $c_count = $meas_collection->count( { $classifier->{'name'} => { '$ne' => $empty }, "end" => undef });
                     $measurement_type->{'measurement_count'} = $c_count
                 }
                 # add an array of the required fields if the flag was passed in
@@ -667,16 +667,16 @@ sub get_distinct_meta_field_values {
         }
     }
     else {
-        my $agg_results;
+        my @agg_results;
         my $measurements = $db->get_collection("measurements");    
-
+	
         eval {
-            $agg_results = $measurements->aggregate([{'$match' => $query},
+            @agg_results = $measurements->aggregate([{'$match' => $query},
                                                      {'$unwind' => '$'.$prefix},
                                                      {'$match' => $query},
                                                      {'$group' => { _id => '$'.$meta_field }},
                                                      {'$sort' => { _id => 1 }},
-                                                     {'$limit' => $limit+0}]);
+                                                     {'$limit' => $limit+0}])->all();
         };
         if ($@){
             $self->error("Error querying aggregation from database: $@");
@@ -685,7 +685,7 @@ sub get_distinct_meta_field_values {
 
         # Loop through the aggregation result to create a final result (replace 'value' with '_id')
         # one rare case (circuit role) where the meta field value is an array 
-        foreach my $item (@$agg_results) {
+        foreach my $item (@agg_results) {
              my $value = $item->{'_id'};
              if (defined($value)) {
                  if (ref($value) eq 'ARRAY') {
@@ -705,11 +705,7 @@ sub get_distinct_meta_field_values {
         }
     }
 
-    my $total = @results;
-    return {
-               total => $total,
-               results => \@results
-           };
+    return \@results;
 }
 
 # ADD METHODS

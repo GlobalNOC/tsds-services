@@ -2014,8 +2014,19 @@ sub _get_meta_limit_result {
 
             $unique_by{$by_field} = 1;
 
-            $group_clause->{$by_field} = '$' . $by_field;
-            
+	    # starting in Mongo 3.4 they don't allow for dotted field
+	    # names, like "circuit.name" so when we ask for it out
+	    # we have to get it as circuit: {name: instead
+	    # we'll have to translate back on the other side
+	    my @by_pieces = split(/\./, $by_field);
+	    my $last_piece = pop @by_pieces;
+	    my $loc = $group_clause;
+	    while (my $piece = shift @by_pieces){
+	    	$loc->{$piece} ||= {};
+	    	$loc = $loc->{$piece};
+	    }
+	    $loc->{$last_piece} = '$' . $by_field;	    
+
             # if the where clause already had this field in it,
             # we need to ensure our limit query contains both $exists
             # and whatever the original filter on that field was
@@ -2064,14 +2075,16 @@ sub _get_meta_limit_result {
             push(@unwind, {'$match' => $limit_query});
         }
 
-        @limit_result = $collection->aggregate([{'$match' => $limit_query}, 
-                                                @unwind, 
-                                                {
-                                                    '$group'   => {
-                                                        '_id'   => $group_clause,
-                                                        'count' => {'$sum' => 1}
-                                                    }
-                                                }])->all();
+	my $pipeline = [{'$match' => $limit_query}, 
+			@unwind, 
+			{
+			    '$group'   => {
+				'_id'   => $group_clause,
+				'count' => {'$sum' => 1}
+			    }
+			}];
+	
+        @limit_result = $collection->aggregate($pipeline)->all();
         
         my $total_count = 0;
         foreach my $item (@limit_result){
@@ -2094,7 +2107,7 @@ sub _get_meta_limit_result {
                 my $name  = $item->[0];
                 my $dir   = $item->[1];
                 
-                if (! defined $dir || $dir  =~ /asc/){
+                if (! defined $dir || $dir  =~ /asc/i){
                     $dir = 1;
                 }
                 else {
@@ -2120,6 +2133,23 @@ sub _get_meta_limit_result {
                                                 {'$limit'  => $limit + $offset},
                                                 {'$skip'   => $offset}
                                                ])->all();
+
+	# Reverse of above, we might get something back
+	# like "circuit: {name: " and we want to cast that back
+	# to "circuit.name: {" for use later
+	foreach my $limit_res (@limit_result){
+	    my $id = $limit_res->{'_id'};
+	    foreach my $key (keys $id){
+		my $str = $key;
+		my $val = $id->{$key};
+		if (ref($val) eq 'HASH'){
+		    foreach my $key2 (keys %$val){
+			$limit_res->{'_id'}{$key . '.' . $key2} = $val->{$key2};			
+		    }
+		    delete $limit_res->{'_id'}{$key};
+		}
+	    }
+	}
 
         return \@limit_result;
     };
