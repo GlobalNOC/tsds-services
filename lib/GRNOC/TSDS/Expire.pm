@@ -388,7 +388,7 @@ sub _mongo_connect {
     eval {
         $mongo = MongoDB::MongoClient->new(
             host => "$mongo_host:$mongo_port",
-            query_timeout => -1,
+            socket_timeout_ms => -1,
             username => $rw_user->{'user'},
             password => $rw_user->{'password'}
         );

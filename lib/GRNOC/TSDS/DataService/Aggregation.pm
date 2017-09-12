@@ -477,7 +477,7 @@ sub delete_aggregations {
     ) || return;
 
     # remove the aggregate rule from the collection
-    my $id = $agg_col->remove({name => $name});
+    my $id = $agg_col->delete_one({name => $name});
     if(!$id) {
         $self->error( "Error removing aggregate rule for $name.");
         return;
@@ -489,7 +489,7 @@ sub delete_aggregations {
         $self->error($self->mongo_rw()->error());
         return;
     }
-    $id = $exp_col->remove({ name => $name });
+    $id = $exp_col->delete_one({ name => $name });
     if(!$id) {
         $self->error( "Error removing values from expiration with name $name.");
         return;
@@ -544,7 +544,7 @@ sub _delete_aggregation_data {
     # if there's other aggregations besides the one we are deleting
     # delete everything in data_$interval that doesn't match their metadata scope
     if(@$ids){
-        my $res = $agg_data_col->remove({ identifier => { '$in' => $ids } });
+        my $res = $agg_data_col->delete_many({ identifier => { '$in' => $ids } });
         if(!$res) {
             $self->error( "Error removing values from aggregate with name $name.");
             return;
@@ -587,7 +587,7 @@ sub delete_expirations {
         $self->error("Aggregation named, $name, doesn't exist");
         return;
     }
-    my $id = $exp_col->remove({name => $name});
+    my $id = $exp_col->delete_one({name => $name});
     if(!$id) {
         $self->error( "Error removing values from expiration with name $name.");
         return;

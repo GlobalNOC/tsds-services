@@ -50,7 +50,7 @@ sub BUILD {
     eval {
         $mongo_root = MongoDB::MongoClient->new(
             host => "$mongo_host:$mongo_port",
-            query_timeout => -1,
+            socket_timeout_ms => -1,
             username => $root_user->{'user'},
             password => $root_user->{'password'}
             );

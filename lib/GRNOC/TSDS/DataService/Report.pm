@@ -1072,7 +1072,7 @@ sub _delete_reports {
     }
 
     # remove the reports
-    my $success = $report_collection->remove( $find );
+    my $success = $report_collection->delete_many( $find );
     if(!$success) {
         $self->error( 'Error deleting reports' );
         return;
