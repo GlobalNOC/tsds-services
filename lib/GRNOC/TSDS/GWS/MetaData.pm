@@ -169,7 +169,7 @@ sub _init_methods {
     $self->websvc()->register_method( $method );
 
     # static parameter of get_distinct_meta_field_values()
-    my @static_parameters = ({
+    @static_parameters = ({
         name        => 'measurement_type',
         required    => 1,
         multiple    => 0,
