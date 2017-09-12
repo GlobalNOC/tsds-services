@@ -552,7 +552,7 @@ sub _delete_aggregation_data {
     }
 
     # if there's no data left in the agg data cursor drop it
-    if ($agg_data_col->find({})->count() == 0) {
+    if ($agg_data_col->count({}) == 0) {
         $agg_data_col->drop();
     }
     
