@@ -1190,7 +1190,7 @@ sub _get_reports {
     }
 =cut
     my @reports = $report_collection->find($find)->sort( { $order_by => $flag } )->skip($offset)->limit($limit)->all;
-    my $count = $report_collection->find($find)->sort( { $order_by => $flag } )->skip($offset)->limit($limit)->count();
+    my $count = $report_collection->count($find);
 
     @reports = map {{ name           => $_->{'name'}, 
                       type           => $_->{'type'},
