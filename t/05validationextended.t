@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 184;
+use Test::More tests => 185;
 
 # testing multiple where operators
 use GRNOC::Config;
@@ -438,3 +438,9 @@ is($arr->[0]->{'second'}, 105841.458333333, "got average aggregate chain");
 is($arr->[0]->{'third'}, 105841.458333333, "got max average aggregate chain");
 is($arr->[0]->{'fourth'}, 1, "got count max average aggregate chain");
 is($arr->[0]->{'fourth'}, 1, "got sum count max average aggregate chain");
+
+
+# Test selecting by a complex field name, this changed in Mongo 3.4 and we have
+# to ensure we're properly encoding/decoding the field in the query engine
+my $arr = $query->run_query( query =>'get values.input, circuit.name between ("01/01/1970 00:00:00 UTC","01/01/1970 12:00:00 UTC") by circuit.name, circuit.description from tsdstest where circuit.name = "circuit2" limit 5 offset 0 ');
+ok($arr, "complex field name handled correctly");

@@ -14,7 +14,7 @@ my $bnf_file = "$FindBin::Bin/../conf/query_language.bnf";
 GRNOC::Log->new( config => $logging_file );
 
 # start up searchd if it isn't already
-system( 'sudo /etc/init.d/searchd start' );
+system( 'sudo /usr/bin/systemctl start searchd.service' );
 sleep( 2 );
 
 my $ds = GRNOC::TSDS::DataService::Search->new( config_file => $config_file,

@@ -103,7 +103,7 @@ sub get_database {
     # if we're force creating this just do it, that's what the driver does
     if ($create){
         $self->_grant_db_role( db => $name ) || return;
-	    return $mongo->get_database($name);
+	return $mongo->get_database($name);
     }
     if ($drop){
         $self->_revoke_db_role( db => $name ) || return;
@@ -253,27 +253,6 @@ sub get_collection {
     if ($create){
         return $self->create_collection( $db_name, $col_name );
     }
-
-    # removing the below should be unnecessary and is currently failing since the rw can't create
-    # a database b/c it can't call grantRoleToUser
-    ### otherwise we want to make sure it exists already
-    ### my $db = $self->get_database($db_name, create => 1);
-
-
-    # make sure collection already exists
-    # Removed, this is extremely slow and offers no real benefit
-    # my $collections = $db->run_command([listCollections => 1])->{'cursor'}{'firstBatch'};
-    # my $found_collection = 0;
-    # foreach my $collection (@$collections){
-    #     if($collection->{'name'} eq $col_name){
-    #         $found_collection = 1;
-    #         last;
-    #     }
-    # }
-    # if(!$found_collection){
-    #     $self->error("Unknown collection \"$col_name\"");
-    #     return;
-    # }
     
     return $db->get_collection($col_name);    
 }
@@ -295,8 +274,11 @@ sub create_collection {
     }
 
     # make sure database exists
-    my $db = $self->get_database($db_name);
-    my $result = $db->run_command([create => $col_name]);
+    my $db = $self->get_database($db_name);    
+    eval {
+	my $result = $db->run_command([create => $col_name]);
+    }; 
+    die $@ if ($@ && $@ !~ /already exists/);
 
     return $self->get_collection( $db_name, $col_name );
 }
@@ -373,13 +355,19 @@ sub enable_sharding {
 
     my ( $self, $db_name ) = @_;
 
-    my $db = $self->get_database("admin");
-    if(!$db->run_command([enableSharding => $db_name])){
-        $self->error( "Unable to enable sharding on $db_name" );
-        return;
-    }
 
-    return 1;
+    my $db = $self->get_database("admin");
+
+    my $error;
+    eval {
+	$db->run_command([enableSharding => $db_name]);
+    };
+    $error = $@->message if ($@);
+
+    return 1 if (! $error || $error =~ /sharding already enabled/);
+
+    $self->error( "Unable to enable sharding on $db_name: $error" );
+    return;
 }
 
 sub add_collection_shard {
@@ -391,7 +379,7 @@ sub add_collection_shard {
 
     if ( $response_json->{'ok'} ne '1') {
         # ignore error if its due to it already being sharded
-        if ( $response_json->{'errmsg'} !~ /already sharded/ ) {
+        if ( $response_json->{'errmsg'} !~ /already enabled/ ) {
             $self->error( "Error while sharding $db_name $col_name: " . $response_json->{'errmsg'} );
             return;
         }
@@ -528,7 +516,8 @@ sub process_meta_index {
     # handle every field at this level of the metadata
     foreach my $field ( keys %$fields ) {
         log_info("Adding index for $field");
-        $database->get_collection( 'measurements' )->ensure_index( {$field => 1} );
+        my $indexes = $database->get_collection( 'measurements' )->indexes();
+	$indexes->create_one([$field => 1]);
     }
 }
 

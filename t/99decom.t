@@ -38,8 +38,8 @@ my $data         = $mongo->get_database($unit_test_db)->get_collection("data");
 my $IDENTIFIER = "100decom.t";
 
 # clear out anything left in test db from a previous test here
-$measurements->remove({"identifier" => $IDENTIFIER});
-$data->remove({"identifier" => $IDENTIFIER});
+$measurements->delete_many({"identifier" => $IDENTIFIER});
+$data->delete_many({"identifier" => $IDENTIFIER});
 
 
 my $decommer = GRNOC::TSDS::MeasurementDecommer->new( config_file => $config_file,
@@ -48,7 +48,6 @@ ok( defined( $decommer ), "decommer object created" );
 
 # run decommer once before we do anything else to make sure we're in a known state
 $decommer->decom_metadata();
-
 
 # our placeholder records for later
 my $measurement_record = {
@@ -68,12 +67,12 @@ my $data_record = {
 };
 
 # add measurement record
-$measurements->insert($measurement_record);
+$measurements->insert_one($measurement_record);
 
 # add data record last inserted $now, we're looking at the _id field
 # to get a rough "created at" date
-$data_record->{"_id"} = MongoDB::OID->new(value => sprintf("%X", time()));
-$data->insert($data_record);
+$data_record->{"_id"} = MongoDB::OID->new(value => sprintf("%X", time()) . ("0" x 16));
+$data->insert_one($data_record);
 
 my $results = $decommer->decom_metadata();
 
@@ -85,12 +84,12 @@ my $updated_doc = $measurements->find_one({identifier => $IDENTIFIER});
 is($updated_doc->{'end'}, undef, "measurement doc left alone correctly");
 
 # clear out docs
-$data->remove({"identifier" => $IDENTIFIER});
+$data->delete_many({"identifier" => $IDENTIFIER});
 
 # add a data record where the last inserted was 2 days ago, ie older than the expire_after 
 # for this measurement type
-$data_record->{"_id"} = MongoDB::OID->new(value => sprintf("%X", time() - (86400 * 2)));
-$data->insert($data_record);
+$data_record->{"_id"} = MongoDB::OID->new(value => sprintf("%X", time() - (86400 * 2)) . ("0" x 16));
+$data->insert_one($data_record);
 
 # re-run decommer
 $results = $decommer->decom_metadata();
