@@ -2968,6 +2968,7 @@ sub _apply_aggregate {
 
     @$set = sort { $a->[0] <=> $b->[0] } @$set;
 
+
     for (my $i = 0; $i < @$set; $i++){
 
 	my $point = $set->[$i];
@@ -2975,10 +2976,55 @@ sub _apply_aggregate {
 	my $time  = $point->[0];
 	my $value = $point->[1];
 
-	if (! defined $extent_start) {
+	my $is_outside_extent = 0;
 
+	if (! defined $extent_start) {
 	    $extent_start = $time;
 	}
+	else {
+	    $is_outside_extent = $extent == 1 || $i == @$set - 1 || ( $time !=  $set->[$i+1]->[0] && $time - $extent_start >= $extent);
+	}
+
+	if ($is_outside_extent){
+	    
+	    # most common one, short circuit here
+	    if ($function == AGGREGATE_AVERAGE){
+		if ( @bucket == 0 ) {		    
+		    push( @$aggregated, [$extent_start, undef] );
+		}		
+		else {
+		    push(@$aggregated, [$extent_start, $total / @bucket]);
+		}		
+	    }
+	    elsif ($function == AGGREGATE_MAX){
+		push(@$aggregated, [$extent_start, $max]);
+	    }
+	    elsif ($function == AGGREGATE_MIN){
+		push(@$aggregated, [$extent_start, $min]);
+	    }
+	    elsif ($function == AGGREGATE_PERCENTILE){
+		my $value = $self->_calculate_percentile(\@bucket, $extra);
+		push(@$aggregated, [$extent_start, $value]);
+	    }
+	    elsif ( $function == AGGREGATE_HIST ) {
+		
+		foreach my $hist ( @hists ) {
+		    
+		    push( @$aggregated, [$extent_start, $hist] );
+		}
+	    }
+	    
+
+	    # reset tracking
+	    $extent_start = $time;
+	    undef $max;
+	    undef $min;
+	    undef @bucket;
+	    undef @hists;
+	    $total     = 0;
+	    $num_nulls = 0;
+	}
+
 
 	# we're looking at a retention aggregation
 	if ( ref( $value ) ) {
@@ -3018,54 +3064,6 @@ sub _apply_aggregate {
 	    }
 	}
 
-	# this point is outside of our current aggregation window or
-	# we're at the end of the array, time to wrap it up before moving on
-        # ( here we check whether there are more data for the same timestamp exist in next iteration, if so wait until we reach the last timestamp)
-	if ($extent == 1 || $i == @$set - 1 || ( $time !=  $set->[$i+1]->[0] && $time - $extent_start >= $extent)){
-
-	    # most common one, short circuit here
-	    if ($function == AGGREGATE_AVERAGE){
-		if ( @bucket == 0 ) {		    
-		    push( @$aggregated, [$extent_start, undef] );
-		}		
-		else {
-		    push(@$aggregated, [$extent_start, $total / @bucket]);
-		}		
-	    }
-	    elsif ($function == AGGREGATE_MAX){
-		push(@$aggregated, [$extent_start, $max]);
-	    }
-	    elsif ($function == AGGREGATE_MIN){
-		push(@$aggregated, [$extent_start, $min]);
-	    }
-	    elsif ($function == AGGREGATE_PERCENTILE){
-		my $value = $self->_calculate_percentile(\@bucket, $extra);
-		push(@$aggregated, [$extent_start, $value]);
-	    }
-	    elsif ( $function == AGGREGATE_HIST ) {
-		
-		foreach my $hist ( @hists ) {
-		    
-		    push( @$aggregated, [$extent_start, $hist] );
-		}
-	    }
-	    
-	    if ($extent == 1){
-		$extent_start = undef;
-	    }
-	    # current data point is the start extent now
-	    else {
-		$extent_start = $time;
-	    }
-
-	    # reset tracking
-	    undef $max;
-	    undef $min;
-	    undef @bucket;
-	    undef @hists;
-	    $total     = 0;
-	    $num_nulls = 0;
-	}
     }
 
     if ($math_symbol){
