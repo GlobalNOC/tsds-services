@@ -2979,7 +2979,7 @@ sub _apply_aggregate {
 	my $is_outside_extent = 0;
 
 	if (! defined $extent_start) {
-	    $extent_start = $time;
+	    $extent_start = int($time / $extent) * $extent;
 	}
 	else {
 	    $is_outside_extent = $extent == 1 || $i == @$set - 1 || ( $time !=  $set->[$i+1]->[0] && $time - $extent_start >= $extent);
@@ -3016,7 +3016,7 @@ sub _apply_aggregate {
 	    
 
 	    # reset tracking
-	    $extent_start = $time;
+	    $extent_start = int($time / $extent) * $extent;
 	    undef $max;
 	    undef $min;
 	    undef @bucket;
