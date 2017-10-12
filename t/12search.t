@@ -17,6 +17,7 @@ GRNOC::Log->new( config => $logging_file );
 system( 'sudo /etc/init.d/searchd start' );
 sleep( 2 );
 
+
 my $ds = GRNOC::TSDS::DataService::Search->new( config_file => $config_file,
 						bnf_file => $bnf_file );
 
@@ -94,7 +95,6 @@ $results = $ds->search( search               => "rtr.chic",
     )->{'results'};
 
 is(@$results, "1", "1 result with percentile_95 = 129695");
-
 
 # Ensure ordering by value still works in a single measurement type
 # when there are no meta fields, ie no where clause

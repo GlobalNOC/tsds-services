@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 184;
+use Test::More tests => 194;
 
 # testing multiple where operators
 use GRNOC::Config;
@@ -95,6 +95,20 @@ is($arr->[0]{'output'}[2][0], 600, "got aggregate timestamp");
 is($arr->[0]{'output'}[2][1], 95115.5, "got aggregate value");
 is($arr->[0]{'intf'}, "interface11");
 
+# Check all aggregate points to ensure accuracy 
+$arr= $query->run_query( query =>'get node, intf, aggregate(values.output, 300, average) as output, values.output between ("01/01/1970 00:00:00 UTC","01/01/1970 00:15:00 UTC") by node from tsdstest where node="rtr.chic" and intf="interface11" ordered by intf asc ');
+ok($arr, "query request to fetch values.output by node sent successfully");
+is(@$arr, 1, "got 1 result");
+is($arr->[0]{'output'}[0][0], 0, "got aggregate timestamp");
+is($arr->[0]{'output'}[0][1], 95055.5, "got aggregate value");
+is($arr->[0]{'output'}[1][0], 300, "got aggregate timestamp");
+is($arr->[0]{'output'}[1][1], 95085.5, "got aggregate value");
+is($arr->[0]{'output'}[2][0], 600, "got aggregate timestamp");
+is($arr->[0]{'output'}[2][1], 95115.5, "got aggregate value");
+is($arr->[0]{'intf'}, "interface11");
+
+die Dumper($arr);
+
 # With Grouping By
 $arr= $query->run_query( query =>'get node, intf, aggregate(values.output, 300, average) as output between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") by node from tsdstest where node="rtr.chic" ordered by intf asc ');
 ok($arr, "query request to fetch values.output by node sent successfully");
@@ -106,7 +120,7 @@ is($arr->[0]{'intf'}, "interface11");
 $arr= $query->run_query( query =>'get intf, node, aggregate(values.output, 300, average) as output between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") by node first(intf) from tsdstest where node="rtr.chic" ');
 ok($arr, "query request to fetch values.output by meta.node sent successfully");
 is(@$arr, 1, "got 1 result");
-is($arr->[0]{'output'}[0][1], 103696, "got aggregate value");
+is($arr->[0]{'output'}[0][1], 103695.5, "got aggregate value");
 is($arr->[0]{'intf'}, "ge-0/0/0", "got interface");
 
 # Validate the results returned
