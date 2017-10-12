@@ -17,6 +17,7 @@ GRNOC::Log->new( config => $logging_file );
 system( 'sudo /usr/bin/systemctl start searchd.service' );
 sleep( 2 );
 
+
 my $ds = GRNOC::TSDS::DataService::Search->new( config_file => $config_file,
 						bnf_file => $bnf_file );
 
@@ -85,7 +86,7 @@ is(@$results, "10", "10 results with min >= 2");
 $results = $ds->search( search               => "rtr.chic",		
 			measurement_type     => ['tsdstest'],
                         value_field_name     => ["input"],
-                        value_field_value    => ["129696"],
+			value_field_value    => ["129696"],
 			step                 => 1,
                         value_field_logic    => ["="],
                         value_field_function => ["percentile_95"],
@@ -94,7 +95,6 @@ $results = $ds->search( search               => "rtr.chic",
     )->{'results'};
 
 is(@$results, "1", "1 result with percentile_95 = 129696");
-
 
 # Ensure ordering by value still works in a single measurement type
 # when there are no meta fields, ie no where clause

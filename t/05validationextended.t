@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 185;
+use Test::More tests => 194;
 
 # testing multiple where operators
 use GRNOC::Config;
@@ -83,18 +83,32 @@ $result= $arr->[0]->{'OUT'};
 ok( defined($result) , " query to fetch values of output fields (values.output) from Mongo successful ");
 validate_results($result,4867);
 
+# Check all aggregate points to ensure accuracy 
+$arr= $query->run_query( query =>'get node, intf, aggregate(values.output, 300, average) as output, values.output between ("01/01/1970 00:00:00 UTC","01/01/1970 00:15:00 UTC") by node from tsdstest where node="rtr.chic" and intf="interface11" ordered by intf asc ');
+ok($arr, "query request to fetch values.output by node sent successfully");
+is(@$arr, 1, "got 1 result");
+is($arr->[0]{'output'}[0][0], 0, "got aggregate timestamp");
+is($arr->[0]{'output'}[0][1], 95055.5, "got aggregate value");
+is($arr->[0]{'output'}[1][0], 300, "got aggregate timestamp");
+is($arr->[0]{'output'}[1][1], 95085.5, "got aggregate value");
+is($arr->[0]{'output'}[2][0], 600, "got aggregate timestamp");
+is($arr->[0]{'output'}[2][1], 95115.5, "got aggregate value");
+is($arr->[0]{'intf'}, "interface11");
+
+die Dumper($arr);
+
 # With Grouping By
 $arr= $query->run_query( query =>'get node, intf, aggregate(values.output, 300, average) as output between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") by node from tsdstest where node="rtr.chic" ordered by intf asc ');
 ok($arr, "query request to fetch values.output by node sent successfully");
 is(@$arr, 1, "got 1 result");
-is($arr->[0]{'output'}[0][1], 125296, "got aggregate value");
+is($arr->[0]{'output'}[0][1], 125393.815533981, "got aggregate value");
 is($arr->[0]{'intf'}, "interface11");
 
 # With Grouping by first
 $arr= $query->run_query( query =>'get intf, node, aggregate(values.output, 300, average) as output between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") by node first(intf) from tsdstest where node="rtr.chic" ');
 ok($arr, "query request to fetch values.output by meta.node sent successfully");
 is(@$arr, 1, "got 1 result");
-is($arr->[0]{'output'}[0][1], 103696, "got aggregate value");
+is($arr->[0]{'output'}[0][1], 103695.5, "got aggregate value");
 is($arr->[0]{'intf'}, "ge-0/0/0", "got interface");
 
 # Validate the results returned
@@ -434,8 +448,8 @@ $arr = $query->run_query( query =>'get count(min(values.input)) as first, averag
 ok($arr, "query request to fetch values.input sent successfully");
 
 is($arr->[0]->{'first'}, 1, "got count min chain");
-is($arr->[0]->{'second'}, 105841.458333333, "got average aggregate chain");
-is($arr->[0]->{'third'}, 105841.458333333, "got max average aggregate chain");
+is($arr->[0]->{'second'}, 105840.541666667, "got average aggregate chain");
+is($arr->[0]->{'third'}, 105840.541666667, "got max average aggregate chain");
 is($arr->[0]->{'fourth'}, 1, "got count max average aggregate chain");
 is($arr->[0]->{'fourth'}, 1, "got sum count max average aggregate chain");
 

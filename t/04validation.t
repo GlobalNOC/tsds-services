@@ -160,10 +160,10 @@ $arr= $query->run_query( query =>'get aggregate(values.input,7200,max) as MAXVAL
 $result=$arr->[0]->{'MAXVALUE'};
 validatebucket($result,'7200');
 
-$arr= $query->run_query( query =>'get average(aggregate(values.input,7200,max)) as AVGWithMAX between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") from tsdstest where node="rtr.chic" ');
+$arr= $query->run_query( query =>'get average(aggregate(values.input,7200,max)) as AVGWithMAX, aggregate(values.input,7200,max) between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") from tsdstest where node="rtr.chic" ');
 $result=$arr->[0]->{'AVGWithMAX'};
 
-is(int($result),167041,"Compound statement average(aggregate function with  max) executed and returned value is validated");
+is(int($result),167310,"Compound statement average(aggregate function with  max) executed and returned value is validated");
 
 # aggregate function to compute  histogram
 $arr=$query->run_query( query => 'get aggregate(values.input,7200,histogram) as hists between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") by node,intf from tsdstest where node="rtr.chic" and intf="ge-0/0/0" ');

@@ -40,6 +40,7 @@ use constant AGGREGATE_MAX        => 2;
 use constant AGGREGATE_MIN        => 3;
 use constant AGGREGATE_HIST       => 4;
 use constant AGGREGATE_PERCENTILE => 5;
+use constant AGGREGATE_SUM        => 6;
 
 ### constructor ###
 
@@ -2949,122 +2950,75 @@ sub _apply_aggregate {
 	'max'        => AGGREGATE_MAX,
 	'min'        => AGGREGATE_MIN,
 	'histogram'  => AGGREGATE_HIST,
-	'percentile' => AGGREGATE_PERCENTILE
+	'percentile' => AGGREGATE_PERCENTILE,
+	'sum'        => AGGREGATE_SUM
 	);
     $function = $func_lookup{$function};
 
     # start all of these regardless of what function
     # we're doing to avoid reprocessing each bucket array
-    my $max;
-    my $min;
-    my @bucket;
-    my @hists;
-    my $num_nulls = 0;
-    my $total     = 0;
+    my $bucket_data = {
+	max       => undef,
+	min       => undef,
+	total     => 0,
+	num_nulls => 0,
+	bucket    => [],
+	hists     => []
+    };
 
     my $extent_start;
 
     my $aggregated = [];
 
-    @$set = sort { $a->[0] <=> $b->[0] } @$set;
-
+    @$set = sort { $a->[0] <=> $b->[0] } @$set;    
 
     for (my $i = 0; $i < @$set; $i++){
 
 	my $point = $set->[$i];
 
-	my $time  = $point->[0];
+	# Align the time to whatever bucket we're looking at
+	my $time  = int($point->[0] / $extent) * $extent;
 	my $value = $point->[1];
 
 	my $is_outside_extent = 0;
 
+	# Is this the start of a new bucket? Data is sorted by time so 
+	# we'll only see this after the last extent has finished
 	if (! defined $extent_start) {
-	    $extent_start = int($time / $extent) * $extent;
+	    $extent_start = $time;
 	}
+	# Otherwise check to see if we're still inside this bucket. If we
+	# aren't, we'll have to finish the current bucket before doing anything
+	# with this data point
 	else {
-	    $is_outside_extent = $extent == 1 || $i == @$set - 1 || ( $time !=  $set->[$i+1]->[0] && $time - $extent_start >= $extent);
+	    $is_outside_extent = ($time - $extent_start) >= $extent;
 	}
 
+	# This datapoint falls outside the previous bucket, so let's wrap that bucket up
+	# since we're sorted by time we know there are no more points left in it
 	if ($is_outside_extent){
-	    
-	    # most common one, short circuit here
-	    if ($function == AGGREGATE_AVERAGE){
-		if ( @bucket == 0 ) {		    
-		    push( @$aggregated, [$extent_start, undef] );
-		}		
-		else {
-		    push(@$aggregated, [$extent_start, $total / @bucket]);
-		}		
-	    }
-	    elsif ($function == AGGREGATE_MAX){
-		push(@$aggregated, [$extent_start, $max]);
-	    }
-	    elsif ($function == AGGREGATE_MIN){
-		push(@$aggregated, [$extent_start, $min]);
-	    }
-	    elsif ($function == AGGREGATE_PERCENTILE){
-		my $value = $self->_calculate_percentile(\@bucket, $extra);
-		push(@$aggregated, [$extent_start, $value]);
-	    }
-	    elsif ( $function == AGGREGATE_HIST ) {
-		
-		foreach my $hist ( @hists ) {
-		    
-		    push( @$aggregated, [$extent_start, $hist] );
-		}
-	    }
-	    
+	    my $data = $self->__process_bucket($aggregated, $bucket_data, $extent_start, $function, $extra);
 
-	    # reset tracking
-	    $extent_start = int($time / $extent) * $extent;
-	    undef $max;
-	    undef $min;
-	    undef @bucket;
-	    undef @hists;
-	    $total     = 0;
-	    $num_nulls = 0;
+	    # reset tracking, our current start is now the start
+	    # of this data point and our accumulators are empty
+	    # The time has already been aligned
+	    $extent_start = $time;
+	    $bucket_data = {
+		max       => undef,
+		min       => undef,
+		total     => 0,
+		num_nulls => 0,
+		bucket    => [],
+		hists     => []
+	    };
 	}
 
-
-	# we're looking at a retention aggregation
-	if ( ref( $value ) ) {
-
-            if ( !defined( $value->{'avg'} ) || !defined( $value->{'min'} ) || !defined( $value->{'max'} ) ) {
-
-                $num_nulls++;
-	    }
-
-	    else {
-
-		$max = $value->{'max'} if ( !defined( $max ) || $value->{'max'} > $max );
-		$min = $value->{'min'} if ( !defined( $min ) || $value->{'min'} < $min);
-
-		$total += $value->{'avg'};
-		push( @bucket, $value->{'avg'} );
-
-		push( @hists, $value->{'hist'} );
-	    }
-	}
-
-	# we're looking at raw highres data
-	else {
-
-	    if ( !defined( $value ) ) {
-
-		$num_nulls++;
-	    }
-
-	    else {
-
-		$max = $value if (! defined $max || $value > $max);
-		$min = $value if (! defined $min || $value < $min);
-
-		$total += $value;
-		push(@bucket, $value);
-	    }
-	}
-
+	# Add current data point to our bucket tracking
+	$self->__update_bucket($bucket_data, $value);
     }
+
+    # make sure we get the last point
+    $self->__process_bucket($aggregated, $bucket_data, $extent_start, $function, $extra) if (@{$bucket_data->{'bucket'}});
 
     if ($math_symbol){
 	$aggregated = $self->_apply_math($aggregated, $math_symbol, $math_value);
@@ -3074,6 +3028,108 @@ sub _apply_aggregate {
 	$rename => $aggregated
     };
 }
+
+# Helper function for apply_aggregate()
+sub __update_bucket {
+    my $self        = shift;
+    my $bucket_data = shift;  
+    my $value       = shift;
+
+    my $local_max;
+    my $local_min;
+
+    # we're looking at a retention aggregation
+    if ( ref( $value ) ) {
+	
+	if ( !defined( $value->{'avg'} ) || !defined( $value->{'min'} ) || !defined( $value->{'max'} ) ) {
+	    $bucket_data->{'num_nulls'}++;
+	}
+	else {
+	    $local_max = $value->{'max'};
+	    $local_min = $value->{'min'};
+	    
+	    $bucket_data->{'total'} += $value->{'avg'};
+	    push( @{$bucket_data->{'bucket'}}, $value->{'avg'} );	    
+	    push( @{$bucket_data->{'hists'}}, $value->{'hist'} );
+	}
+    }
+    
+    # we're looking at raw highres data
+    else {
+	$value = $value;
+	if ( !defined( $value ) ) {
+	    $bucket_data->{'num_nulls'}++;
+	}
+	else {
+	    $local_max = $value;
+	    $local_min = $value;
+	    
+	    $bucket_data->{'total'} += $value;
+	    push(@{$bucket_data->{'bucket'}}, $value);
+	}
+    }
+
+    $bucket_data->{'max'} = $local_max if ( !defined( $bucket_data->{'max'} ) || $local_max > $bucket_data->{'max'} );
+    $bucket_data->{'min'} = $local_min if ( !defined( $bucket_data->{'min'} ) || $local_min < $bucket_data->{'min'} );
+}
+
+# Helper function for apply_aggregate()
+sub __process_bucket {
+    my $self         = shift;
+    my $aggregated   = shift;
+    my $bucket_data  = shift;
+    my $extent_start = shift;
+    my $function     = shift;
+    my $extra        = shift;
+
+    my $max       = $bucket_data->{'max'};
+    my $min       = $bucket_data->{'min'};
+    my $total     = $bucket_data->{'total'};
+    my $num_nulls = $bucket_data->{'num_nulls'};
+    my $bucket    = $bucket_data->{'bucket'};
+    my $hists     = $bucket_data->{'hists'};
+
+    # most common one, short circuit here
+    if ($function == AGGREGATE_AVERAGE){
+	if ( @$bucket == 0 ) {		    
+	    push( @$aggregated, [$extent_start, undef] );
+	}		
+	else {
+	    push(@$aggregated, [$extent_start, $total / @$bucket]);
+	}		
+    }
+    elsif ($function == AGGREGATE_MAX){
+	push(@$aggregated, [$extent_start, $max]);
+    }
+    elsif ($function == AGGREGATE_MIN){
+	push(@$aggregated, [$extent_start, $min]);
+    }
+    elsif ($function == AGGREGATE_PERCENTILE){
+	my $value;
+	# if we had histogram data, ie low-res data we should use those
+	# to get a more accurate percentile calculation
+	if (@$hists){
+	    $value = $self->_calculate_percentile($hists, $extra);
+	}
+	# otherwise it's based on hi-res data or no histogram available,
+	# just use what we have
+	else {
+	    $value = $self->_calculate_percentile($bucket, $extra);
+	}
+	push(@$aggregated, [$extent_start, $value]);
+    }
+    elsif ( $function == AGGREGATE_HIST ) {
+	
+	foreach my $hist ( @$hists ) {
+	    
+	    push( @$aggregated, [$extent_start, $hist] );
+	}
+    }
+    elsif ( $function == AGGREGATE_SUM ){
+	push(@$aggregated, [$extent_start, $total]);
+    }
+}
+
 
 sub _apply_histogram {
 
@@ -3651,7 +3707,7 @@ sub _fix_document {
 		$start_index = 0;
 	    }
 
-	    my $end_index   = int(($meta_end - $effective_start) / $interval);
+	    my $end_index   = int(($meta_end - $effective_start) / $interval) - 1; # non-inclusive end
 	    if ($end_index > @$values - 1){
 		$end_index = @$values - 1;
 	    }
