@@ -29,7 +29,7 @@ my $query   = GRNOC::TSDS::DataService::Query->new(config_file => $config_file,
 my $res = $query->run_query(query => 'get values.output, node, intf, description between(0, 7200) from tsdstest where intf = "ge-0/0/0" and node = "rtr.chic"');
 ok(defined $res, "got query response");
 is($res->[0]->{'values.output'}[0][0], 0,  "first timestamp of hi-res data is correct");
-is($res->[0]->{'values.output'}[-1][0], 7200, "last timestamp of hi-res data is correct");
+is($res->[0]->{'values.output'}[-1][0], 7190, "last timestamp of hi-res data is correct");
 is($query->actual_start(), 0, "actual query start time reported as 0");
 is($query->actual_end(), 7200, "actual query end time reported as 7200");
 
