@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 203;
+use Test::More tests => 212;
 
 # testing multiple where operators
 use GRNOC::Config;
