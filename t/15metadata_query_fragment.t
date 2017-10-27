@@ -50,9 +50,9 @@ ok(defined $res, "got positive response back");
 
 $res = $query->run_query(query => 'get values.output, node, intf, description between(0, 7200) from tsdstest where intf = "ge-0/0/0" and node = "rtr.chic"');
 ok(defined $res, "got query response");
-is($res->[0]->{'values.output'}[-1][0], 7200, "last timestamp of base data is correct");
+is($res->[0]->{'values.output'}[-1][0], 7190, "last timestamp of base data is correct");
 
 
 $res = $query->run_query(query => 'get values.output, node, intf, description between(0, 50) from tsdstest where intf = "ge-0/0/0" and node = "rtr.chic" and description = "test123"');
 ok(defined $res, "got query response");
-is($res->[0]->{'values.output'}[-1][0], 50, "last timestamp of time bound metadata data is correct");
+is($res->[0]->{'values.output'}[-1][0], 40, "last timestamp of time bound metadata data is correct");
