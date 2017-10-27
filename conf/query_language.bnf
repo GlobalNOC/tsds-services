@@ -88,6 +88,8 @@ aggregator_function ::= 'average'
 			'min'
 			|
 			'histogram'
+                        |
+                        'sum'
 			|
 			'percentile' '(' number ')' action => remove_symbols
 

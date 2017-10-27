@@ -53,7 +53,7 @@ ok( defined($result), " Query to fetch values of input using IN operator in wher
 $result= $arr->[0]->{'node'};
 is($result,'rtr.chic',"Node value returned by using intf = 'ge-0/0/0' and node in('rtr.chic','rtr.newy') query is valid .");
 
-validate_results($arr->[0]->{'values.input'},4867);
+validate_results($arr->[0]->{'values.input'},4866);
 
 
 # using In and By operators
@@ -65,14 +65,14 @@ is($arr->[0]->{'intf'},'xe-0/1/0.0',' First Interface value returned by query (g
 
 is($arr->[0]->{'node'},'rtr.newy','First Node value returned by query (get intf,values.input,node between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") by node  from tsdstest where node in("rtr.chic","rtr.newy") ordered by node) is valid');
 
-validate_results($arr->[0]->{'values.input'},4867);
+validate_results($arr->[0]->{'values.input'},4866);
 
 
 is($arr->[$len]->{'intf'},'ge-0/0/0',' First Interface value returned by query (get intf,values.input,node between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") by node  from tsdstest where node in("rtr.chic","rtr.newy") ordered by node) is valid');
 
 is($arr->[$len]->{'node'},'rtr.chic','First Node value returned by query (get intf,values.input,node between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") by node  from tsdstest where node in("rtr.chic","rtr.newy") ordered by node) is valid');
 
-validate_results($arr->[$len]->{'values.input'},4867);
+validate_results($arr->[$len]->{'values.input'},4866);
 
 
 # different query that will return node rtr.newy and intf xe-0/1/0.0
@@ -88,7 +88,7 @@ ok( defined($result), " Query to fetch values of input using IN operator in wher
 $result= $arr->[0]->{'node'};
 is($result,'rtr.newy',"Node value returned by using intf = 'xe-0/1/0.0' and node in('rtr.chic','rtr.newy') query is valid .");
 
-validate_results($arr->[0]->{'values.input'},4867);
+validate_results($arr->[0]->{'values.input'},4866);
 
 # Different Date Format Test for between clause
 $arr= $query->run_query( query =>'get values.input between ("01/01/1970","01/10/1970") from tsdstest where intf = "ge-0/0/0" and node ="rtr.chic" ');
@@ -103,7 +103,7 @@ ok($arr, "query request to fetch values.input sent successfully");
 $result= $arr->[0]->{'values.input'};
 ok( defined($result) , " query to fetch values of input with date format (MM/DD/YYYY HH::MM::SS TZ) from Mongo successful ");
 
-validate_results($arr->[0]->{'values.input'},4867);
+validate_results($arr->[0]->{'values.input'},4866);
 
 # Testing Like operator
 
@@ -113,7 +113,7 @@ ok($arr, "query request to fetch values.input using like  sent successfully");
 $result= $arr->[0]->{'values.input'};
 ok( defined($result) , " query to fetch values of input using like operator executed successfully");
 
-validate_results($arr->[0]->{'values.input'},4867);
+validate_results($arr->[0]->{'values.input'},4866);
 
 # Testing not like operator
 
@@ -160,7 +160,7 @@ ok($arr, "query request to fetch values.input using like and NULL validation che
 $result= $arr->[0]->{'values.input'};
 ok( defined($result) , " query to fetch values of input using not like and NULL operator check  executed successfully");
 
-#validate_results($arr->[0]->{'values.input'},4867);
+#validate_results($arr->[0]->{'values.input'},4866);
 
 
 $arr= $query->run_query( query =>'get values.input,intf,node between("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") by node,intf  from tsdstest where intf like "interface" and node="rtr.newy" and intf in("interface3") and node != null');
@@ -175,7 +175,7 @@ ok($arr, "query request to fetch values.input using IN operator  validation chec
 $result= $arr->[0]->{'values.input'};
 ok( defined($result) , " query to fetch values of input using IN operator where condition executed successfully");
 
-#validate_results($arr->[0]->{'values.input'},4867);
+#validate_results($arr->[0]->{'values.input'},4866);
 
 # Testing Greater than operator
 $arr= $query->run_query( query =>'get values.input between("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC")  from tsdstest where start >=0 and node = "rtr.chic" ');
