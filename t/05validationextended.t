@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 202;
+use Test::More tests => 203;
 
 # testing multiple where operators
 use GRNOC::Config;
@@ -462,3 +462,23 @@ is($arr->[0]->{'second'}, 105840.5, "got average aggregate chain");
 is($arr->[0]->{'third'}, 105840.5, "got max average aggregate chain");
 is($arr->[0]->{'fourth'}, 1, "got count max average aggregate chain");
 is($arr->[0]->{'fourth'}, 1, "got sum count max average aggregate chain");
+
+# Test selecting by a complex field name, this changed in Mongo 3.4 and we have
+# to ensure we're properly encoding/decoding the field in the query engine
+my $arr = $query->run_query( query =>'get values.input, circuit.name between ("01/01/1970 00:00:00 UTC","01/01/1970 12:00:00 UTC") by circuit.name, circuit.description from tsdstest where circuit.name = "circuit2" limit 5 offset 0 ');
+ok($arr, "complex field name handled correctly");
+
+
+
+# Test that aggregate(... sum) works
+$arr = $query->run_query( query =>'get aggregate(values.input, 1, sum) as sum, all(intf) as intfs between ("01/01/1970 00:00:00 UTC","01/01/1970 01:00:00 UTC") from tsdstest where node = "rtr.chic" ');
+ok($arr, "query request to fetch values.input sent successfully");
+
+is(@{$arr->[0]->{'sum'}}, 360, "got right number of data points");
+is(@{$arr->[0]->{'intfs'}}, 10, "got right number of intfs");
+is($arr->[0]->{'sum'}[0][0], 0, "got first ts");
+is($arr->[0]->{'sum'}[0][1], 1252810, "got first val");
+is($arr->[0]->{'sum'}[1][0], 10, "got second ts");
+is($arr->[0]->{'sum'}[1][1], 1252820, "got second val");
+is($arr->[0]->{'sum'}[-1][0], 3590, "got last ts");
+is($arr->[0]->{'sum'}[-1][1], 1256400, "got last val");
