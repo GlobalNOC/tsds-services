@@ -31,6 +31,7 @@ use WWW::Mechanize::PhantomJS;
 use Template;
 use JSON;
 use Sys::Hostname;
+use Time::HiRes qw (usleep);
 
 # this will hold the only actual reference to this object
 my $singleton;
@@ -119,7 +120,7 @@ sub get_chart {
 
     $tt->process("Bootstrap.html", $vars, \$output);
 
-    my $html = "<html><head><base href=\"http://$hostname\"/>";
+    my $html = "<html><head><base href=\"https://$hostname\"/>";
 
     $html .= "$output</head><body>";
     
@@ -155,6 +156,35 @@ sub get_chart {
 
     $tt->process(\$chart_widget, undef, \$chart_widget_output);
 
+    # phantomjs 1.X is missing bind
+    my $polyfill = "<script>if (!Function.prototype.bind) {
+  Function.prototype.bind = function(oThis) {
+    if (typeof this !== 'function') {
+      // closest thing possible to the ECMAScript 5
+      // internal IsCallable function
+      throw new TypeError('Function.prototype.bind - what is trying to be bound is not callable');
+    }
+
+    var aArgs   = Array.prototype.slice.call(arguments, 1),
+        fToBind = this,
+        fNOP    = function() {},
+        fBound  = function() {
+          return fToBind.apply(this instanceof fNOP
+                 ? this
+                 : oThis,
+                 aArgs.concat(Array.prototype.slice.call(arguments)));
+        };
+
+    if (this.prototype) {
+      // Function.prototype doesn't have a prototype property
+      fNOP.prototype = this.prototype; 
+    }
+    fBound.prototype = new fNOP();
+
+    return fBound;
+  };
+}</script>";
+
     my $local_data = "<script>var chart_data = $json_result;
                               var query = '$query';
                               var mtv = $mtv;
@@ -178,14 +208,14 @@ sub get_chart {
                                                                         chart_data: {data:chart_data, query:query, measurement_type_values:mtv}
                                                                      });
 
-                      chart_group.renderEvent.subscribe(function(){
+                      chart_group.renderEvent.subscribe(function(){                         
                           flag = 1;
                       },null);
 
                 });
                </script>";
 
-    $html .= "$chart_widget_output $local_data $app</body></html>";
+    $html .= "$chart_widget_output $polyfill $local_data $app</body></html>";
 
     my $filename = rand(time());
     $filename = 'chart_'.$filename.'.html';
@@ -194,7 +224,7 @@ sub get_chart {
     print $fh $html;
     close $fh;
 
-    my $chart_url = "http://$hostname/tsds-services/temp/".$filename;
+    my $chart_url = "https://$hostname/tsds-services/temp/".$filename;
     
     my $mech = WWW::Mechanize::PhantomJS->new();
     $mech->get($chart_url);
@@ -207,6 +237,7 @@ sub get_chart {
        if ($max == 0) {
            last;
        }
+       usleep(10 * 1000);
     }
 
     my $png = $mech->content_as_png();

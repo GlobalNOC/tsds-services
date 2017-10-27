@@ -364,7 +364,7 @@ sub _mongo_connect {
             username => $rw_user->{'user'},
             password => $rw_user->{'password'}
         );
-	$mongo->query_timeout(120 * 1000);
+	$mongo->query_timeout(300 * 1000);
     };
     if($@){
         die "Could not connect to Mongo: $@";
