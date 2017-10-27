@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 194;
+use Test::More tests => 202;
 
 # testing multiple where operators
 use GRNOC::Config;
@@ -106,8 +106,6 @@ is($arr->[0]{'output'}[1][1], 95085.5, "got aggregate value");
 is($arr->[0]{'output'}[2][0], 600, "got aggregate timestamp");
 is($arr->[0]{'output'}[2][1], 95115.5, "got aggregate value");
 is($arr->[0]{'intf'}, "interface11");
-
-die Dumper($arr);
 
 # With Grouping By
 $arr= $query->run_query( query =>'get node, intf, aggregate(values.output, 300, average) as output between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") by node from tsdstest where node="rtr.chic" ordered by intf asc ');
