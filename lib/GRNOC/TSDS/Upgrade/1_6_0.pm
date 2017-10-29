@@ -8,7 +8,7 @@ use GRNOC::TSDS::MongoDB;
 use Tie::IxHash;
 use Data::Dumper;
 
-use constant PREVIOUS_VERSION => '1.5.3';
+use constant PREVIOUS_VERSION => '1.5.4';
 
 sub upgrade {
 
