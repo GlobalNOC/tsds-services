@@ -61,6 +61,7 @@ sub _init_methods {
 
     $method = GRNOC::WebService::Method->new( name          => 'query',
                                               description   => 'Executes a query',
+                                              xdr_regexp    => '.*',
                                               expires       => '-1d',
 					      output_formatter => sub { return shift; },
                                               callback      => sub { $self->_query( @_ ) } );
