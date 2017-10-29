@@ -1690,48 +1690,48 @@ sub _query_database {
 	# ISSUE=11635 no docs found in high res, fall back to using aggregate
         if ( $data_source eq DATA && $database->name ne $self->temp_database() && $cursor->count == 0 ) {
 
-            log_warn( "No documents found in high res data source $data_source, falling back to use aggregate data! Query was \"$text_query\"" );
+            # log_warn( "No documents found in high res data source $data_source, falling back to use aggregate data! Query was \"$text_query\"" );
 
-	    $cursor = undef;
+	    # $cursor = undef;
 
-	    # try highest resolution aggregate first
-	    foreach my $aggregate ( sort { $a->{'interval'} <=> $b->{'interval'} } @$aggregates ) {
+	    # # try highest resolution aggregate first
+	    # foreach my $aggregate ( sort { $a->{'interval'} <=> $b->{'interval'} } @$aggregates ) {
 
-		next if ( !$aggregate->{'interval'} );
+	    #     next if ( !$aggregate->{'interval'} );
 		
-		$collection = $database->get_collection( DATA . '_' . $aggregate->{'interval'} );
+	    #     $collection = $database->get_collection( DATA . '_' . $aggregate->{'interval'} );
 
-		eval {
+	    #     eval {
 
-		    $doc_count = $collection->count($where_fields);
+	    #         $doc_count = $collection->count($where_fields);
 
-		    if($metadata->{'data_doc_limit'}){
-			log_debug("got $doc_count results with a data_doc_limit of ".$metadata->{'data_doc_limit'});
-			if($doc_count > $metadata->{'data_doc_limit'}){
-			    $is_over_data_doc_limit = 1;
-			    return;
-			}
-		    }
+	    #         if($metadata->{'data_doc_limit'}){
+	    #     	log_debug("got $doc_count results with a data_doc_limit of ".$metadata->{'data_doc_limit'});
+	    #     	if($doc_count > $metadata->{'data_doc_limit'}){
+	    #     	    $is_over_data_doc_limit = 1;
+	    #     	    return;
+	    #     	}
+	    #         }
 
-		    # this aggregate had docs
-		    if ( $doc_count > 0 ) {
+	    #         # this aggregate had docs
+	    #         if ( $doc_count > 0 ) {
 
-			$cursor = $collection->find($where_fields)->hint( 'identifier_1_start_1_end_1' )->fields(\%queried_names);
-		    }
-		};
+	    #     	$cursor = $collection->find($where_fields)->hint( 'identifier_1_start_1_end_1' )->fields(\%queried_names);
+	    #         }
+	    #     };
 
-		# try next aggregate
-		next if !$cursor;
+	    #     # try next aggregate
+	    #     next if !$cursor;
 
-		if ( $@ ) {
-		    $self->error( "Error querying storage database: $@" );
-		    return;
-		}
-		if ($is_over_data_doc_limit) {
-		    $self->error( "Your query generated $doc_count documents which is greater than the configured limit of ".$metadata->{'data_doc_limit'}.". Either refactor your query or use limit and offset to page your results.");
-		    return;
-		}
-	    }
+	    #     if ( $@ ) {
+	    #         $self->error( "Error querying storage database: $@" );
+	    #         return;
+	    #     }
+	    #     if ($is_over_data_doc_limit) {
+	    #         $self->error( "Your query generated $doc_count documents which is greater than the configured limit of ".$metadata->{'data_doc_limit'}.". Either refactor your query or use limit and offset to page your results.");
+	    #         return;
+	    #     }
+	    # }
 	}
 
         # ISSUE=10430 no docs found using this aggregate data source
