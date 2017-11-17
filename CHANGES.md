@@ -1,3 +1,19 @@
+## GRNOC TSDS Services 1.6.0 -- Fri Nov 17 2017
+
+### Features:
+
+* ISSUE=3222 Updates to using perl driver 1.0.0+ and Mongo 3.4. This release is backwards
+incompatible with hosts running earlier versions of the driver, since the driver is itself
+backwards incompatible.
+
+* Added systemd unit files for EL7.
+
+* Allow updates of metadata where only the end time is set, ie decomission a measurement.
+
+* Update Image service to use https to better interoperate with browsers implementing hsts.
+
+
+
 ## GRNOC TSDS Services 1.5.4 -- Fri Oct 27 2017
 
 ### Features:
