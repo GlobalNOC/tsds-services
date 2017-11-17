@@ -1,0 +1,26 @@
+[Unit]
+Description=TSDS-writer daemon
+
+[Service]
+User=root
+Group=root
+ExecStart=/usr/bin/tsds_writer --config "/etc/grnoc/tsds/services/config.xml"
+PIDFile=/var/run/tsds_writer.pid
+# file size
+LimitFSIZE=infinity
+# cpu time
+LimitCPU=infinity
+# virtual memory size
+LimitAS=infinity
+# open files
+LimitNOFILE=64000
+# processes/threads
+LimitNPROC=64000
+# total threads (user+kernel)
+#TasksMax=infinity
+#TasksAccounting=false
+# Recommended limits for for mongod as specified in
+# http://docs.mongodb.org/manual/reference/ulimit/#recommended-settings
+
+[Install]
+WantedBy=multi-user.target
