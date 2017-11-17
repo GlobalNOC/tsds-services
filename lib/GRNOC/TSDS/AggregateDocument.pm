@@ -123,9 +123,10 @@ sub update {
     # doing this as part of a bulk operation?
     if ( $bulk ) {
 
-	return $bulk->find( $query )->update( {'$set' => $updates,
-					       '$min' => {'updated_start' => $min},
-					       '$max' => {'updated_end'   => $max}} );
+	$bulk->find( $query )->update_one( {'$set' => $updates,
+                                            '$min' => {'updated_start' => $min},
+                                            '$max' => {'updated_end'   => $max}} );
+        return;
     }
 
     # single doc update
@@ -133,9 +134,10 @@ sub update {
 
 	my $aggregate_collection = $self->data_type->database->get_collection( "data_" . $self->interval );
 
-	return $aggregate_collection->update( $query, {'$set' => $updates,
-						       '$min' => {'updated_start' => $min},
-						       '$max' => {'updated_end'   => $max} } );
+	$aggregate_collection->update_one( $query, {'$set' => $updates,
+                                                    '$min' => {'updated_start' => $min},
+                                                    '$max' => {'updated_end'   => $max} } );
+        return 1;
     }
 }
 

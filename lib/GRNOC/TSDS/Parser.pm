@@ -40,6 +40,7 @@ use constant AGGREGATE_MAX        => 2;
 use constant AGGREGATE_MIN        => 3;
 use constant AGGREGATE_HIST       => 4;
 use constant AGGREGATE_PERCENTILE => 5;
+use constant AGGREGATE_SUM        => 6;
 
 ### constructor ###
 
@@ -224,7 +225,7 @@ sub evaluate {
     # if there are problems
     my $res;
     eval {
-        $res = $self->_process_tokens($tokens);
+        $res = $self->_process_tokens($tokens, 0, $query);
     };
     if ($@){
         $self->error($@);
@@ -333,6 +334,7 @@ sub _process_tokens {
     my $self        = shift;
     my $tokens      = shift;
     my $is_subquery = shift;
+    my $text_query  = shift;
 
     my $query_time_start = [gettimeofday];
 
@@ -373,7 +375,7 @@ sub _process_tokens {
         # the subquery will be stored in a temp table in mongo and it will return the
         # field mappings from the last query. This is to get around the fact that you cannot
         # store certain characters as mongo fields so it arbitrarily assigns them new ones
-        $doc_symbols = $self->_process_tokens($inner_query, 1);
+        $doc_symbols = $self->_process_tokens($inner_query, 1, $text_query);
         $from_field  = $self->temp_database();
 
         return if (! defined $doc_symbols);
@@ -450,7 +452,8 @@ sub _process_tokens {
             need_all       => $need_all,
             limit          => $limit,
             offset         => $offset,
-            symbols        => $doc_symbols
+            symbols        => $doc_symbols,
+	    text_query     => $text_query
         );
     }
     return if (! defined $inner_result);
@@ -510,6 +513,13 @@ sub _process_tokens {
             $self->total(scalar @$final_results);
             $self->total_raw(scalar @$final_results);
         }
+
+	# If we were doing a data fetch we only set the "raw" limit in
+	# query database, now that we have done all of the grouping
+	# we know what the final set looks like before doing limit
+	if (! defined $self->total()){
+            $self->total(scalar @$final_results);
+	}
 
         $final_results = $self->_apply_limit_offset($final_results, $limit, $offset);
     }
@@ -571,7 +581,7 @@ sub _write_temp_table {
         $result->{'__tsds_temp_id'} = $self->temp_id();
 
 	eval {
-	    my $res    = $temp_collection->insert($result);
+	    my $res    = $temp_collection->insert_one($result);
 	    my $doc_id = $res->{'value'};
 	};
 
@@ -593,7 +603,7 @@ sub _clean_temp_table {
     my $temp_collection = $self->mongo_rw()->get_collection($self->temp_database(),
                                                             $self->temp_table());
 
-    my $res = $temp_collection->remove({"__tsds_temp_id" => $self->temp_id()});    
+    my $res = $temp_collection->delete_many({"__tsds_temp_id" => $self->temp_id()});    
 
     $self->_used_temp_table(0);
 
@@ -1137,7 +1147,7 @@ sub _query_event_database {
         if($metadata->{'event_limit'}){
             # push on a count aggregate op
             push(@aggregate_ops, {'$group' => { _id => undef, 'count' => { '$sum' => 1 }}});
-            $event_count = $collection->aggregate(\@aggregate_ops)->[0]{'count'};
+            $event_count = [$collection->aggregate(\@aggregate_ops)->all()]->[0]{'count'};
             log_debug("got $event_count results with a event_limit of ".$metadata->{'event_limit'});
             if($event_count > $metadata->{'event_limit'}){
                 $is_over_event_limit = 1;
@@ -1146,7 +1156,7 @@ sub _query_event_database {
             # pop off count aggregate op
             pop(@aggregate_ops);
         }
-        $results = $collection->aggregate(\@aggregate_ops);
+        $results = [$collection->aggregate(\@aggregate_ops)->all()];
     };
     if ($is_over_event_limit) {
         $self->error( "Your query generated $event_count events which is greater than the configured limit of ".$metadata->{'event_limit'}.". Either refactor your query or use limit and offset to page your results.");
@@ -1204,6 +1214,7 @@ sub _query_database {
     my $limit           = $args{'limit'};
     my $offset          = $args{'offset'};
     my $doc_symbols     = $args{'symbols'};
+    my $text_query      = $args{'text_query'};
 
     my $queried_field_names = $self->_get_field_names( $fields );
 
@@ -1424,7 +1435,7 @@ sub _query_database {
         log_debug("Measurements query issued to Mongo: ", {filter => \&Data::Dumper::Dumper,
                                    value  => $meta_where_fields});
 
-        my $aggregate_results;
+        my @aggregate_results;
         eval {
 
 	    my @keys = keys( %$queried_field_names );
@@ -1434,10 +1445,10 @@ sub _query_database {
 		delete( $queried_field_names->{$key} ) if ( $key =~ /^values\./ );
 	    }
 	    
-            $aggregate_results = $measurements->aggregate([{'$match' => $meta_where_fields},
+            @aggregate_results = $measurements->aggregate([{'$match' => $meta_where_fields},
                                                            @unwind,
                                                            {'$project' => $queried_field_names}
-                                                          ]);
+                                                          ])->all();
         };
 
         if ($@){
@@ -1445,7 +1456,7 @@ sub _query_database {
             return;
         }
 
-        foreach my $doc (@$aggregate_results){
+        foreach my $doc (@aggregate_results){
             my $identifier = $doc->{'identifier'};
             my $start      = $doc->{'start'};
             push(@{$meta_merge_docs{$identifier}},  $doc);
@@ -1674,55 +1685,57 @@ sub _query_database {
             return;
         }
 
+	log_debug("where fields = " . Dumper($where_fields));
+
 	# ISSUE=11635 no docs found in high res, fall back to using aggregate
-        if ( $data_source eq DATA && $database->name ne $self->temp_database() && $cursor->count == 0 ) {
+        if ( $data_source eq DATA && $database->name ne $self->temp_database() && $collection->count($where_fields) == 0 ) {
 
-            log_warn( "No documents found in high res data source $data_source, falling back to use aggregate data!" );
+            # log_warn( "No documents found in high res data source $data_source, falling back to use aggregate data! Query was \"$text_query\"" );
 
-	    $cursor = undef;
+	    # $cursor = undef;
 
-	    # try highest resolution aggregate first
-	    foreach my $aggregate ( sort { $a->{'interval'} <=> $b->{'interval'} } @$aggregates ) {
+	    # # try highest resolution aggregate first
+	    # foreach my $aggregate ( sort { $a->{'interval'} <=> $b->{'interval'} } @$aggregates ) {
 
-		next if ( !$aggregate->{'interval'} );
+	    #     next if ( !$aggregate->{'interval'} );
 		
-		$collection = $database->get_collection( DATA . '_' . $aggregate->{'interval'} );
+	    #     $collection = $database->get_collection( DATA . '_' . $aggregate->{'interval'} );
 
-		eval {
+	    #     eval {
 
-		    $doc_count = $collection->count($where_fields);
+	    #         $doc_count = $collection->count($where_fields);
 
-		    if($metadata->{'data_doc_limit'}){
-			log_debug("got $doc_count results with a data_doc_limit of ".$metadata->{'data_doc_limit'});
-			if($doc_count > $metadata->{'data_doc_limit'}){
-			    $is_over_data_doc_limit = 1;
-			    return;
-			}
-		    }
+	    #         if($metadata->{'data_doc_limit'}){
+	    #     	log_debug("got $doc_count results with a data_doc_limit of ".$metadata->{'data_doc_limit'});
+	    #     	if($doc_count > $metadata->{'data_doc_limit'}){
+	    #     	    $is_over_data_doc_limit = 1;
+	    #     	    return;
+	    #     	}
+	    #         }
 
-		    # this aggregate had docs
-		    if ( $doc_count > 0 ) {
+	    #         # this aggregate had docs
+	    #         if ( $doc_count > 0 ) {
 
-			$cursor = $collection->find($where_fields)->hint( 'identifier_1_start_1_end_1' )->fields(\%queried_names);
-		    }
-		};
+	    #     	$cursor = $collection->find($where_fields)->hint( 'identifier_1_start_1_end_1' )->fields(\%queried_names);
+	    #         }
+	    #     };
 
-		# try next aggregate
-		next if !$cursor;
+	    #     # try next aggregate
+	    #     next if !$cursor;
 
-		if ( $@ ) {
-		    $self->error( "Error querying storage database: $@" );
-		    return;
-		}
-		if ($is_over_data_doc_limit) {
-		    $self->error( "Your query generated $doc_count documents which is greater than the configured limit of ".$metadata->{'data_doc_limit'}.". Either refactor your query or use limit and offset to page your results.");
-		    return;
-		}
-	    }
+	    #     if ( $@ ) {
+	    #         $self->error( "Error querying storage database: $@" );
+	    #         return;
+	    #     }
+	    #     if ($is_over_data_doc_limit) {
+	    #         $self->error( "Your query generated $doc_count documents which is greater than the configured limit of ".$metadata->{'data_doc_limit'}.". Either refactor your query or use limit and offset to page your results.");
+	    #         return;
+	    #     }
+	    # }
 	}
 
         # ISSUE=10430 no docs found using this aggregate data source
-        elsif ( $data_source ne DATA && $database->name ne $self->temp_database() && $cursor->count == 0 ) {
+        elsif ( $data_source ne DATA && $database->name ne $self->temp_database() && $collection->count($where_fields) == 0 ) {
 
             log_warn( "No documents found in aggregate data source $data_source, falling back to use high res data!" );
 
@@ -2002,8 +2015,19 @@ sub _get_meta_limit_result {
 
             $unique_by{$by_field} = 1;
 
-            $group_clause->{$by_field} = '$' . $by_field;
-            
+	    # starting in Mongo 3.4 they don't allow for dotted field
+	    # names, like "circuit.name" so when we ask for it out
+	    # we have to get it as circuit: {name: instead
+	    # we'll have to translate back on the other side
+	    my @by_pieces = split(/\./, $by_field);
+	    my $last_piece = pop @by_pieces;
+	    my $loc = $group_clause;
+	    while (my $piece = shift @by_pieces){
+	    	$loc->{$piece} ||= {};
+	    	$loc = $loc->{$piece};
+	    }
+	    $loc->{$last_piece} = '$' . $by_field;	    
+
             # if the where clause already had this field in it,
             # we need to ensure our limit query contains both $exists
             # and whatever the original filter on that field was
@@ -2032,7 +2056,7 @@ sub _get_meta_limit_result {
 
 
     # query
-    my $limit_result;
+    my @limit_result;
     eval {
         # mapreduce is generally regarded as slow in the community and empirical testing
         # shows that it is generally worse off than the aggregation pipeline for
@@ -2052,23 +2076,25 @@ sub _get_meta_limit_result {
             push(@unwind, {'$match' => $limit_query});
         }
 
-        $limit_result = $collection->aggregate([{'$match' => $limit_query}, 
-                                                @unwind, 
-                                                {
-                                                    '$group'   => {
-                                                        '_id'   => $group_clause,
-                                                        'count' => {'$sum' => 1}
-                                                    }
-                                                }]);
+	my $pipeline = [{'$match' => $limit_query}, 
+			@unwind, 
+			{
+			    '$group'   => {
+				'_id'   => $group_clause,
+				'count' => {'$sum' => 1}
+			    }
+			}];
+	
+        @limit_result = $collection->aggregate($pipeline)->all();
         
         my $total_count = 0;
-        foreach my $item (@$limit_result){
+        foreach my $item (@limit_result){
             $total_count += $item->{'count'};
         }
 
         # keep track of how many total matched
         # vs just the ones we limit/offset'd
-        $self->total(scalar @$limit_result);
+        $self->total(scalar @limit_result);
         $self->total_raw($total_count);
 
         # Default sort ordering to the "by" clause elements
@@ -2082,7 +2108,7 @@ sub _get_meta_limit_result {
                 my $name  = $item->[0];
                 my $dir   = $item->[1];
                 
-                if (! defined $dir || $dir  =~ /asc/){
+                if (! defined $dir || $dir  =~ /asc/i){
                     $dir = 1;
                 }
                 else {
@@ -2101,15 +2127,32 @@ sub _get_meta_limit_result {
 
         log_debug("Inner meta sort is ", {filter => \&Data::Dumper::Dumper, value  => $sort});
 
-        $limit_result = $collection->aggregate([{'$match'  => $limit_query},
+        @limit_result = $collection->aggregate([{'$match'  => $limit_query},
                                                 @unwind,
                                                 {'$group'  => $group},
                                                 $sort,
                                                 {'$limit'  => $limit + $offset},
                                                 {'$skip'   => $offset}
-                                               ]);
+                                               ])->all();
 
-        return $limit_result;
+	# Reverse of above, we might get something back
+	# like "circuit: {name: " and we want to cast that back
+	# to "circuit.name: {" for use later
+	foreach my $limit_res (@limit_result){
+	    my $id = $limit_res->{'_id'};
+	    foreach my $key (keys $id){
+		my $str = $key;
+		my $val = $id->{$key};
+		if (ref($val) eq 'HASH'){
+		    foreach my $key2 (keys %$val){
+			$limit_res->{'_id'}{$key . '.' . $key2} = $val->{$key2};			
+		    }
+		    delete $limit_res->{'_id'}{$key};
+		}
+	    }
+	}
+
+        return \@limit_result;
     };
 
     if ($@){
@@ -2117,7 +2160,7 @@ sub _get_meta_limit_result {
         return;
     }
 
-    return $limit_result;
+    return \@limit_result;
 }
 
 sub _get_unwind_operations {
@@ -2208,7 +2251,7 @@ sub _verify_where_fields {
     my $database     = shift;
     my $where_names  = shift;
 
-    my @indexes = $database->get_collection(MEASUREMENTS)->get_indexes();
+    my @indexes = $database->get_collection(MEASUREMENTS)->indexes->list->all;
 
     foreach my $where_name (keys %$where_names){
 	my $found = 0;
@@ -2319,6 +2362,16 @@ sub _apply_order {
 	    else {
 		$val_a = $b->{$token_name};
 		$val_b = $a->{$token_name};
+	    }
+
+	    # undefined is always sorted differently than defined
+	    if (! defined $val_a && defined $val_b){
+		$res = $res || -1;
+		next;
+	    }
+	    if (defined $val_a && ! defined $val_b){
+		$res = $res || 1;
+		next;
 	    }
 
 	    # are we sorting numbers or text?
@@ -2897,124 +2950,75 @@ sub _apply_aggregate {
 	'max'        => AGGREGATE_MAX,
 	'min'        => AGGREGATE_MIN,
 	'histogram'  => AGGREGATE_HIST,
-	'percentile' => AGGREGATE_PERCENTILE
+	'percentile' => AGGREGATE_PERCENTILE,
+	'sum'        => AGGREGATE_SUM
 	);
     $function = $func_lookup{$function};
 
     # start all of these regardless of what function
     # we're doing to avoid reprocessing each bucket array
-    my $max;
-    my $min;
-    my @bucket;
-    my @hists;
-    my $num_nulls = 0;
-    my $total     = 0;
+    my $bucket_data = {
+	max       => undef,
+	min       => undef,
+	total     => 0,
+	num_nulls => 0,
+	bucket    => [],
+	hists     => []
+    };
 
     my $extent_start;
 
     my $aggregated = [];
 
-    @$set = sort { $a->[0] <=> $b->[0] } @$set;
+    @$set = sort { $a->[0] <=> $b->[0] } @$set;    
 
     for (my $i = 0; $i < @$set; $i++){
 
 	my $point = $set->[$i];
 
-	my $time  = $point->[0];
+	# Align the time to whatever bucket we're looking at
+	my $time  = int($point->[0] / $extent) * $extent;
 	my $value = $point->[1];
 
-	if (! defined $extent_start) {
+	my $is_outside_extent = 0;
 
+	# Is this the start of a new bucket? Data is sorted by time so 
+	# we'll only see this after the last extent has finished
+	if (! defined $extent_start) {
 	    $extent_start = $time;
 	}
-
-	# we're looking at a retention aggregation
-	if ( ref( $value ) ) {
-
-            if ( !defined( $value->{'avg'} ) || !defined( $value->{'min'} ) || !defined( $value->{'max'} ) ) {
-
-                $num_nulls++;
-	    }
-
-	    else {
-
-		$max = $value->{'max'} if ( !defined( $max ) || $value->{'max'} > $max );
-		$min = $value->{'min'} if ( !defined( $min ) || $value->{'min'} < $min);
-
-		$total += $value->{'avg'};
-		push( @bucket, $value->{'avg'} );
-
-		push( @hists, $value->{'hist'} );
-	    }
-	}
-
-	# we're looking at raw highres data
+	# Otherwise check to see if we're still inside this bucket. If we
+	# aren't, we'll have to finish the current bucket before doing anything
+	# with this data point
 	else {
-
-	    if ( !defined( $value ) ) {
-
-		$num_nulls++;
-	    }
-
-	    else {
-
-		$max = $value if (! defined $max || $value > $max);
-		$min = $value if (! defined $min || $value < $min);
-
-		$total += $value;
-		push(@bucket, $value);
-	    }
+	    $is_outside_extent = ($time - $extent_start) >= $extent;
 	}
 
-	# this point is outside of our current aggregation window or
-	# we're at the end of the array, time to wrap it up before moving on
-        # ( here we check whether there are more data for the same timestamp exist in next iteration, if so wait until we reach the last timestamp)
-	if ($extent == 1 || $i == @$set - 1 || ( $time !=  $set->[$i+1]->[0] && $time - $extent_start >= $extent)){
+	# This datapoint falls outside the previous bucket, so let's wrap that bucket up
+	# since we're sorted by time we know there are no more points left in it
+	if ($is_outside_extent){
+	    my $data = $self->__process_bucket($aggregated, $bucket_data, $extent_start, $function, $extra);
 
-	    # most common one, short circuit here
-	    if ($function == AGGREGATE_AVERAGE){
-		if ( @bucket == 0 ) {		    
-		    push( @$aggregated, [$extent_start, undef] );
-		}		
-		else {
-		    push(@$aggregated, [$extent_start, $total / @bucket]);
-		}		
-	    }
-	    elsif ($function == AGGREGATE_MAX){
-		push(@$aggregated, [$extent_start, $max]);
-	    }
-	    elsif ($function == AGGREGATE_MIN){
-		push(@$aggregated, [$extent_start, $min]);
-	    }
-	    elsif ($function == AGGREGATE_PERCENTILE){
-		my $value = $self->_calculate_percentile(\@bucket, $extra);
-		push(@$aggregated, [$extent_start, $value]);
-	    }
-	    elsif ( $function == AGGREGATE_HIST ) {
-		
-		foreach my $hist ( @hists ) {
-		    
-		    push( @$aggregated, [$extent_start, $hist] );
-		}
-	    }
-	    
-	    if ($extent == 1){
-		$extent_start = undef;
-	    }
-	    # current data point is the start extent now
-	    else {
-		$extent_start = $time;
-	    }
-
-	    # reset tracking
-	    undef $max;
-	    undef $min;
-	    undef @bucket;
-	    undef @hists;
-	    $total     = 0;
-	    $num_nulls = 0;
+	    # reset tracking, our current start is now the start
+	    # of this data point and our accumulators are empty
+	    # The time has already been aligned
+	    $extent_start = $time;
+	    $bucket_data = {
+		max       => undef,
+		min       => undef,
+		total     => 0,
+		num_nulls => 0,
+		bucket    => [],
+		hists     => []
+	    };
 	}
+
+	# Add current data point to our bucket tracking
+	$self->__update_bucket($bucket_data, $value);
     }
+
+    # make sure we get the last point
+    $self->__process_bucket($aggregated, $bucket_data, $extent_start, $function, $extra) if (@{$bucket_data->{'bucket'}});
 
     if ($math_symbol){
 	$aggregated = $self->_apply_math($aggregated, $math_symbol, $math_value);
@@ -3024,6 +3028,108 @@ sub _apply_aggregate {
 	$rename => $aggregated
     };
 }
+
+# Helper function for apply_aggregate()
+sub __update_bucket {
+    my $self        = shift;
+    my $bucket_data = shift;  
+    my $value       = shift;
+
+    my $local_max;
+    my $local_min;
+
+    # we're looking at a retention aggregation
+    if ( ref( $value ) ) {
+	
+	if ( !defined( $value->{'avg'} ) || !defined( $value->{'min'} ) || !defined( $value->{'max'} ) ) {
+	    $bucket_data->{'num_nulls'}++;
+	}
+	else {
+	    $local_max = $value->{'max'};
+	    $local_min = $value->{'min'};
+	    
+	    $bucket_data->{'total'} += $value->{'avg'};
+	    push( @{$bucket_data->{'bucket'}}, $value->{'avg'} );	    
+	    push( @{$bucket_data->{'hists'}}, $value->{'hist'} );
+	}
+    }
+    
+    # we're looking at raw highres data
+    else {
+	$value = $value;
+	if ( !defined( $value ) ) {
+	    $bucket_data->{'num_nulls'}++;
+	}
+	else {
+	    $local_max = $value;
+	    $local_min = $value;
+	    
+	    $bucket_data->{'total'} += $value;
+	    push(@{$bucket_data->{'bucket'}}, $value);
+	}
+    }
+
+    $bucket_data->{'max'} = $local_max if ( !defined( $bucket_data->{'max'} ) || $local_max > $bucket_data->{'max'} );
+    $bucket_data->{'min'} = $local_min if ( !defined( $bucket_data->{'min'} ) || $local_min < $bucket_data->{'min'} );
+}
+
+# Helper function for apply_aggregate()
+sub __process_bucket {
+    my $self         = shift;
+    my $aggregated   = shift;
+    my $bucket_data  = shift;
+    my $extent_start = shift;
+    my $function     = shift;
+    my $extra        = shift;
+
+    my $max       = $bucket_data->{'max'};
+    my $min       = $bucket_data->{'min'};
+    my $total     = $bucket_data->{'total'};
+    my $num_nulls = $bucket_data->{'num_nulls'};
+    my $bucket    = $bucket_data->{'bucket'};
+    my $hists     = $bucket_data->{'hists'};
+
+    # most common one, short circuit here
+    if ($function == AGGREGATE_AVERAGE){
+	if ( @$bucket == 0 ) {		    
+	    push( @$aggregated, [$extent_start, undef] );
+	}		
+	else {
+	    push(@$aggregated, [$extent_start, $total / @$bucket]);
+	}		
+    }
+    elsif ($function == AGGREGATE_MAX){
+	push(@$aggregated, [$extent_start, $max]);
+    }
+    elsif ($function == AGGREGATE_MIN){
+	push(@$aggregated, [$extent_start, $min]);
+    }
+    elsif ($function == AGGREGATE_PERCENTILE){
+	my $value;
+	# if we had histogram data, ie low-res data we should use those
+	# to get a more accurate percentile calculation
+	if (@$hists){
+	    $value = $self->_calculate_percentile($hists, $extra);
+	}
+	# otherwise it's based on hi-res data or no histogram available,
+	# just use what we have
+	else {
+	    $value = $self->_calculate_percentile($bucket, $extra);
+	}
+	push(@$aggregated, [$extent_start, $value]);
+    }
+    elsif ( $function == AGGREGATE_HIST ) {
+	
+	foreach my $hist ( @$hists ) {
+	    
+	    push( @$aggregated, [$extent_start, $hist] );
+	}
+    }
+    elsif ( $function == AGGREGATE_SUM ){
+	push(@$aggregated, [$extent_start, $total]);
+    }
+}
+
 
 sub _apply_histogram {
 
@@ -3601,7 +3707,7 @@ sub _fix_document {
 		$start_index = 0;
 	    }
 
-	    my $end_index   = int(($meta_end - $effective_start) / $interval);
+	    my $end_index   = int(($meta_end - $effective_start) / $interval) - 1; # non-inclusive end
 	    if ($end_index > @$values - 1){
 		$end_index = @$values - 1;
 	    }

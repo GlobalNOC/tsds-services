@@ -5,7 +5,6 @@ use Proc::Daemon;
 use GRNOC::Config;
 use GRNOC::Log;
 use GRNOC::Counter;
-use Net::RabbitFoot;
 use Net::AMQP::RabbitMQ;
 use Tie::IxHash;
 use Data::Dumper;

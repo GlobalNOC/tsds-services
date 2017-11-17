@@ -1045,7 +1045,7 @@ sub _add_report {
     }
 
     # insert the report
-    my $id = $report_collection->insert($report);
+    my $id = $report_collection->insert_one($report);
     if(!$id) {
         $self->error( 'Error creating report' );
         return;
@@ -1072,7 +1072,7 @@ sub _delete_reports {
     }
 
     # remove the reports
-    my $success = $report_collection->remove( $find );
+    my $success = $report_collection->delete_many( $find );
     if(!$success) {
         $self->error( 'Error deleting reports' );
         return;
@@ -1100,7 +1100,7 @@ sub _update_reports {
     }
 
     # remove the reports
-    my $success = $report_collection->update( $find, {'$set' => $set} , { multiple => 1 } );
+    my $success = $report_collection->update_many( $find, {'$set' => $set} );
     if(!$success) {
         $self->error( 'Error updating reports' );
         return;
@@ -1140,8 +1140,8 @@ sub _update_report_components {
     $self->_remove_branch_keys( components => $components ) || return;
 
     # insert the report
-    my $id = $report_collection->update({"name" => $report_name}, 
-                                        {'$set' => { component => $components }} );
+    my $id = $report_collection->update_one({"name" => $report_name}, 
+					    {'$set' => { component => $components }} );
     if(!$id) {
         $self->error( 'Error editing report: '.$report_name );
         return;
@@ -1190,7 +1190,7 @@ sub _get_reports {
     }
 =cut
     my @reports = $report_collection->find($find)->sort( { $order_by => $flag } )->skip($offset)->limit($limit)->all;
-    my $count = $report_collection->find($find)->sort( { $order_by => $flag } )->skip($offset)->limit($limit)->count();
+    my $count = $report_collection->count($find);
 
     @reports = map {{ name           => $_->{'name'}, 
                       type           => $_->{'type'},

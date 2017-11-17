@@ -1,3 +1,32 @@
+## GRNOC TSDS Services 1.5.4 -- Fri Oct 27 2017
+
+### Features:
+
+* ISSUE=5417 Added "sum" as a secondary function to aggregate() to support
+summing horizontally across an aggregate query with multiple elements in a by clause
+
+
+### Bug Fixes:
+
+* ISSUE=4088 Properly use histogram when calculating percentile() on aggregate fields
+* ISSUE=5402 Fixed off by one timestamp reporting in aggregate() function
+* ISSUE=5415 Forced extent alignment in timestamps reported in aggregate() function 
+to requested bucket size
+
+
+## GRNOC TSDS Services 1.5.3 -- Tue Aug 29 2017
+
+### Features:
+
+* ISSUE=5057 Added aggregate chart to Portal section. Also added additional metadata to the
+Portal section display, such as interface descriptions.
+
+### Bug Fixes:
+
+* ISSUE=2633 Fixed missing inclusion of tsds-decom.pl script
+* ISSUE=5057 Fixed sorting issue with Portal section not being respected.
+
+
 ## GRNOC TSDS Services 1.5.2 -- Tue Nov 1 2016
 
 ### Features:

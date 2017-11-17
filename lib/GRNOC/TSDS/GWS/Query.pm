@@ -29,8 +29,10 @@ use GRNOC::WebService::Regex;
 use JSON::XS;
 
 # Get access to encode/decode_bson
-use XSLoader;
-XSLoader::load("MongoDB");
+#use XSLoader;
+#XSLoader::load("MongoDB");
+
+use MongoDB::BSON;
 
 use Data::Dumper;
 
@@ -59,6 +61,7 @@ sub _init_methods {
 
     $method = GRNOC::WebService::Method->new( name          => 'query',
                                               description   => 'Executes a query',
+                                              xdr_regexp    => '.*',
                                               expires       => '-1d',
 					      output_formatter => sub { return shift; },
                                               callback      => sub { $self->_query( @_ ) } );
@@ -111,7 +114,7 @@ sub _query {
 
     if ($output =~ /^bson$/i){
 	$method->{'output_type'} = "application/bson";
-	$response = MongoDB::BSON::encode_bson($response);
+	$response = MongoDB::BSON->new()->encode_one($response);
     }
     else {
 	$method->{'output_type'} = "application/json";
