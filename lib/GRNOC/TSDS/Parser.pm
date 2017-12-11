@@ -1688,7 +1688,7 @@ sub _query_database {
 	log_debug("where fields = " . Dumper($where_fields));
 
 	# ISSUE=11635 no docs found in high res, fall back to using aggregate
-        if ( $data_source eq DATA && $database->name ne $self->temp_database() && $collection->count($where_fields) == 0 ) {
+        if ( 0 && $data_source eq DATA && $database->name ne $self->temp_database() &&$collection->count($where_fields) == 0 ) {
 
             # log_warn( "No documents found in high res data source $data_source, falling back to use aggregate data! Query was \"$text_query\"" );
 
@@ -3069,8 +3069,12 @@ sub __update_bucket {
 	}
     }
 
-    $bucket_data->{'max'} = $local_max if ( !defined( $bucket_data->{'max'} ) || $local_max > $bucket_data->{'max'} );
-    $bucket_data->{'min'} = $local_min if ( !defined( $bucket_data->{'min'} ) || $local_min < $bucket_data->{'min'} );
+    if (defined $local_max){
+	$bucket_data->{'max'} = $local_max if ( !defined( $bucket_data->{'max'} ) || $local_max > $bucket_data->{'max'} );
+    }
+    if (defined $local_min){
+	$bucket_data->{'min'} = $local_min if ( !defined( $bucket_data->{'min'} ) || $local_min < $bucket_data->{'min'} );
+    }
 }
 
 # Helper function for apply_aggregate()

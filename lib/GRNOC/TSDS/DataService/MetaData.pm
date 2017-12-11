@@ -1293,14 +1293,17 @@ sub _do_update_measurement_metadata {
         # specifically check to see if end time is different,
         # ie we're just decomming this thing but changing
         # nothing else
-        if ($is_same && $orig_end ne $end){
-            $last_end = $end;
-            $original{'end'} = $end;
-            $measurements->delete_one({_id => $orig_id});
-            $measurements->insert(\%original);
-            $modified++;
-            next;
-        }	
+	{
+	    no warnings 'uninitialized';
+	    if ($is_same && $orig_end ne $end){
+		$last_end = $end;
+		$original{'end'} = $end;
+		$measurements->delete_one({_id => $orig_id});
+		$measurements->insert(\%original);
+		$modified++;
+		next;
+	    }	
+	}
 
 	# if the docs ended up being exactly the same, we can skip ahead
 	# since there's nothing to do
@@ -1599,7 +1602,7 @@ sub _verify_meta_fields {
         # if the metadata says this must be an array, make sure the values passed in 
         # are arrays
         my $is_array = 0;
-        if (exists $meta->{$obj_field}{'array'} && $meta->{$obj_field}{'array'} eq 1){
+        if (exists $meta->{$obj_field}{'array'} && defined $meta->{$obj_field}{'array'} && $meta->{$obj_field}{'array'} eq 1){
             $is_array = 1;
             if (ref $obj->{$obj_field} ne 'ARRAY'){
                 $self->error("Metadata for \"$obj_field\" must be an array of values.");
