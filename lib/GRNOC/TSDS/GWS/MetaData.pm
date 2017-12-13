@@ -321,7 +321,7 @@ sub _get_distinct_meta_field_values {
     }
 
     return {
-	total   => @$results,
+	total   => scalar(@$results),
 	results => $results
     };
 }
