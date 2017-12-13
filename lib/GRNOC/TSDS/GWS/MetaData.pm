@@ -320,7 +320,11 @@ sub _get_distinct_meta_field_values {
         return;
     }
 
-    return $results;
+    return {
+	total   => scalar(@$results),
+	results => $results
+    };
+
 }
 
 sub _get_meta_field_values_dynamic_parameters {
