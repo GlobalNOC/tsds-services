@@ -50,7 +50,7 @@ sub BUILD {
     eval {
         $mongo_root = MongoDB::MongoClient->new(
             host => "$mongo_host:$mongo_port",
-            query_timeout => -1,
+            socket_timeout_ms => -1,
             username => $root_user->{'user'},
             password => $root_user->{'password'}
             );
@@ -130,7 +130,7 @@ sub upgrade {
         $module_name->upgrade( $self );
 	
         # bump up the version in the schema
-        $self->mongo_root->get_database( 'tsds_version' )->get_collection( 'tsds_version' )->update( {}, $update );
+        $self->mongo_root->get_database( 'tsds_version' )->get_collection( 'tsds_version' )->update_one( {}, $update );
 	
         # store this new version #
         $old_version = $self->_get_old_version();

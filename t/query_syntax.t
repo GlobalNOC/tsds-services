@@ -7,7 +7,7 @@ use FindBin;
 use GRNOC::Log; 
 use GRNOC::TSDS::Parser;
 
-use Test::More tests => 81;
+use Test::More tests => 82;
 
 use Data::Dumper;
 
@@ -108,7 +108,10 @@ my @basic_queries = (
     'get name between(now - 10d, now) by meta.node from collection where x = 4',
     'get name between(now - 10w, now) by meta.node from collection where x = 4',
     'get name between(now - 10mo, now) by meta.node from collection where x = 4',
-    'get name between(now - 10y, now) by meta.node from collection where x = 4'
+    'get name between(now - 10y, now) by meta.node from collection where x = 4',
+
+    # aggregate function
+    'get aggregate(values.input, 3600, sum) as foo between("01/02/2014", "01/03/2014") by meta.intf, meta.node from collection where x > 7 and (y < 3 or y > 8) and z > 10 ordered by foo, bar',  
     );
 
 

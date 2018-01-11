@@ -141,9 +141,14 @@ sub _process_db {
     my $limit  = 1000;
     my @seen;
 
+    my $id_time = $expired_time - $expire_after;
+    my $id_oid  = sprintf("%X", $id_time) . ("0" x 16);
+    
+    my $id = MongoDB::OID->new(value => $id_oid);
+
     my $ids = $db->run_command(["distinct" => 'data',
 				"key"      => '_id',
-				"query"    => {'_id' => {'$gte' => MongoDB::OID->new(value => sprintf("%X", $expired_time - $expire_after))}},
+				"query"    => {'_id' => {'$gte' => $id}}
 			       ])->{'values'};
 
 
@@ -329,7 +334,7 @@ sub _decom_doc {
 
     my $doc_start = $doc->{'start'};
 
-    $collection->remove( {'_id' => $doc->{'_id'}} );
+    $collection->delete_one( {'_id' => $doc->{'_id'}} );
 
     # we can't set the end to before this doc started, this is kind of a weird case
     # but would put us into a strange measurements state so checking for it here.
@@ -342,7 +347,7 @@ sub _decom_doc {
     # we cannot update the 'end' field, so we need to remove and insert with the updated 'end'
     delete $doc->{'_id'};
     $doc->{'end'} = $end;
-    $collection->insert( $doc );
+    $collection->insert_one( $doc );
 }
 
 
@@ -362,9 +367,10 @@ sub _mongo_connect {
         $mongo = MongoDB::MongoClient->new(
             host => "$mongo_host:$mongo_port",     
             username => $rw_user->{'user'},
-            password => $rw_user->{'password'}
+            password => $rw_user->{'password'},
+	    socket_timeout_ms => 120 * 1000	    
         );
-	$mongo->query_timeout(300 * 1000);
+
     };
     if($@){
         die "Could not connect to Mongo: $@";

@@ -221,7 +221,7 @@ foreach my $ident ( @identifiers ) {
         # try to insert the modified doc  
         eval {
             log_debug("  INSERTING start = $first_info->{'start'}");
-            $info_collection->insert( $first_info );
+            $info_collection->insert_one( $first_info );
         };
         if($@){
             log_error( "  **** ERROR: Problem inserting measurement document: $@ " );

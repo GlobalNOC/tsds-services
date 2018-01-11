@@ -60,6 +60,8 @@ ok($res->[0]{'success'}, "data_doc_limit removed");
 $arr= $query->run_query( query =>'get average(values.output) between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") from tsdstest where intf = "ge-0/0/0" ');
 ok($arr, "query returned");
 
+
+
 # set event_limit
 $res = $metadata->update_measurement_types(
     name => 'tsdstest',

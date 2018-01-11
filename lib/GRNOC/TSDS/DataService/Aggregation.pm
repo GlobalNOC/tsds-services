@@ -176,7 +176,7 @@ sub update_aggregations {
     }
     
     if(%$set){
-        $id = $agg_col->update($query, { '$set' => $set } );
+        $id = $agg_col->update_one($query, { '$set' => $set } );
         if(!$id) {
             $self->error( "Error updating values in aggregate with name $name");
             return;
@@ -251,7 +251,7 @@ sub update_expirations {
     }
 
     if(%$set){
-        my $id = $exp_col->update({ name => $name }, { '$set' => $set } );
+        my $id = $exp_col->update_one({ name => $name }, { '$set' => $set } );
         if(!$id) {
             $self->error( "Error updating values in expiration with name $name");
             return;
@@ -322,23 +322,13 @@ sub add_aggregation {
         return;
     }
     my $agg_data_col = $self->mongo_rw()->get_collection( $measurement_type, "data_$interval", create => 1 );
-    $agg_data_col->ensure_index({start   => 1});
-    $agg_data_col->ensure_index({end     => 1});
+    my $indexes = $agg_data_col->indexes();
+    $indexes->create_one([start => 1]);
+    $indexes->create_one([end   => 1]);
+    $indexes->create_one([updated => 1, identifier => 1]);
+    $indexes->create_one([identifier => 1, start => 1, end => 1]);
 
-    # Index for agg daemon to query against
-    $agg_data_col->ensure_index(Tie::IxHash->new(
-				    updated     => 1,
-				    identifier  => 1
-				));
-
-    my $index = Tie::IxHash->new( 
-        identifier => 1,
-        start      => 1,
-        end        => 1
-    );
-    $agg_data_col->ensure_index($index);
-
-    my $id = $agg_col->insert($set);
+    my $id = $agg_col->insert_one($set);
     if(!$id) {
         $self->error( "Error inserting values in aggregate with interval $interval and meta $meta");
         return;
@@ -405,7 +395,7 @@ sub add_expiration {
     my $new_eval_position = $highest_eval_position + 10;
     $set->{'eval_position'} = $new_eval_position;
 
-    my $id = $exp_col->insert( $set );
+    my $id = $exp_col->insert_one( $set );
     if(!$id) {
         $self->error( "Error inserting values in expiration with interval $interval and meta $meta");
         return;
@@ -420,11 +410,8 @@ sub _agg_exp_exists {
     my $name       = $args{'name'};
 
     # make sure a agg doesn't already exist with this name
-    my $cur = $col->find({ name => $name });
-    if($cur->count()){
-        return 1;
-    }
-    
+    my $count = $col->count({ name => $name });
+    return 1 if $count;    
     return 0;
 }
 
@@ -490,7 +477,7 @@ sub delete_aggregations {
     ) || return;
 
     # remove the aggregate rule from the collection
-    my $id = $agg_col->remove({name => $name});
+    my $id = $agg_col->delete_one({name => $name});
     if(!$id) {
         $self->error( "Error removing aggregate rule for $name.");
         return;
@@ -502,7 +489,7 @@ sub delete_aggregations {
         $self->error($self->mongo_rw()->error());
         return;
     }
-    $id = $exp_col->remove({ name => $name });
+    $id = $exp_col->delete_one({ name => $name });
     if(!$id) {
         $self->error( "Error removing values from expiration with name $name.");
         return;
@@ -557,7 +544,7 @@ sub _delete_aggregation_data {
     # if there's other aggregations besides the one we are deleting
     # delete everything in data_$interval that doesn't match their metadata scope
     if(@$ids){
-        my $res = $agg_data_col->remove({ identifier => { '$in' => $ids } });
+        my $res = $agg_data_col->delete_many({ identifier => { '$in' => $ids } });
         if(!$res) {
             $self->error( "Error removing values from aggregate with name $name.");
             return;
@@ -565,7 +552,7 @@ sub _delete_aggregation_data {
     }
 
     # if there's no data left in the agg data cursor drop it
-    if ($agg_data_col->find({})->count() == 0) {
+    if ($agg_data_col->count({}) == 0) {
         $agg_data_col->drop();
     }
     
@@ -600,7 +587,7 @@ sub delete_expirations {
         $self->error("Aggregation named, $name, doesn't exist");
         return;
     }
-    my $id = $exp_col->remove({name => $name});
+    my $id = $exp_col->delete_one({name => $name});
     if(!$id) {
         $self->error( "Error removing values from expiration with name $name.");
         return;
@@ -688,9 +675,7 @@ sub _has_null_eval_positions {
 
     my $query = { 'eval_position' => { '$exists' => 0 }, 'name' => { '$ne' => $name } };
 
-    my $results = $col->find($query);
-
-    if ($results->count()) {
+    if ($col->count($query)) {
         return 1;
     }
     return 0;
@@ -758,7 +743,7 @@ sub _recalculate_eval_positions {
         #warn 'updating ' . $rule->{'name'} . ' to eval position: ' . $i;
         my $update_query = { 'name' => $rule->{'name'} };
         my $set = { 'eval_position' => $i };
-        my $exp_res = $col->update($update_query, {'$set' => $set });
+        my $exp_res = $col->update_one($update_query, {'$set' => $set });
         $i += 10;
     }
 }
@@ -773,7 +758,7 @@ sub _set_eval_position {
     my $set = { 'eval_position' => $eval_position };
 
     
-    my $exp_res = $col->update($query, { '$set' => $set });
+    my $exp_res = $col->update_one($query, { '$set' => $set });
 
 
     if (!$exp_res) {

@@ -225,9 +225,10 @@ sub get_chart {
     close $fh;
 
     my $chart_url = "https://$hostname/tsds-services/temp/".$filename;
-    
-    my $mech = WWW::Mechanize::PhantomJS->new();
-    $mech->get($chart_url);
+
+    my $mech = WWW::Mechanize::PhantomJS->new(phantomjs_arg => ['--ssl-protocol=any']);
+
+    my $r_obj = $mech->get($chart_url);
 
     my ($value) = $mech->eval('flag');
     my $max = 500;

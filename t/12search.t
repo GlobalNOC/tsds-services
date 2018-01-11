@@ -14,8 +14,9 @@ my $bnf_file = "$FindBin::Bin/../conf/query_language.bnf";
 GRNOC::Log->new( config => $logging_file );
 
 # start up searchd if it isn't already
-system( 'sudo /etc/init.d/searchd start' );
+system( 'sudo /usr/bin/systemctl start searchd.service' );
 sleep( 2 );
+
 
 my $ds = GRNOC::TSDS::DataService::Search->new( config_file => $config_file,
 						bnf_file => $bnf_file );
@@ -85,7 +86,7 @@ is(@$results, "10", "10 results with min >= 2");
 $results = $ds->search( search               => "rtr.chic",		
 			measurement_type     => ['tsdstest'],
                         value_field_name     => ["input"],
-                        value_field_value    => ["129696"],
+			value_field_value    => ["129695"],
 			step                 => 1,
                         value_field_logic    => ["="],
                         value_field_function => ["percentile_95"],
@@ -93,8 +94,7 @@ $results = $ds->search( search               => "rtr.chic",
 			end_time             => 1000
     )->{'results'};
 
-is(@$results, "1", "1 result with percentile_95 = 129696");
-
+is(@$results, "1", "1 result with percentile_95 = 129695");
 
 # Ensure ordering by value still works in a single measurement type
 # when there are no meta fields, ie no where clause
@@ -108,9 +108,9 @@ $results = $ds->search( search               => undef,
 is($results->{'total'}, 20, "20 results reported in total");
 $results = $results->{'results'};
 is(@$results, 20, "got all 20 results back");
-is(_get_value("input", $results->[0])->{'aggregate'}, 361.25, "got first ordered value");
-is(_get_value("input", $results->[1])->{'aggregate'}, 9001.25, "got second ordered value");
-is(_get_value("input", $results->[19])->{'aggregate'}, 164521.25, "got last ordered value");
+is(_get_value("input", $results->[0])->{'aggregate'}, 360.5, "got first ordered value");
+is(_get_value("input", $results->[1])->{'aggregate'}, 9000.5, "got second ordered value");
+is(_get_value("input", $results->[19])->{'aggregate'}, 164520.5, "got last ordered value");
 
 # Same as above but descending order
 $results = $ds->search( search               => undef,		
@@ -124,9 +124,9 @@ $results = $ds->search( search               => undef,
 is($results->{'total'}, 20, "20 results reported in total");
 $results = $results->{'results'};
 is(@$results, 20, "got all 20 results back");
-is(_get_value("input", $results->[19])->{'aggregate'}, 361.25, "got last ordered value");
-is(_get_value("input", $results->[18])->{'aggregate'}, 9001.25, "got second to last ordered value");
-is(_get_value("input", $results->[0])->{'aggregate'}, 164521.25, "got first ordered value");
+is(_get_value("input", $results->[19])->{'aggregate'}, 360.5, "got last ordered value");
+is(_get_value("input", $results->[18])->{'aggregate'}, 9000.5, "got second to last ordered value");
+is(_get_value("input", $results->[0])->{'aggregate'}, 164520.5, "got first ordered value");
 
 
 # Ensure "having" still works in a single measurement type
@@ -145,7 +145,7 @@ $results = $ds->search( search               => undef,
 is($results->{'total'}, 18, "18 results reported in total");
 $results = $results->{'results'};
 is(@$results, 18, "got all 18 results back");
-is(_get_value("input", $results->[0])->{'aggregate'}, 164521, "got value");
+is(_get_value("input", $results->[0])->{'aggregate'}, 164520.5, "got value");
 
 
 # Ensuring that search while doing a limit/offset and
@@ -163,8 +163,8 @@ $results = $ds->search( search               => undef,
 is($results->{'total'}, 20, "20 results reported in total");
 $results = $results->{'results'};
 is(@$results, 2, "got the limited 2 results back");
-is(_get_value("input", $results->[0])->{'aggregate'}, 361.25, "got first ordered value");
-is(_get_value("input", $results->[1])->{'aggregate'}, 9001.25, "got second ordered value");
+is(_get_value("input", $results->[0])->{'aggregate'}, 360.5, "got first ordered value");
+is(_get_value("input", $results->[1])->{'aggregate'}, 9000.5, "got second ordered value");
 
 
 # Same as above but now with an offset to verify we paged correctly
@@ -181,8 +181,8 @@ $results = $ds->search( search               => undef,
 is($results->{'total'}, 20, "20 results reported in total");
 $results = $results->{'results'};
 is(@$results, 2, "got the limited 2 results back");
-is(_get_value("input", $results->[0])->{'aggregate'}, 17641.25, "got third ordered value");
-is(_get_value("input", $results->[1])->{'aggregate'}, 26281.25, "got fourth ordered value");
+is(_get_value("input", $results->[0])->{'aggregate'}, 17640.5, "got third ordered value");
+is(_get_value("input", $results->[1])->{'aggregate'}, 26280.5, "got fourth ordered value");
 
 
 
@@ -205,8 +205,8 @@ $results = $ds->search( search               => undef,
 is($results->{'total'}, 18, "18 results reported in total");
 $results = $results->{'results'};
 is(@$results, 2, "got all 2 results back");
-is(_get_value("input", $results->[0])->{'aggregate'}, 164521, "got value");
-is(_get_value("input", $results->[1])->{'aggregate'}, 138601, "got value");
+is(_get_value("input", $results->[0])->{'aggregate'}, 164520.5, "got value");
+is(_get_value("input", $results->[1])->{'aggregate'}, 138600.5, "got value");
 
 
 # Same as above with but offset
@@ -226,8 +226,8 @@ $results = $ds->search( search               => undef,
 is($results->{'total'}, 18, "18 results reported in total");
 $results = $results->{'results'};
 is(@$results, 2, "got all 2 results back");
-is(_get_value("input", $results->[0])->{'aggregate'}, 43561, "got value");
-is(_get_value("input", $results->[1])->{'aggregate'}, 60841, "got value");
+is(_get_value("input", $results->[0])->{'aggregate'}, 43560.5, "got value");
+is(_get_value("input", $results->[1])->{'aggregate'}, 60840.5, "got value");
 
 
 

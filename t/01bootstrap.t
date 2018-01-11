@@ -213,7 +213,7 @@ is( $num_docs, 42, "42 event documents created" );
 
 # re-index all alerts for search
 diag( "need to index alerts for search, root/sudo required" );
-system( 'sudo /usr/bin/indexer tsds_metadata_index && sudo /usr/bin/indexer tsds_metadata_delta_index' );
+system( 'sudo /usr/bin/indexer --rotate tsds_metadata_index && sudo /usr/bin/indexer --rotate tsds_metadata_delta_index' );
 
 ### helper methods ###
 

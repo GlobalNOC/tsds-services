@@ -342,12 +342,12 @@ sub _expire {
     # only remove things if not in pretend mode
     if ( !$self->pretend ) {
 
-        my $ret = $data_collection->remove( $query,
-                                            {'safe' => true,
-                                             'just_one' => false} );
+        my $ret = $data_collection->delete_many( $query,
+                                                 {'safe' => true} );
 
         # determine how many documents were removed
-        my $num_removed = $ret->{'n'};
+        my $num_removed = 0;
+        $num_removed = $ret->deleted_count if $ret->acknowledged;
 
         $self->logger()->info( "Removed $num_removed documents from the $data_collection->{'name'} collection in the $database->{'name'} database." );
 
@@ -388,7 +388,7 @@ sub _mongo_connect {
     eval {
         $mongo = MongoDB::MongoClient->new(
             host => "$mongo_host:$mongo_port",
-            query_timeout => -1,
+            socket_timeout_ms => -1,
             username => $rw_user->{'user'},
             password => $rw_user->{'password'}
         );
