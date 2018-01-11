@@ -1831,7 +1831,10 @@ sub _query_database {
     foreach my $identifier (keys %meta_merge_docs){
 
         next if (exists $identifiers_with_data{$identifier});
-        @docs = (@docs, @{$meta_merge_docs{$identifier}});
+
+	foreach my $merge_doc (@{$meta_merge_docs{$identifier}}){
+	    push(@docs, $merge_doc);
+	}
     }
 
     # go through and do final touchups on all the docs to unmap the symbols
