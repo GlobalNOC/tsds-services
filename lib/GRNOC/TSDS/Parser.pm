@@ -1851,7 +1851,8 @@ sub _query_database {
 
         # remove reference to internal identifiers
         delete $doc->{'_id'};
-        delete $doc->{'identifier'};
+	# THis field may actually be useful in some cases, such as grafana
+        #delete $doc->{'identifier'};
         delete $doc->{'start'};
         delete $doc->{'end'};
         delete $doc->{'__tsds_temp_id'};
