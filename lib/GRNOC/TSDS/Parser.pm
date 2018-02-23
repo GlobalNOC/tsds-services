@@ -469,7 +469,7 @@ sub _process_tokens {
     }
 
     # Now apply the aggregations on the data sets
-    my $final_results = $self->_apply_aggregation_functions($inner_result, $get_fields, $with_details);
+    my $final_results = $self->_apply_aggregation_functions($inner_result, $get_fields, $with_details, $between_fields);
 
     return if (! defined $final_results);
 
@@ -2571,6 +2571,7 @@ sub _apply_aggregation_functions {
     my $inner_result = shift;
     my $get_fields   = shift;
     my $with_details = shift;
+    my $time_range   = shift;
 
     my @results;
 
@@ -2602,9 +2603,9 @@ sub _apply_aggregation_functions {
                 my $operator = $get_field->[1];
 
                 # Resolve both parts and calculate their final results
-                my $res_a = $self->_apply_aggregation_functions([$original_group], [[$parts->[0]]], $with_details);
+                my $res_a = $self->_apply_aggregation_functions([$original_group], [[$parts->[0]]], $with_details, $time_range);
                 return if (! defined $res_a);
-                my $res_b = $self->_apply_aggregation_functions([$original_group], [[$parts->[1]]], $with_details);
+                my $res_b = $self->_apply_aggregation_functions([$original_group], [[$parts->[1]]], $with_details, $time_range);
                 return if (! defined $res_b);
 
                 # returns something like [{foo => [1, 2, 3, 4]}]
@@ -2640,7 +2641,7 @@ sub _apply_aggregation_functions {
                     # If the argument to this is an aggregation function, recurse
                     # down and resolve that, then use it as the input to this one
                     if (ref $arg eq 'ARRAY'){
-                        $data = $self->_apply_aggregation_functions([$original_group], [[$arg]], $with_details);
+                        $data = $self->_apply_aggregation_functions([$original_group], [[$arg]], $with_details, $time_range);
                         return if (! defined $data);
                         $data = $data->[0];
                         
@@ -2682,7 +2683,7 @@ sub _apply_aggregation_functions {
                         $aggregate_result = $self->_apply_histogram($get_field, $data);
                     }
                     when (/^extrapolate$/) {
-                        $aggregate_result = $self->_apply_extrapolate($get_field, $data);
+                        $aggregate_result = $self->_apply_extrapolate($get_field, $data, $time_range);
                     }
                     when (/^all$/) {
                         $aggregate_result = $self->_apply_all($get_field, $data);
@@ -3205,9 +3206,10 @@ sub _apply_histogram {
 }
 
 sub _apply_extrapolate {
-    my $self   = shift;
-    my $tokens = shift;
-    my $data   = shift;
+    my $self       = shift;
+    my $tokens     = shift;
+    my $data       = shift;
+    my $time_range = shift;
 
     my $name        = $tokens->[1];
     my $extrapolate = $tokens->[2];
@@ -3245,8 +3247,33 @@ sub _apply_extrapolate {
     # now that we have the slope + intercept, simply mx+b
     # y = $slope * x + $intercept;
 
+    # Are we asking for a timeseries?
+    if ($extrapolate eq 'series'){
+        my ($begin, $end);
+        ($begin, $end) = @$time_range if defined($time_range);
+        $begin = (defined($end) ? $end-20 : 0) if !defined($begin);
+        $end = $begin + 1 if !defined($end);
+        ($begin, $end) = ($end, $begin) if $end < $begin;
+
+        # We want 20 "data points" if possible, subject to the constraint
+        # that they need to have a spacing of at least 1 second:
+        my $npoints = max(1, min(int($end - $begin), 20));
+        my @points;
+
+        if ($npoints > 1) {
+            foreach my $i (0..($npoints-1)) {
+                my $tm = ($i * $end + ($npoints-1-$i) * $begin) / ($npoints-1);
+                push @points, [$tm, ($slope * $tm) + $intercept];
+            }
+        }
+        else {
+            push @points, [$end, ($slope * $end) + $intercept];
+        }
+
+        $estimate = \@points;
+    }
     # Are we asking for what will the value be at this date?
-    if ($extrapolate =~ /Date\((\d+)\)/){
+    elsif ($extrapolate =~ /Date\((\d+)\)/){
 	my $epoch = $1;
 	log_debug("Determining what $name will be at $epoch");
 
