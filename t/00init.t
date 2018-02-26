@@ -77,6 +77,7 @@ my $tsds_install = GRNOC::TSDS::Install->new(
   config_file => $config_file );
 
 my $installed = $tsds_install->install();
+diag( 'GRNOC::TSDS::Install::install error: ' . $tsds_install->error) if defined($tsds_install->error);
 ok($installed, "Install Succeeded");
 
 # ISSUE=12363 verify sharding
