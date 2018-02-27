@@ -14,6 +14,7 @@ use Clone qw(clone);
 use Math::Round qw( nlowmult );
 use Data::Dumper;
 use Sys::Hostname;
+use List::Util qw(min max);
 use POSIX;
 
 use GRNOC::Log;
