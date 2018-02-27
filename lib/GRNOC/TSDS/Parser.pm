@@ -3258,7 +3258,7 @@ sub _apply_extrapolate {
 
         # We want 20 "data points" if possible, subject to the constraint
         # that they need to have a spacing of at least 1 second:
-        my $npoints = max(1, min(int($end - $begin), 20));
+        my $npoints = max(1, min(int($end - $begin) + 1, 20));
         my @points;
 
         if ($npoints > 1) {
