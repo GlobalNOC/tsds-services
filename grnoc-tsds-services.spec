@@ -65,7 +65,8 @@ Requires: perl-DBI
 Requires: perl-DBD-MySQL
 Requires: perl-GRNOC-Counter
 Requires: perl-Try-Tiny
-
+Requires: perl(List::Util)
+Requires: phantomjs
 
 
 %description
