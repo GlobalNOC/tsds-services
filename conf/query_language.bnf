@@ -72,6 +72,8 @@ histogram ::= 'histogram' '(' field_word ',' number ')' action => remove_symbols
 extrapolate ::= 'extrapolate' '(' field_word ',' number ')' action => remove_symbols
                 |
                 'extrapolate' '(' field_word ',' date ')' action => remove_symbols
+                |
+                'extrapolate' '(' field_word ',' 'series' ')' action => remove_symbols
 		|
 		'extrapolate' '(' field ',' date ')' action => remove_symbols
                 |
