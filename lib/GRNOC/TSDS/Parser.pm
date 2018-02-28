@@ -3232,15 +3232,18 @@ sub _apply_extrapolate {
         my $npoints = max(1, min(int($end - $begin) + 1, 20));
         my @points;
 
+        # calculate the times of our points
         if ($npoints > 1) {
             foreach my $i (0..($npoints-1)) {
-                my $tm = ($i * $end + ($npoints-1-$i) * $begin) / ($npoints-1);
-                push @points, [$tm, ($slope * $tm) + $intercept];
+                push @points, int( (($npoints-1-$i) * $begin + $i * $end) / ($npoints-1) );
             }
         }
         else {
-            push @points, [$end, ($slope * $end) + $intercept];
+            push @points, int($end);
         }
+
+        # get [time, extrapolated value] pairs
+        @points = map { [$_, ($slope * $_) + $intercept] } @points;
 
         $estimate = \@points;
     }
