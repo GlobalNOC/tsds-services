@@ -3221,8 +3221,10 @@ sub _apply_extrapolate {
     if ($extrapolate eq 'series'){
         my ($begin, $end);
         ($begin, $end) = @$time_range if defined($time_range);
-        $begin = (defined($end) ? $end-20 : 0) if !defined($begin);
-        $end = $begin + 1 if !defined($end);
+        if (!defined($begin) || !defined($end)){
+            $self->error('No time range specified for extrapolation series');
+            return;
+        }
         ($begin, $end) = ($end, $begin) if $end < $begin;
 
         # We want 20 "data points" if possible, subject to the constraint
