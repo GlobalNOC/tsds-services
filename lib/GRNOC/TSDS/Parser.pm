@@ -3347,7 +3347,7 @@ sub _apply_default {
     my $rename = $self->_find_rename($tokens) || "$name";
     my ($math_symbol, $math_value) = $self->_find_math($tokens);
 
-    my $set = $self->_find_value($name, $data);
+    my $set = clone($self->_find_value($name, $data));
 
     if ($math_symbol){
 	$set = $self->_apply_math($set, $math_symbol, $math_value);
@@ -3371,14 +3371,15 @@ sub _combine_results {
 
     my @result;
 
-    # simple scalar combination
-    if (! ref $res_a){
+    # simple scalar combination, ie $x + $y
+    if (! ref $res_a && ! ref $res_b){
         return $self->_apply_math($res_a, $op, $res_b);
     }
 
-    # test for [ts, val] structure
-    # it's possible both aren't the same structure?
-    if (ref $res_a->[0] eq 'ARRAY'){
+    # timeseries array combination
+    # [ [0, valX1], [1, valX2].... ] + [ [0, valY1], [1, valY2] .... ]
+    if (ref $res_a eq 'ARRAY' && ref $res_a->[0] eq 'ARRAY' 
+     && ref $res_b eq 'ARRAY' && ref $res_b->[0] eq 'ARRAY'){
         my %lookup;
 
         foreach my $el (@$res_a){
@@ -3393,7 +3394,26 @@ sub _combine_results {
             push(@result, [$ts, $lookup{$ts}]);
         }
     }
-    # basic array combination
+
+    # array and scalar combination, can be
+    # simple array or timeseries array
+    # [ 1, 2, 3 ...] / 8
+    elsif (ref $res_a eq 'ARRAY' && ! ref $res_b) {
+	foreach my $el (@$res_a){
+	    # timeseries data style array? [ [ts, val]... ]
+	    if (ref $el){
+		push(@result, [$el->[0],
+			       $self->_apply_math($el->[1], $op, $res_b)]
+		    );
+	    }
+	    else {
+		push(@result, $self->_apply_math($el, $op, $res_b));
+	    }
+	} 
+    }
+
+    # basic array combination, zipper them up
+    # [0, 1, 2...] + [3, 4, 5....]
     else {
         my $max = scalar(@$res_a);
         $max = scalar(@$res_b) if (scalar(@$res_b) > $max);

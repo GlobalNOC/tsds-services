@@ -39,7 +39,7 @@ is($found->{'measurement_count'}, 29, "got all active measurements in $testdb" )
 
 # get_meta_fields
 my $meta_fields = $meta_ds->get_meta_fields(measurement_type => $testdb);
-ok(defined $meta_fields && @$meta_fields == 5, "got all meta fields for $testdb");
+ok(defined $meta_fields && @$meta_fields == 6, "got all meta fields for $testdb");
 
 
 # get_measurement_type_schemas
