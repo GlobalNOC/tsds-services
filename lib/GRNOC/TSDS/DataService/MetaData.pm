@@ -1313,11 +1313,11 @@ sub _do_update_measurement_metadata {
         # nothing else
 	{
 	    no warnings 'uninitialized';
-	    if ($is_same && $orig_end ne $end){
+	    if ($is_same && defined $end && $orig_end ne $end){
 		$last_end = $end;
 		$original{'end'} = $end;
 		$measurements->delete_one({_id => $orig_id});
-		$measurements->insert(\%original);
+		$measurements->insert_one(\%original);
 		$modified++;
 		next;
 	    }	
