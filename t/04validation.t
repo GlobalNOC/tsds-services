@@ -1,10 +1,11 @@
 use strict;
 use warnings;
-use Test::More tests => 60;
+use Test::More tests => 81;
 use GRNOC::Config;
 use GRNOC::Log;
 use GRNOC::TSDS::DataService::Query;
 use Data::Dumper;
+use List::MoreUtils qw(all);
 use FindBin;
 
 
@@ -125,6 +126,39 @@ is($result,"112321","Extrapolate value for input 01/02/1970 is validated");
 $arr= $query->run_query( query =>'get extrapolate(values.output, "10/01/1997 00:15:00 UTC") as extrapolate_valuesoutput between ("01/01/1970 00:00:00 UTC","01/01/1970 00:11:00 UTC") from tsdstest where intf = "xe-0/1/0.0" and node="rtr.newy" ');
 $result=$arr->[0]->{'extrapolate_valuesoutput'};
 is($result,"87618331","Extrapolate value for input 10/01/1997 00:15:00 UTC is validated");
+
+# test the option to have extrapolations as a series, rather than single points
+$arr= $query->run_query( query =>'get extrapolate(values.output, series) as extrap_series between ("01/01/1970 00:01:00 UTC", "01/01/1970 00:04:10 UTC") from tsdstest where intf="ge-0/0/0" and node="rtr.chic"' );
+ok(defined($arr) && defined($arr->[0]) && defined($arr->[0]->{'extrap_series'}), 'Extrapolation series 1 exists');
+$result=$arr->[0]->{'extrap_series'};
+is($result->[0][0], '60', 'Extrapolation series 1 starts at right time');
+is($result->[-1][0], '250', 'Extrapolation series 1 ends at right time');
+is(scalar(@$result), '20', 'Extrapolation series 1 has correct number of points');
+ok((all { $result->[$_][0] < $result->[$_+1][0] } (0..(scalar(@$result)-2))), 'Extraplation series 1: data points occur in right order');
+is($result->[0][1], '103687', 'Extrapolation series 1 has correct first point');
+is($result->[-1][1], '103706', 'Extrapolation series 1 has correct last point');
+
+# extrapolations as a series, on an actual extrapolation of data
+$arr= $query->run_query( query =>'get extrapolate(values.output, series) as exts between("01/01/1970 23:59:00 UTC", "01/02/1970 00:03:00 UTC") from tsdstest where node="rtr.newy" and intf="interface6"' );
+ok(defined($arr) && defined($arr->[0]) && defined($arr->[0]->{'exts'}), 'Extrapolation series 2 exists');
+$result=$arr->[0]->{'exts'};
+is($result->[0][0], '86340', 'Extrapolation series 2 starts at right time');
+is($result->[-1][0], '86580', 'Extrapolation series 2 ends at right time');
+is(scalar(@$result), '20', 'Extrapolation series 2 has correct number of points');
+ok((all { $result->[$_][0] < $result->[$_+1][0] } (0..(scalar(@$result)-2))), 'Extraplation series 2: data points occur in right order');
+is($result->[0][1], '77755', 'Extrapolation series 2 has correct first point');
+is($result->[-1][1], '77779', 'Extrapolation series 2 has correct last point');
+
+# test extrapolations as a series, over an interval of under 20 seconds
+$arr= $query->run_query( query =>'get extrapolate(values.output, series) as extrap_series between ("01/01/1970 23:59:39 UTC", "01/01/1970 23:59:53 UTC") from tsdstest where intf="ge-0/0/0" and node="rtr.chic"' );
+ok(defined($arr) && defined($arr->[0]) && defined($arr->[0]->{'extrap_series'}), 'Extrapolation series 3 exists');
+$result=$arr->[0]->{'extrap_series'};
+is($result->[0][0], '86379', 'Extrapolation series 3 starts at right time');
+is($result->[-1][0], '86393', 'Extrapolation series 3 ends at right time');
+is(scalar(@$result), '15', 'Extrapolation series 3 has correct number of points');
+ok((all { $result->[$_][0] < $result->[$_+1][0] } (0..(scalar(@$result)-2))), 'Extraplation series 3: data points occur in right order');
+ok(abs($result->[0][1] - 112318.9) < 1e-6, 'Extrapolation series 3 has correct first point');
+ok(abs($result->[-1][1] - 112320.3) < 1e-6, 'Extrapolation series 3 has correct last point');
 
 # percentile over max function
 $arr= $query->run_query( query => 'get percentile(aggregate(values.input,720,max),90) as precentilehist between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") from tsdstest where node="rtr.chic" ');
