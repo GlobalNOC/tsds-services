@@ -1457,9 +1457,8 @@ sub _query_database {
             return;
         }
 
-        foreach my $doc (@$aggregate_results){
-            my $identifier = $doc->{'identifier'};
-            my $start      = $doc->{'start'};
+        foreach my $doc (@aggregate_results){
+            my $identifier = $doc->{'identifier'};            
             push(@{$meta_merge_docs{$identifier}},  $doc);
             push(@identifiers, $identifier);
         }
@@ -1811,7 +1810,7 @@ sub _query_database {
 
             # if we're not selecting from a subqueries result, we have to fix up the multidimensional array
             # structure that exists on disk. This will also prune out any values that weren't actually in the
-            # timeframe specified but were part of the document
+            # timeframe specified but were part of the document	    
             my $fixed_docs = $self->_fix_document( base_doc => $doc,
                                                    start => $start,
                                                    end => $end,
@@ -1849,10 +1848,8 @@ sub _query_database {
             delete $doc->{$symbol};
         }
 
-        # remove reference to internal identifiers
+        # remove reference to internal field stuff
         delete $doc->{'_id'};
-	# THis field may actually be useful in some cases, such as grafana
-        #delete $doc->{'identifier'};
         delete $doc->{'start'};
         delete $doc->{'end'};
         delete $doc->{'__tsds_temp_id'};
@@ -3614,8 +3611,8 @@ sub _fix_document {
     my ( $self, %args ) = @_;
 
     my $base_doc = $args{'base_doc'};
-    my $full_start = $args{'start'};
-    my $full_end = $args{'end'};
+    my $query_start = $args{'start'};
+    my $query_end = $args{'end'};
     my $aggregate_interval = $args{'aggregate_interval'} || undef;
     my $meta_values = $args{'meta_merge_docs'};    
 
@@ -3623,111 +3620,94 @@ sub _fix_document {
     # and remove any points that are outside of the queried time
 
     my $identifier = $base_doc->{'identifier'};
-    my $start      = int($base_doc->{'start'});
-    my $end        = int($base_doc->{'end'});
+    my $data_start = int($base_doc->{'start'});
+    my $data_end   = int($base_doc->{'end'});
     my $interval   = int($base_doc->{'interval'});
 
     # merge in the measurement meta values
     my $meta_docs = $meta_values->{$identifier};
 
-    my @fixed_docs;
-
+    # Calculate the leftmost start time of all the metadata docs (bound by data start)
+    # and rightmost end time of all metadata docs (bound by data end)
+    # An undefined value for "end" means that this is still active, so we pretend the
+    # full query end is the value if so
+    # First we have to prune out any metadata docs that cannot possibly receive 
+    # data from this document, however and this would mess up the calculations
+    my @local_meta_copies;
     foreach my $possible_meta_doc (@$meta_docs){
+	next if ($possible_meta_doc->{'start'} > $data_end);
+	next if (defined $possible_meta_doc->{'end'} && $possible_meta_doc->{'end'} < $data_start);
+	push(@local_meta_copies, clone($possible_meta_doc));
+    }
 
-	my $clone;
+    my $earliest_meta = (sort map { $_->{'start' } } @local_meta_copies)[0];
+    my $latest_meta   = (sort {$b <=> $a }
+			 map { $_->{'end'} ? $_->{'end'} : $query_end } @local_meta_copies)[0];
 
-	# if there's more than one meta doc that this data could apply to, clone it
-	# otherwise don't because it's faster not to
-	if (@$meta_docs > 1){
-	    $clone = clone($base_doc);
+    my $leftmost_start = $data_start;
+    my $rightmost_end  = $data_end;
+
+    $leftmost_start = $earliest_meta if ($earliest_meta > $data_start);    
+    $rightmost_end = $latest_meta if ($latest_meta < $data_end);
+
+    # Unpack the data doc's arrays. This will then be segmented to the various metadata
+    # docs as needed.
+    my @keys = keys %{$base_doc->{'values'}};
+
+    # We need to unpack the values from their multidimensional array 
+    foreach my $measurement (@keys){
+	
+	my $effective_start = $data_start;
+	
+	my $values = $base_doc->{'values'}{$measurement};
+
+	# See if we can scrape out unneeded parts of the packed
+	# array before we have to unpack and examine everything
+	# This assumes a 10x10x10 structure in the document
+	my $right_splice = @$values - 1;
+	my $left_splice = 0;
+	for (my $i = @$values - 1; $i >= 0; $i--){
+	    my $start_of_section = $data_start + ($i * $interval * 10 * 10);
+	    my $end_of_section   = $data_start + (($i+1) * $interval * 10 * 10);
+
+	    # If this entire block is earlier than the meta start, we can
+	    # stop looking because we're going right to left and know we can
+	    # throw this whole thing away
+	    if ($end_of_section < $leftmost_start){
+		$left_splice = $i + 1;
+		last;
+	    }
+	    # If this entire block is later than the meta end, we can
+	    # "decrement" our splice index to remove the unnecessary data
+	    elsif ($start_of_section > $rightmost_end){
+		$right_splice = $i - 1;
+		next;
+	    }
+	    
+	    # Since we're going old to new, if we haven't thrown away 
+	    # the block for whatever reason we can set the start equal to it
+	    $effective_start = $start_of_section;
 	}
-	else {
-	    $clone = $base_doc;
-	}
+	
+	my @spliced = @$values[$left_splice .. $right_splice]; 
+	# now we're perl'ing with style. This unpacks the remaining
+	# 3d array into a 1d flat array
+	my @unpacked = map {
+	    ref $_ ? map { ref $_ ? map { $_ } @$_ : $_ } @$_ : $_;
+	} @spliced;
 
-	push(@fixed_docs, $clone);
 
-	my $meta_start = $full_start;
-	my $meta_end = $full_end;
+	# Now that it's unpacked, iterate through the various meta documents
+	# and assign the needed blocks of data to each metadata doc
+	foreach my $meta_doc (@local_meta_copies){
+	    my $meta_start = $meta_doc->{'start'};
+	    my $meta_end   = defined($meta_doc->{'end'}) ? $meta_doc->{'end'} : $data_end;
 
-	foreach my $meta_value (keys %$possible_meta_doc){
+	    $meta_start = $data_start if ($meta_start < $data_start);
+	    $meta_end = $data_end if ($meta_end > $data_end);
 
-	    if ( $meta_value eq 'start' ) {
-
-		if ( $possible_meta_doc->{$meta_value} > $meta_start ) {
-
-		    $meta_start = $possible_meta_doc->{$meta_value};
-		}
-	    }
-
-	    elsif ( $meta_value eq 'end' ) {
-
-		if ( $possible_meta_doc->{$meta_value} ) {
-
-		    $meta_end = $possible_meta_doc->{$meta_value};
-		}
-	    }
-
-	    else {
-
-		$clone->{$meta_value} = clone($possible_meta_doc->{$meta_value});
-	    }
-	}
-
-        # ISSUE=464:160 When figuring out where to stop on the
-        # right side of the doc we need to take the lower of the 
-        # query's end or the metadata's end
-        if ($meta_end > $full_end){
-            $meta_end = $full_end;
-        }
-
-	$clone->{'meta_end'} = $meta_end;
-
-	my @keys = keys %{$clone->{'values'}};
-
-	# We need to unpack the values from their multidimensional array 
-	foreach my $measurement (@keys){
-
-	    my $effective_start = $start;
-
-	    my $values = $clone->{'values'}{$measurement};
-
-	    # See if we can scrape out unneeded parts of the packed
-	    # array before we have to unpack and examine everything
-	    # This assumes a 10x10x10 structure in the document
-	    my $right_splice = @$values - 1;
-	    my $left_splice = 0;
-	    for (my $i = @$values - 1; $i >= 0; $i--){
-		my $start_of_section = $start + ($i * $interval * 10 * 10);
-		my $end_of_section   = $start + (($i+1) * $interval * 10 * 10);
-
-		# If this entire block is earlier than the meta start, we can
-		# stop looking because we're going right to left and know we can
-		# throw this whole thing away
-		if ($end_of_section < $meta_start){
-		    $left_splice = $i + 1;
-		    last;
-		}
-		# If this entire block is later than the meta end, we can
-		# "decrement" our splice index to remove the unnecessary data
-		elsif ($start_of_section > $meta_end){
-		    $right_splice = $i - 1;
-		    next;
-		}
-
-		# Since we're going old to new, if we haven't thrown away 
-		# the block for whatever reason we can set the start equal to it
-		$effective_start = $start_of_section;
-	    }
-
-	    @$values = @$values[$left_splice .. $right_splice];
-
-	    # now we're perl'ing with style. This unpacks the remaining
-	    # 3d array into a 1d flat array
-	    @$values = map {
-		ref $_ ? map { ref $_ ? map { $_ } @$_ : $_ } @$_ : $_;
-	    } @$values;
-
+	    $meta_start = $query_start if ($query_start > $meta_start);
+	    $meta_end   = $query_end   if ($query_end < $meta_end);
 
 	    # Now that it's a flat array, we can strip out the exact
 	    # points that don't belong in this result set. The above
@@ -3736,34 +3716,37 @@ sub _fix_document {
 	    if ($meta_start < $effective_start){
 		$start_index = 0;
 	    }
-
+	    
 	    my $end_index   = int(($meta_end - $effective_start) / $interval) - 1; # non-inclusive end
-	    if ($end_index > @$values - 1){
-		$end_index = @$values - 1;
+	    if ($end_index > @unpacked - 1){
+		$end_index = @unpacked - 1;
 	    }
 
-	    @$values = @$values[$start_index .. $end_index];
+	    my @relevant_values = @unpacked[$start_index .. $end_index];
 
+	    my @final_values;
 
 	    # add timestamps to all the points now that are good
-	    for (my $i = 0; $i < @$values; $i++){
-		$values->[$i] = [$effective_start + (($start_index + $i) * $interval),
-				 $values->[$i]];
+	    for (my $i = 0; $i < @relevant_values; $i++){
+		push(@final_values, [$effective_start + (($start_index + $i) * $interval),
+				     $relevant_values[$i]]);
 	    }
 
+	    $meta_doc->{'values'}{$measurement} = \@final_values;
 
 	    # store aggregate data values different to avoid overlap with hires docs
 	    if ( $aggregate_interval ) {
-		$clone->{"values_$aggregate_interval"}{$measurement} = $values;
-		delete( $clone->{'values'}{$measurement} );
+		$meta_doc->{"values_$aggregate_interval"}{$measurement} = \@final_values;
+		delete( $meta_doc->{'values'}{$measurement} );
 	    }
-
 	}
-
-	delete( $clone->{'values'} ) if ( keys( %{$clone->{'values'}} ) == 0 );
     }
 
-    return \@fixed_docs;
+    foreach my $doc (@local_meta_copies){
+	delete( $doc->{'values'} ) if ( keys( %{$doc->{'values'}} ) == 0 );	    
+    }
+
+    return \@local_meta_copies;
 }
 
 sub _is_aggregation_function {
