@@ -15,6 +15,7 @@ use Math::Round qw( nlowmult );
 use Data::Dumper;
 use Sys::Hostname;
 use List::Util qw(min max);
+use Scalar::Util;
 use POSIX;
 
 use GRNOC::Log;
@@ -2733,7 +2734,7 @@ sub _apply_average {
         my $value = $item;
         $value = $item->[1] if (ref $item eq 'ARRAY');
 
-	if (defined $value && $value =~ /^(-?\d+(\.\d+)?)$/){
+	if (defined $value && Scalar::Util::looks_like_number($value)){
 	    $total += $value;
 	    $count++;
 	}
@@ -3441,10 +3442,7 @@ sub _apply_math {
 	return;
     }
 
-    if (defined $operand && $operand =~ /^(-?\d+(\.\d+)?)$/){
-	$operand = $1;
-    }
-    else {
+    if (! defined($operand) || ! Scalar::Util::looks_like_number($operand)){
 	$self->error("Operand is not a number. Got \"$operand\"");
 	return;
     }
@@ -3467,7 +3465,11 @@ sub _apply_math {
 	    $value = $value->[1];
 	}
 
-	($value) = $value =~ /^(-?\d+(\.\d+)?)$/ if (defined $value);
+	if (defined $value){
+	    # Use Scalar::Util looks_like_number since basic regexes are insufficient
+	    # to test against very large numbers that get stringified as 1.2345e10
+	    $value = undef if (! Scalar::Util::looks_like_number($value));
+	}
 
 	# undefined value?
 	if ( !defined( $value ) ) {
@@ -3486,6 +3488,7 @@ sub _apply_math {
 	    # skip to next point and dont do math on it
 	    next;
 	}
+
 
         given ($operator){
             when (/^\/$/) {
