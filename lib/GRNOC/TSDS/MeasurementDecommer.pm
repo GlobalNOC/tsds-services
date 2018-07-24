@@ -133,51 +133,6 @@ sub _process_db {
 	return 0;
     }
 
-    log_debug( "retrieving all recent doc ids in database $db_name" );
-    
-    my %recent_data;
-
-    my $offset = 0;
-    my $limit  = 1000;
-    my @seen;
-
-    my $id_time = $expired_time - $expire_after;
-    my $id_oid  = sprintf("%X", $id_time) . ("0" x 16);
-    
-    my $id = MongoDB::OID->new(value => $id_oid);
-
-    my $ids = $db->run_command(["distinct" => 'data',
-				"key"      => '_id',
-				"query"    => {'_id' => {'$gte' => $id}}
-			       ])->{'values'};
-
-
-    log_info("found " . scalar(@$ids) . " recent data documents");
-
-    my $i = 0;
-    foreach my $id (@$ids){
-	if (++$i % 1000 == 0){
-	    log_debug("Operated on $i ids");
-	}
-
-	my $data_doc = $data->find({"_id" => $id})	    
-	    ->hint('_id_')
-	    ->fields({"identifier" => 1, "end" => 1})->next();
-
-	my $identifier = $data_doc->{'identifier'};
-	my $data_end   = $data_doc->{'end'};
-
-	my $existing = $recent_data{$identifier};
-	
-	if (! defined $existing || 
-	    $existing->{'_id'}->get_time() < $id->get_time() ){ 
-	    
-	    $recent_data{$identifier} = {'_id' => $id,
-					 'identifier' => $identifier,
-					 'end'  => $data_end};
-	}
-    }
-
     my $max_procs = $self->max_procs();
 
     # kind of a dirty hack to make natatime happy
@@ -223,6 +178,7 @@ sub _process_db {
 		my $identifier = $doc->{'identifier'};
 		
 		log_debug( "handling identifier $identifier in database $db_name" );
+		log_debug( "finding most recent data doc for identifier $identifier in database $db_name" );
 
 		# need to grab the lock and then fetch the measurement again to make sure it's still
 		# decom, something could have come along and updated it since we last fetched it
@@ -244,7 +200,16 @@ sub _process_db {
 		    next;
 		}
 
-		my $recent_doc = $recent_data{$identifier};
+
+		my $id = $doc->{'_id'};
+
+		my $recent_doc = $data->find( {'identifier' => $identifier } )
+		    ->hint( 'identifier_1_start_1_end_1' )
+		    ->fields({'start' => 1, 'end' => 1, '_id' => 0}) # project in only the values we need
+		    ->sort( {'start' => -1} )
+		    ->limit( 1 )
+		    ->next();
+
 
 		# if we can't find the most recent doc by opportunistically looking at the last set of highrest
 		# data docs, we need to do a slightly deeper scan to find the last "end" date of the data
@@ -252,26 +217,13 @@ sub _process_db {
 		if ( !defined( $recent_doc ) ) {
 		    $num_decommed++;
 
-		    my $ends = $db->run_command(["distinct" => 'data',
-						 "key"      => 'end',
-						 "query"    => {'identifier' => $identifier}
-						])->{'values'};
 
-		    @$ends = sort {$b <=> $a} @$ends;
-
-		    my $last_end = $ends->[0];
+		    log_debug( "no recent data doc found for identifier $identifier in database $db_name, decomming it" );
 		    
-		    # If we can't find any docs, we have to just assume $now is the end point. I don't
-		    # think this should ever be true but safety first
-		    if (! defined $last_end){
-			$last_end = $now;
-		    }	    
-
-		    log_debug( "no recent data doc found for identifier $identifier in database $db_name, decomming it at $last_end" );
-
+		    # If we can't find any docs, we have to just assume $now is the end point
 		    $self->_decom_doc( doc        => $doc,
 				       collection => $measurements,
-				       end        => $last_end );
+				       end        => $now );
 		    
 		}
 		else {
@@ -281,7 +233,7 @@ sub _process_db {
 		    # the measurement is still receiving data or not to the document width
 		    # granularity. A more precise system may need to be designed at a future
 		    # point
-		    my $created_at = $recent_doc->{'_id'}->get_time();
+		    my $created_at = $recent_doc->{'start'};
 		    my $doc_end    = $recent_doc->{'end'};
 
 		    log_debug("$db_name / $identifier most recent created at = $created_at");
@@ -368,7 +320,8 @@ sub _mongo_connect {
             host => "$mongo_host:$mongo_port",     
             username => $rw_user->{'user'},
             password => $rw_user->{'password'},
-	    socket_timeout_ms => 120 * 1000	    
+	    socket_timeout_ms => 120 * 1000,
+	    max_time_ms => 60 * 1000,
         );
 
     };
