@@ -1,7 +1,7 @@
 Summary: GRNOC TSDS Services
 Name: grnoc-tsds-services
-Version: 1.6.0
-Release: 2%{?dist}
+Version: 1.6.1
+Release: 1%{?dist}
 License: GRNOC
 Group: Measurement
 URL: http://globalnoc.iu.edu
