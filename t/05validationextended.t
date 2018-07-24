@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 203;
+use Test::More tests => 213;
 
 # testing multiple where operators
 use GRNOC::Config;
@@ -35,7 +35,7 @@ sub validate_results{
     # https://www.ccsf.edu/Pub/Perl/perlfunc/srand.html
     srand(time ^ $$ ^ unpack "%L*", `ps axww | gzip`);
     my $randnum = rand($length - 1);
-    my $value  = $result->[$randnum]->[1];
+    $value  = $result->[$randnum]->[1];
     my $value2 = $result->[$randnum+1]->[1];
     is($value2, $value + 1, " random row of query array result is valid ");
     $value=$result->[$length-1]->[1];
@@ -440,6 +440,68 @@ is($arr->[0]->{'diff_plus'}, 1567650240, "got right diff plus");
 is($arr->[0]->{'diff_mult'}, 614381818743014400, "got right diff mult");
 
 
+# Test $field $op numeric value
+# First is a number / 10, second is a series * 2
+my $arr = $query->run_query( query =>'get sum(values.input) as summed, sum(values.input) / 10 as divided, values.input as base, values.input * 2 as multiplied, intf between("01/01/1970 00:00:00 UTC","01/10/1970 00:00:00 UTC") by intf from tsdstest where node="rtr.chic"');
+
+ok($arr, "query request with having sent successfully");
+is(@$arr, 10, "got all 10 interfaces response");
+is($arr->[0]->{'summed'}, 783825120, "got summed value correctly");
+is($arr->[0]->{'divided'}, 78382512, "got sum divided value correctly");
+
+# base and multiplied should have the same number of elements, and each item in multiplied
+# should be its corresponding position item in base times 2
+my $base = $arr->[0]->{'base'};
+my $multiplied = $arr->[0]->{'multiplied'};
+ok(@$base == 9000 && @$base == @$multiplied, "base and multiplied arrays are same size");
+
+my $good = 1;
+for (my $i = 0; $i < @$base; $i++){
+    my $base_val = $base->[$i][1];
+    my $scaled_val = $multiplied->[$i][1];
+
+    next if (! defined $base_val);
+    $good = $good && (($base_val * 2) == $scaled_val);
+}
+is($good, 1, "base and multiplied points are correctly scaled");
+
+
+
+# Test $field $op $metadata
+# First is a number / 10, second is a series / max_bandwidth
+
+#######
+# TODO: Would be great not to have this hack reach in and set metadata, consider
+# adding a test library maybe to make it easy to temporarily change things like this
+#######
+my $measurements = $query->parser()->mongo_rw()->get_database('tsdstest')->get_collection('measurements');
+my $hack_doc = $measurements->find_one({'node' => 'rtr.chic', 'intf' => 'ge-0/0/0'});
+$measurements->update_one({_id => $hack_doc->{'_id'}}, {'$set' => {'max_bandwidth' =>'1000000000'}});
+my $arr = $query->run_query( query =>'get max_bandwidth, values.input as base, values.input / max_bandwidth  as scaled, intf between("01/01/1970 00:00:00 UTC","01/10/1970 00:00:00 UTC") by intf from tsdstest where node="rtr.chic" and intf = "ge-0/0/0"');
+$measurements->update_one({_id => $hack_doc->{'_id'}}, {'$unset' => {'max_bandwidth' => 1}});
+
+
+ok($arr, "query request with having sent successfully");
+is(@$arr, 1, "got 1 interface response");
+
+
+# base and multiplied should have the same number of elements, and each item in multiplied
+# should be its corresponding position item in base times 2
+my $base = $arr->[0]->{'base'};
+my $scaled = $arr->[0]->{'scaled'};
+my $bandwidth = $arr->[0]->{'max_bandwidth'};
+ok(@$base == 9000 && @$base == @$multiplied, "base and scaled arrays are same size");
+
+my $good = 1;
+for (my $i = 0; $i < @$base; $i++){
+    my $base_val = $base->[$i][1];
+    my $scaled_val = $scaled->[$i][1];
+
+    next if (! defined $base_val);
+    $good = $good && (($base_val / $bandwidth) == $scaled_val);
+}
+is($good, 1, "base and scaled points are correctly scaled");
+
 
 # Test multiple embedded operators on single field
 $arr = $query->run_query( query =>'get count(min(values.input)) as first, average(aggregate(values.input, 3600, average)) as second, max(average(aggregate(values.input, 3600, average))) as third, count(max(average(aggregate(values.input, 3600, average)))) as fourth, sum(count(max(average(aggregate(values.input, 3600, average))))) as fifth between ("01/01/1970 00:00:00 UTC","01/01/1970 12:00:00 UTC") from tsdstest where intf = "ge-0/0/0" and node = "rtr.chic" ');
@@ -454,7 +516,7 @@ is($arr->[0]->{'fourth'}, 1, "got sum count max average aggregate chain");
 
 # Test selecting by a complex field name, this changed in Mongo 3.4 and we have
 # to ensure we're properly encoding/decoding the field in the query engine
-my $arr = $query->run_query( query =>'get values.input, circuit.name between ("01/01/1970 00:00:00 UTC","01/01/1970 12:00:00 UTC") by circuit.name, circuit.description from tsdstest where circuit.name = "circuit2" limit 5 offset 0 ');
+$arr = $query->run_query( query =>'get values.input, circuit.name between ("01/01/1970 00:00:00 UTC","01/01/1970 12:00:00 UTC") by circuit.name, circuit.description from tsdstest where circuit.name = "circuit2" limit 5 offset 0 ');
 ok($arr, "complex field name handled correctly");
 
 

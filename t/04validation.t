@@ -8,7 +8,6 @@ use Data::Dumper;
 use List::MoreUtils qw(all);
 use FindBin;
 
-
 my $config_file  = "$FindBin::Bin/conf/config.xml";
 my $logging_file = "$FindBin::Bin/conf/logging.conf";
 my $bnf_file = "$FindBin::Bin/../conf/query_language.bnf";
