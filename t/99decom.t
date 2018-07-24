@@ -72,7 +72,7 @@ $measurements->insert($measurement_record);
 
 # add data record last inserted $now, we're looking at the _id field
 # to get a rough "created at" date
-$data_record->{"_id"} = MongoDB::OID->new(value => sprintf("%X", time()));
+$data_record->{"start"} = time();
 $data->insert($data_record);
 
 my $results = $decommer->decom_metadata();
@@ -89,7 +89,7 @@ $data->remove({"identifier" => $IDENTIFIER});
 
 # add a data record where the last inserted was 2 days ago, ie older than the expire_after 
 # for this measurement type
-$data_record->{"_id"} = MongoDB::OID->new(value => sprintf("%X", time() - (86400 * 2)));
+$data_record->{"start"} = time() - (86400 * 2);
 $data->insert($data_record);
 
 # re-run decommer

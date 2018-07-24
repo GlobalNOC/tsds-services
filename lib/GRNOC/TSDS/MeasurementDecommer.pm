@@ -198,18 +198,12 @@ sub _process_db {
 		    next;
 		}
 
-		my $id = $doc->{'_id'};
 
-		my $recent_doc = $data->find( {'identifier' => $identifier } )
-		    ->hint( 'identifier_1_start_1_end_1' )
-		    ->fields({'_id' => 1, 'end' => 1}) # project in only the values we need
-		    ->sort( {'_id' => -1} )
-		    ->limit( 1 )
-		    ->next();
+		my $id = $doc->{'_id'};
 		
 		if ( !defined( $recent_doc ) ) {
 		    $num_decommed++;
-		    
+
 		    log_debug( "no recent data doc found for identifier $identifier in database $db_name, decomming it" );
 		    
 		    # If we can't find any docs, we have to just assume $now is the end point
@@ -225,7 +219,7 @@ sub _process_db {
 		    # the measurement is still receiving data or not to the document width
 		    # granularity. A more precise system may need to be designed at a future
 		    # point
-		    my $created_at = $recent_doc->{'_id'}->get_time();
+		    my $created_at = $recent_doc->{'start'};
 		    my $doc_end    = $recent_doc->{'end'};
 
 		    log_debug("$db_name / $identifier most recent created at = $created_at");
@@ -306,7 +300,9 @@ sub _mongo_connect {
         $mongo = MongoDB::MongoClient->new(
             host => "$mongo_host:$mongo_port",     
             username => $rw_user->{'user'},
-            password => $rw_user->{'password'}
+            password => $rw_user->{'password'},
+	    socket_timeout_ms => 120 * 1000,
+	    max_time_ms => 60 * 1000,
         );
     };
     if($@){
