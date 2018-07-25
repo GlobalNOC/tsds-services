@@ -200,6 +200,13 @@ sub _process_db {
 
 
 		my $id = $doc->{'_id'};
+
+		my $recent_doc = $data->find( {'identifier' => $identifier } )
+		    ->hint( 'identifier_1_start_1_end_1' )
+		    ->fields({'start' => 1, 'end' => 1, '_id' => 0}) # project in only the values we need
+		    ->sort( {'start' => -1} )
+		    ->limit( 1 )
+		    ->next();		
 		
 		if ( !defined( $recent_doc ) ) {
 		    $num_decommed++;

@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 213;
+use Test::More tests => 222;
 
 # testing multiple where operators
 use GRNOC::Config;
@@ -488,9 +488,9 @@ is($good, 1, "base and multiplied points are correctly scaled");
 #######
 my $measurements = $query->parser()->mongo_rw()->get_database('tsdstest')->get_collection('measurements');
 my $hack_doc = $measurements->find_one({'node' => 'rtr.chic', 'intf' => 'ge-0/0/0'});
-$measurements->update_one({_id => $hack_doc->{'_id'}}, {'$set' => {'max_bandwidth' =>'1000000000'}});
+$measurements->update({_id => $hack_doc->{'_id'}}, {'$set' => {'max_bandwidth' =>'1000000000'}});
 my $arr = $query->run_query( query =>'get max_bandwidth, values.input as base, values.input / max_bandwidth  as scaled, intf between("01/01/1970 00:00:00 UTC","01/10/1970 00:00:00 UTC") by intf from tsdstest where node="rtr.chic" and intf = "ge-0/0/0"');
-$measurements->update_one({_id => $hack_doc->{'_id'}}, {'$unset' => {'max_bandwidth' => 1}});
+$measurements->update({_id => $hack_doc->{'_id'}}, {'$unset' => {'max_bandwidth' => 1}});
 
 
 ok($arr, "query request with having sent successfully");

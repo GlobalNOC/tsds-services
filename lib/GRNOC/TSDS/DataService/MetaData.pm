@@ -1316,8 +1316,8 @@ sub _do_update_measurement_metadata {
 	    if ($is_same && defined $end && $orig_end ne $end){
 		$last_end = $end;
 		$original{'end'} = $end;
-		$measurements->delete_one({_id => $orig_id});
-		$measurements->insert_one(\%original);
+		$measurements->remove({_id => $orig_id});
+		$measurements->insert(\%original);
 		$modified++;
 		next;
 	    }	
