@@ -705,11 +705,7 @@ sub get_distinct_meta_field_values {
         }
     }
 
-    my $total = @results;
-    return {
-               total => $total,
-               results => \@results
-           };
+    return \@results;
 }
 
 # ADD METHODS
