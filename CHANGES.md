@@ -1,3 +1,38 @@
+## GRNOC TSDS Services 1.5.5 -- Tue Jul 24 2018
+
+### Features:
+
+* ISSUE=8029 Refactor the way the data and metadata documents are merged during queries to 
+be a lot more efficient, particularly in high metadata cardinality cases.
+
+* ISSUE=6517 Added support for another argument to the extrapolate function to request a series
+of datapoints back. This uses the same logic but instead of returning a single number returns
+an array of points using the calculated slope/intercept so that it can be easily plotted.
+
+* ISSUE=5336 Changed the way expiring measurement entries is internally calculated to be much
+more efficient. This now makes use of index only queries to find the needed data instead of
+performing a lot of fetches.
+
+* Allow for queries on the "identifier" field. This is useful as a shorthand because "identifier"
+is used to unique identify a particular measurement series.
+
+* Improved speed at which we process metadata documents that do not have any associated data 
+documents. This also improves the speed of any query where no data fields are selected.
+
+
+### Bugs:
+
+* ISSUE=5973 Fixed issue where queries with subqueries and math operations that also generated
+very large numbers would get handled incorrectly. This was a subtle function of how perl 
+represents very large numbers in a string context.
+
+* ISSUE=7470 Fixed issue where updating metadata with all of the same values but a different
+end time could result in duplicate in service docs.
+
+* Fixed issue where trying to perform math operations using numeric metadata fields as one
+of the operands would crash, such as values.input / max_bandwidth.
+
+
 ## GRNOC TSDS Services 1.5.4 -- Fri Oct 27 2017
 
 ### Features:
