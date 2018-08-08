@@ -105,22 +105,23 @@ foreach my $db_name (@dbs){
 	my $count = 0;
 
 	# type fixing on the start/end times
-	foreach my $measurement (@measurements){
-	    $count++;
+	# not needed anymore, one time fix
+	# foreach my $measurement (@measurements){
+	#     $count++;
 
-	    # type fixing maybe
-	    $measurement->{'start'} = int($measurement->{'start'});
-	    $measurement->{'end'}   = int($measurement->{'end'}) if defined ($measurement->{'end'});
+	#     # type fixing maybe
+	#     $measurement->{'start'} = int($measurement->{'start'});
+	#     $measurement->{'end'}   = int($measurement->{'end'}) if defined ($measurement->{'end'});
 	    
-	    my $doc_id = $measurement->{'_id'};
+	#     my $doc_id = $measurement->{'_id'};
 	    
-	    # reinsert document now, booooo, only way to ensure the type fixing
-	    # above actually takes effect since perl can't easily test for string vs int
-	    if ($doit){
-		$measurements_col->remove({"_id" => $doc_id});
-		$measurements_col->insert_one($measurement);
-	    }	    	    
-	}
+	#     # reinsert document now, booooo, only way to ensure the type fixing
+	#     # above actually takes effect since perl can't easily test for string vs int
+	#     if ($doit){
+	# 	$measurements_col->remove({"_id" => $doc_id});
+	# 	$measurements_col->insert_one($measurement);
+	#     }	    	    
+	# }
 
 
 	my $last_end = $measurements[0]->{'end'};
