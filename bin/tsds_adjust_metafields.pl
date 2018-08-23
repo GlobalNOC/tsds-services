@@ -54,9 +54,9 @@ sub unset_old_fields {
 }
 
 sub remove_index{
-       my $measurement_coll = shift;
-       my $omission = shift;
-       $measurement_coll->drop_index($omission);
+    my $measurement_coll = shift;
+    my $omission = shift;
+    $measurement_coll->drop_index($omission);
 }
 
 sub delete_fields{
@@ -77,11 +77,12 @@ sub delete_fields{
 	print "Dropping index and unsetting the field...\n"; 
 	
 	# drop the index now
-        my $om = $omission.'_1';
-	remove_index($measurement_coll, $om);
+    my $om = $omission.'_1';
+    remove_index($measurement_coll, $om);
         
 	# unset the field now
-        unset_old_fields($measurement_coll, $omission);
+    unset_old_fields($measurement_coll, $omission);
+    
     }
 }
 
