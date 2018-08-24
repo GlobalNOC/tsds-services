@@ -3,6 +3,12 @@
 use strict;
 use warnings;
 
+# One time fix to make field adjustments
+# Deletes fields from tsds, drops the corresponding indexes and unsets them in the db
+# Following fields will be removed by this script - pop.owner, pop.hands_and_eyes, pop.pop_id, pop.role, ...
+# ... entity.entity_id, node_id, network_id
+# Adds metafields - service.entity_type, circuit.carrier_type, circuit.customer_type
+
 use Data::Dumper;
 
 use GRNOC::Config;
@@ -15,7 +21,7 @@ my $cli = GRNOC::CLI->new();
 my $user = $cli->get_input("WebService Username");
 my $pass = $cli->get_password("Password");
 
-my $admin_url = 'https://io3.bldc.grnoc.iu.edu/tsds/services/admin.cgi';
+my $admin_url = $cli->get_input("WebService URL");
 
 my $config_file = "/etc/grnoc/tsds/services/config.xml";
 my $config  = GRNOC::Config->new(config_file => $config_file);
