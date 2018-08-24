@@ -50,7 +50,7 @@ sub unset_old_fields {
     if($@) {
         die "Error unsetting the field - $unset_field, " . $@;
     }
-    print "Unsetting...$unset_field, " . Dumper($return);
+    print "Successfully unset - $unset_field\n";
 }
 
 sub remove_index {
@@ -62,7 +62,7 @@ sub remove_index {
     if($@){
        die "Error Dropping the index - $omission, " . $@;
     }
-    print "Drop Index...$omission, " . Dumper($return);
+    print "Successfully dropped the index for $omission\n";
 }
 
 sub delete_fields {
