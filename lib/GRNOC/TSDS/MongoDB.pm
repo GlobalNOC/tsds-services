@@ -533,8 +533,7 @@ sub flatten_meta_fields {
     foreach my $field ( keys %$data ) {
         my $attrs = dclone( $data->{$field} );
         delete $attrs->{'fields'};
-        my $total_field = $prefix . $field;
-        $meta_fields->{$total_field} = $attrs;
+        my $total_field = $prefix . $field;       
         my $sub_meta_fields = {};
         if ( exists $data->{$field}{'fields'} ) {
             $sub_meta_fields = $self->flatten_meta_fields( 
@@ -542,7 +541,11 @@ sub flatten_meta_fields {
                 data => $data->{$field}{'fields'},
             );
         }
-        %$meta_fields = ( %$meta_fields, %$sub_meta_fields );
+	else {
+	    $meta_fields->{$total_field} = $attrs;
+	}
+	
+	%$meta_fields = ( %$meta_fields, %$sub_meta_fields );	
     }
 
     return $meta_fields;
