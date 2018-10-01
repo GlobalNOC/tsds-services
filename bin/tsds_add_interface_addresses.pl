@@ -3,11 +3,8 @@
 use strict;
 use warnings;
 
-# One time fix to make field adjustments
-# deletes fields from tsds, drops the corresponding indexes and unsets them in the db
-# Following fields will be removed by this script - pop.owner, pop.hands_and_eyes, pop.pop_id, pop.role, ...
-# ... entity.entity_id, node_id, network_id
-# adds metafields - service.entity_type, circuit.carrier_type, circuit.customer_type
+# One time script to add interface_address metafield
+# Adds interface_address as an array with interface_address.type, interface_address.mask, and interface_address.value
 
 use Data::Dumper;
 
@@ -34,7 +31,7 @@ my $mongo = MongoDB::MongoClient->new(host => "$host:$port",
                                       username => $root_user,
                                       password => $root_pass);
 
-my $admin_client = GRNOC::WebService::Client->new(uid => $user, 
+my $admin_client = GRNOC::WebService::Client->new(uid => $user,
                                                   passwd => $pass,
                                                   url => $admin_url);
 
@@ -43,7 +40,6 @@ add_fields();
 sub add_fields {
     # add interface_address array first
     my $interface_address = $admin_client->add_meta_field(measurement_type => 'interface', name => 'interface_address', array => 1);
-    print Dumper($interface_address);
     die "Couldn't add interface_address\n" . $interface_address if(!defined $interface_address); 
 
  
