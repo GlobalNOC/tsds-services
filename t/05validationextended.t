@@ -363,7 +363,7 @@ $arr=$query->run_query(query => 'get aggregate(values.input,600,count) as Bucket
 
 
 # Testing Math operations
-$arr= $query->run_query( query =>'get values.input - 20 as inputminus20,intf between("01/01/1970 00:00:00 UTC","01/10/1970 13:31:00 UTC") by intf from tsdstest limit 2 offset 1');
+$arr= $query->run_query( query =>'get aggregate(values.input, 1, average) - 20 as inputminus20,intf between("01/01/1970 00:00:00 UTC","01/10/1970 13:31:00 UTC") by intf from tsdstest limit 2 offset 1');
 my $len= scalar @$arr -1;
 $result= $arr->[0]->{'inputminus20'};
 
@@ -379,7 +379,7 @@ while($i <= $len){
 is($count,2,"Two interface values returned as per limit value specified in the query");
 $len= scalar @$result -1;
 
-my $arr2= $query->run_query( query =>'get values.input as input,intf between("01/01/1970 00:00:00 UTC","01/10/1970 13:31:00 UTC") by intf from tsdstest limit 2 offset 1');
+my $arr2= $query->run_query( query =>'get aggregate(values.input, 1, average) as input,intf between("01/01/1970 00:00:00 UTC","01/10/1970 13:31:00 UTC") by intf from tsdstest limit 2 offset 1');
 my $result2=$arr2->[0]->{'input'};
 my $len2= scalar @$result2 -1;
 is($len,$len2, " Length of math operation query and length of query with same logic expect math operation is different. Length of response should be same as we are just computing some math operation on response set");
@@ -387,22 +387,28 @@ is($len,$len2, " Length of math operation query and length of query with same lo
 # now validate data and the difference between the fields
 my $mid = int($len2 /2);
 
+#warn "MID = $mid";
+#warn "sizeof array1 = " .scalar(@$result);
+#warn "sizeof array2 = " . scalar(@$result2);
+#warn Dumper($result);
+#die Dumper($result2);
+
 is( int($result2->[0]->[1] - $result->[0]->[1]), 20 , " Difference between query with actual data and query that decrements value by 20 should be 20.Validated the difference between them at first row");
 is( int($result2->[$mid]->[1] - $result->[$mid]->[1]), 20 , " Difference between query with actual data and query that decrements value by 20 should be 20.Validated the difference between them at middle row");
 
-$arr= $query->run_query( query =>'get values.input * 20 as inputmultiply20,intf between("01/01/1970 00:00:00 UTC","01/10/1970 13:31:00 UTC") by intf from tsdstest limit 2 offset 1');
+$arr= $query->run_query( query =>'get aggregate(values.input, 1, average) * 20 as inputmultiply20,intf between("01/01/1970 00:00:00 UTC","01/10/1970 13:31:00 UTC") by intf from tsdstest limit 2 offset 1');
 $result = $arr->[0]->{'inputmultiply20'};
 
 is( int($result->[0]->[1] / $result2->[0]->[1]), 20 , " Division value between query with actual data and query that multiplies value by 20 should be 20.Validated the difference between them at first row");
 is( int($result->[$mid]->[1] / $result2->[$mid]->[1]), 20 , " Division value between query with actual data and query that multiplies value by 20 should be 20.Validated the difference between them at middle row");
 
-$arr= $query->run_query( query =>'get values.input / 20 as inputdiv20,intf between("01/01/1970 00:00:00 UTC","01/10/1970 13:31:00 UTC") by intf from tsdstest limit 2 offset 1');
+$arr= $query->run_query( query =>'get aggregate(values.input, 1, average) / 20 as inputdiv20,intf between("01/01/1970 00:00:00 UTC","01/10/1970 13:31:00 UTC") by intf from tsdstest limit 2 offset 1');
 $result = $arr->[0]->{'inputdiv20'};
 
 is( int($result2->[0]->[1] / $result->[0]->[1]), 20 , " Division value between query with actual data and query that divides value by 20 should be 20.Validated the difference between them at first row");
 is( int($result2->[$mid]->[1] / $result->[$mid]->[1]), 20 , " Division value between query with actual data and query that divides value by 20 should be 20.Validated the difference between them at middle row");
 
-$arr= $query->run_query( query =>'get values.input + 20 as inputplus20,intf between("01/01/1970 00:00:00 UTC","01/10/1970 13:31:00 UTC") by intf from tsdstest limit 2 offset 1');
+$arr= $query->run_query( query =>'get aggregate(values.input, 1, average) + 20 as inputplus20,intf between("01/01/1970 00:00:00 UTC","01/10/1970 13:31:00 UTC") by intf from tsdstest limit 2 offset 1');
 $result = $arr->[0]->{'inputplus20'};
 
 is( int($result2->[0]->[1] - $result->[0]->[1]), -20 , " Value difference between query with actual data and query that increments value by 20 should be 20.Validated the difference between them at first row");

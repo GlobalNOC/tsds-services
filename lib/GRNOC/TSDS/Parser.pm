@@ -1784,24 +1784,11 @@ sub _query_database {
         # the change to 1,000 point docs seems to cause hi-res queries to time out when doing the mongo sort 
         # in the find clause on start.
         # observing this with mongodb 3.0.1 this may have been fixed in 3.0.3 should revisit later.
-        # for now doing the sort perl side here...
-        my @all_docs;
+        # for now doing the sort perl side here...       
         while (my $doc = $cursor->next()){
-            push(@all_docs, $doc);
-        }
-
-	log_debug("All docs returned from ->next in " . tv_interval($fetch_start, [gettimeofday]) . " seconds");
-
-	if ( $database->name ne $self->temp_database() ) {
-
-	     @all_docs = sort { $a->{'start'} <=> $b->{'start'} } @all_docs;
-	}
-
-        # loop through every doc returned by the query
-        foreach my $doc (@all_docs) {
 
             my $found_identifier = $doc->{'identifier'};
-            $identifiers_with_data{$found_identifier} = 1 if ( defined( $doc->{'identifier'} ) );
+            $identifiers_with_data{$found_identifier} = 1 if ( defined($found_identifier));
 
             # if we're selecting from a subquery result no additional tweaking is necessary, just push
             # and move on
@@ -1826,6 +1813,9 @@ sub _query_database {
             }        
         }
     }
+
+    log_debug("All docs returned from ->next in " . tv_interval($fetch_start, [gettimeofday]) . " seconds");
+
 
     # if any of our identifiers failed to have any data we still need to include them as return results,
     # just without any data values

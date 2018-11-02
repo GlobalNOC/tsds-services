@@ -1062,7 +1062,7 @@ sub _process_event_document {
 
                 my $collection = $data_type->database->get_collection( 'event' );
 
-                $bulk = $collection->initialize_unordered_bulk_op();
+                $bulk = $collection->initialize_unordered_bulk_op({bypassDocumentValidation => 1});
                 $bulk_creates->{$data_type_name}{'event'} = $bulk;
             }
 
@@ -1295,7 +1295,7 @@ sub _process_aggregate_document {
 
                 my $collection = $data_type->database->get_collection( 'data_' . $document->interval );
 
-                $bulk = $collection->initialize_unordered_bulk_op();
+                $bulk = $collection->initialize_unordered_bulk_op({bypassDocumentValidation => 1});
                 $bulk_creates->{$data_type_name}{'data_' . $document->interval} = $bulk;
             }
 
@@ -1364,7 +1364,7 @@ sub _update_event_document {
 
         my $collection = $data_type->database->get_collection( $collection_name );
 
-        $bulk = $collection->initialize_unordered_bulk_op();
+        $bulk = $collection->initialize_unordered_bulk_op({bypassDocumentValidation => 1});
         $bulk_updates->{$data_type->name}{$collection_name} = $bulk;
     }
 
@@ -1516,7 +1516,7 @@ sub _create_data_document {
                 # haven't initialized a bulk op for this data type + collection yet
                 if ( !defined( $bulk ) ) {
 
-                    $bulk = $data_collection->initialize_unordered_bulk_op();
+                    $bulk = $data_collection->initialize_unordered_bulk_op({bypassDocumentValidation => 1});
                     $bulk_creates->{$data_type->name}{'data'} = $bulk;
                 }
 
@@ -1582,7 +1582,7 @@ sub _update_data_document {
 
         my $collection = $data_type->database->get_collection( $collection_name );
 
-        $bulk = $collection->initialize_unordered_bulk_op();
+        $bulk = $collection->initialize_unordered_bulk_op({bypassDocumentValidation => 1});
         $bulk_updates->{$data_type->name}{$collection_name} = $bulk;
     }
 
@@ -1630,7 +1630,7 @@ sub _update_aggregate_document {
 
         my $collection = $data_type->database->get_collection( $collection_name );
 
-        $bulk = $collection->initialize_unordered_bulk_op();
+        $bulk = $collection->initialize_unordered_bulk_op({bypassDocumentValidation => 1});
         $bulk_updates->{$data_type->name}{$collection_name} = $bulk;
     }
 
