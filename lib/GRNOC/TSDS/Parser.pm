@@ -77,7 +77,6 @@ sub new {
     # connect to mongo
     $self->mongo_ro( GRNOC::TSDS::MongoDB->new( config_file => $self->{'config_file'}, privilege => 'ro') );
     $self->mongo_rw( GRNOC::TSDS::MongoDB->new( config_file => $self->{'config_file'}, privilege => 'rw') );
-    $self->mongo_root( GRNOC::TSDS::MongoDB->new( config_file => $self->{'config_file'}, privilege => 'root') );
 
     return $self;
 }
@@ -142,14 +141,6 @@ sub mongo_rw {
 
     $self->{'mongo_rw'} = $mongo if ($mongo);
     return $self->{'mongo_rw'};
-}
-
-sub mongo_root {
-    my $self  = shift;
-    my $mongo = shift;
-
-    $self->{'mongo_root'} = $mongo if ($mongo);
-    return $self->{'mongo_root'};
 }
 
 sub temp_table {
@@ -565,8 +556,8 @@ sub _write_temp_table {
 
     # make sure that it will clean up after itself if something goes wrong or
     # we don't re-enter here
-    my $temp_collection = $self->mongo_root()->get_collection($self->temp_database(),
-                                                              $self->temp_table());
+    my $temp_collection = $self->mongo_rw()->get_collection($self->temp_database(),
+							    $self->temp_table());
     
 
     if (! $temp_collection){
@@ -1580,7 +1571,8 @@ sub _query_database {
 
         log_debug("Getting " . join(", ", @ds_fields) . " fields from $data_source");
 
-        my %queried_names;
+	# never want the _id field inside of mongo
+        my %queried_names = ("_id" => 0);
 
         my $cursor;
         my $aggregate_interval;
@@ -3961,6 +3953,10 @@ sub _combine_histograms {
 	my $bin_size = $hist->{'bin_size'};
 	my $bins = $hist->{'bins'};
 
+	# simple optimization to avoid having to recalc indexes, if bin_size is the same
+	# then index size will be same as well
+	my $is_same_size = ($bin_size == $aggregated_hist->bin_size() && $min == $aggregated_hist->data_min());
+
 	# handle every bin and its count in this histogram
 	while ( my ( $bin_index, $count ) = each( %$bins ) ) {
 
@@ -3968,11 +3964,10 @@ sub _combine_histograms {
 	    my $value = $min + ( $bin_index * $bin_size );
 
 	    # see if we already have a cached entry for the bin index of this value
-	    my $index = $index_cache->{$value};
+	    my $index = $is_same_size ? $bin_index : $index_cache->{$value};
 
 	    # determine the proper bin index of this value
 	    if ( !defined( $index ) ) {
-
 		$index = $aggregated_hist->get_index( $value );
 
 		# cache it for later
