@@ -115,14 +115,27 @@ sub get_database {
         return 1;
     }
     
-    my @existing_dbs = $mongo->database_names;
+    my @existing_dbs = $self->_database_names();
     if (! grep { $_ eq $name } @existing_dbs){
-        $self->error("Unknown database \"$name\"");
-        return;
+	$self->error("Unknown database \"$name\"");
+	return;
     }
 
-
     return $mongo->get_database($name);
+}
+
+# The perl driver as of version 1.8 does not support using nameOnly parameter 
+# when fetching the database names, saving a number of locks and other such operations.
+# We to date never care about sizes or other info that this command returns such MongoClient->database_names
+# has only ever returned the names anyway
+sub _database_names {
+    my ($self) = @_;
+
+    my $results = $self->mongo()->get_database('admin')->run_command(["listDatabases" => 1,
+								      "nameOnly" => 1]);
+
+    return if (! $results->{'ok'});
+    return map { $_->{'name'} } @{$results->{'databases'}};
 }
 
 sub get_databases {
@@ -130,7 +143,8 @@ sub get_databases {
     
     my $mongo = $self->mongo();
 
-    my @all_databases = $mongo->database_names;
+    my @all_databases = $self->_database_names();
+
     return if ( !@all_databases);
 
     my @databases;
@@ -234,7 +248,7 @@ sub get_collection {
     my %args      = @_;
 
     my $create = $args{'create'};
-   
+    
     # make sure db exists 
     my $db = $self->get_database($db_name);
     if(!$db){
@@ -533,8 +547,7 @@ sub flatten_meta_fields {
     foreach my $field ( keys %$data ) {
         my $attrs = dclone( $data->{$field} );
         delete $attrs->{'fields'};
-        my $total_field = $prefix . $field;
-        $meta_fields->{$total_field} = $attrs;
+        my $total_field = $prefix . $field;       
         my $sub_meta_fields = {};
         if ( exists $data->{$field}{'fields'} ) {
             $sub_meta_fields = $self->flatten_meta_fields( 
@@ -542,7 +555,11 @@ sub flatten_meta_fields {
                 data => $data->{$field}{'fields'},
             );
         }
-        %$meta_fields = ( %$meta_fields, %$sub_meta_fields );
+	else {
+	    $meta_fields->{$total_field} = $attrs;
+	}
+	
+	%$meta_fields = ( %$meta_fields, %$sub_meta_fields );	
     }
 
     return $meta_fields;
