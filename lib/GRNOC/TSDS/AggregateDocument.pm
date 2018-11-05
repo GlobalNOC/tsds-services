@@ -69,7 +69,8 @@ sub add_value_types {
 
     my $aggregate_collection = $self->data_type->database->get_collection( "data_$interval" );
 
-    my $updates = {'updated' => time()};
+    #my $updates = {'updated' => time()};
+    my $updates = {'updated' => 1};
 
     # initialize all the data arrays for every new value type
     foreach my $value_type ( @$value_types ) {
@@ -99,7 +100,8 @@ sub update {
                                   start => $self->start,
                                   end => $self->end );
 
-    my $updates = {'updated' => time()};
+    #my $updates = {'updated' => time()};
+    my $updates = {'updated' => 1};
 
     my $min;
     my $max;
@@ -187,7 +189,8 @@ sub create {
                                    start => $self->start,
                                    end => $self->end,
                                    interval => $interval,
-                                   updated => $now,
+                                   #updated => $now,
+				   updated => 1,
                                    updated_start => $updated_start,
                                    updated_end => $updated_end,
                                    values => $values );
