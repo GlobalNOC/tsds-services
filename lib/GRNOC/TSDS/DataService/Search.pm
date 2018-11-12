@@ -56,8 +56,6 @@ sub new {
     # store our newly created object as the singleton
     $singleton = $self;
 
-    # get/store all of the data services we need
-    $self->mongo_ro( GRNOC::TSDS::MongoDB->new( @_, privilege => 'ro' ) );
     $self->parser( GRNOC::TSDS::Parser->new( @_ ) );
 
     # create and store config object
