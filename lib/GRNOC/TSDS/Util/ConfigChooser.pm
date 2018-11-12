@@ -7,7 +7,7 @@ package GRNOC::TSDS::Util::ConfigChooser;
 
 use GRNOC::Config;
 
-use constant DEFAULT_MAPPING_FILE => '/etc/grnoc/tsds/services/mappings.xml';
+use constant DEFAULT_MAPPING_FILE => '/home/daldoyle/mappings.xml';#'/etc/grnoc/tsds/services/mappings.xml';
 use constant DEFAULT_CONFIG_FILE  => '/etc/grnoc/tsds/services/config.xml';
 use constant DEFAULT_LOGGING_FILE => '/etc/grnoc/tsds/services/logging.conf';
 
