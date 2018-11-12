@@ -1,3 +1,4 @@
+
 package GRNOC::TSDS::MongoDB;
 
 use strict;
@@ -18,6 +19,8 @@ our $DATA_SHARDING  = "{'identifier': 1, 'start': 1, 'end': 1}";
 #our $DATA_SHARDING  = "{'identifier': 1}";
 our $EVENT_SHARDING = "{'type': 1, 'start': 1, 'end': 1}";
 
+my %singleton;
+
 sub new {
     my $caller = shift;
 
@@ -29,6 +32,25 @@ sub new {
     };
 
     bless( $self, $class );
+
+    my $privilege;
+    if(!defined($self->{'privilege'})){
+        $self->error('You must specify the privilege you want mongo to connect with (root, ro, rw)');
+        return;
+    }
+    elsif($self->{'privilege'} eq 'root' ){
+        $privilege = 'root';	
+    }elsif($self->{'privilege'} eq 'ro' ){
+        $privilege = 'readonly';
+    }elsif($self->{'privilege'} eq 'rw' ){
+        $privilege = 'readwrite';
+    }else {
+        $self->error('You must specify the privilege you want mongo to connect with (root, ro, rw)');
+        return;
+    }    
+
+    return $singleton{$privilege} if (defined $singleton{$privilege});
+    $singleton{$privilege} = $self;
 
     my $config = GRNOC::Config->new(
         config_file => $self->{'config_file'},
@@ -48,24 +70,7 @@ sub new {
         $self->{'ignore_databases'}{$ignore_database} = 1;
     }
     $self->{'host'} = $host;
-    $self->{'port'} = $port;
-
-    
-    my $privilege;
-    if(!defined($self->{'privilege'})){
-        $self->error('You must specify the privilege you want mongo to connect with (root, ro, rw)');
-        return;
-    }
-    elsif($self->{'privilege'} eq 'root' ){
-        $privilege = 'root';
-    }elsif($self->{'privilege'} eq 'ro' ){
-        $privilege = 'readonly';
-    }elsif($self->{'privilege'} eq 'rw' ){
-        $privilege = 'readwrite';
-    }else {
-        $self->error('You must specify the privilege you want mongo to connect with (root, ro, rw)');
-        return;
-    }
+    $self->{'port'} = $port;   
 
     my $user = $self->{'config'}->get( "/config/mongo/$privilege" );
     $self->{'user'}     = $user->{'user'};
