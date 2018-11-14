@@ -1346,20 +1346,20 @@ sub _query_database {
             log_info("No limiting fields found, exiting query.");
             return [];
         }
-
+	
         my @or;
-
+	
         foreach my $point (@$limit_result){
             my @and;
             my $value = $point->{'_id'};
-
+	    
             foreach my $key (keys %$value){
-            push(@and, {$key => $value->{$key}});
+		push(@and, {$key => $value->{$key}});
             }
-
+	    
             push(@or, {'$and' => \@and});
         }
-
+	
         if (exists $meta_where_fields->{'$and'}){
             push(@{$meta_where_fields->{'$and'}}, {'$or' => \@or});
         }
@@ -1973,9 +1973,14 @@ sub _get_meta_limit_result {
 
     my %unique_by;
 
+    # only project fields we care about
+    my %project_fields;    
+
     # make sure we only query document where that field is even set
     foreach my $field (@$by_fields){
         my @sub_by_fields;
+
+	$project_fields{$field} = 1;
 
         if (ref $field eq 'ARRAY'){
             push(@sub_by_fields, $field->[0]);
@@ -2032,7 +2037,7 @@ sub _get_meta_limit_result {
 
 
     # query
-    my @limit_result;
+    my $limited_results;
     eval {
         # mapreduce is generally regarded as slow in the community and empirical testing
         # shows that it is generally worse off than the aggregation pipeline for
@@ -2052,31 +2057,10 @@ sub _get_meta_limit_result {
             push(@unwind, {'$match' => $limit_query});
         }
 
-	my $pipeline = [{'$match' => $limit_query}, 
-			@unwind, 
-			{
-			    '$group'   => {
-				'_id'   => $group_clause,
-				'count' => {'$sum' => 1}
-			    }
-			}];
-	
-        @limit_result = $collection->aggregate($pipeline)->all();
-        
-        my $total_count = 0;
-        foreach my $item (@limit_result){
-            $total_count += $item->{'count'};
-        }
-
-        # keep track of how many total matched
-        # vs just the ones we limit/offset'd
-        $self->total(scalar @limit_result);
-        $self->total_raw($total_count);
-
         # Default sort ordering to the "by" clause elements
         my $sort  = {'$sort'  => {'_id' => 1}};
-        my $group = {'_id' => $group_clause}; 
-
+        my $group = {'_id'    => $group_clause};
+       
         # If we had explicit order by fields, use those instead
         if (@$order_fields){
             $sort = {};
@@ -2103,18 +2087,35 @@ sub _get_meta_limit_result {
 
         log_debug("Inner meta sort is ", {filter => \&Data::Dumper::Dumper, value  => $sort});
 
-        @limit_result = $collection->aggregate([{'$match'  => $limit_query},
-                                                @unwind,
-                                                {'$group'  => $group},
-                                                $sort,
-                                                {'$limit'  => $limit + $offset},
-                                                {'$skip'   => $offset}
-                                               ])->all();
+
+        my @limit_result = $collection->aggregate([{'$match'  => $limit_query},
+						   {'$project' => \%project_fields},
+						   @unwind,
+						   {'$group'  => $group},
+						   {'$facet' => {
+						       'totals' => [{ '$group' => { _id => $group_clause, count => { '$sum' => 1  } } }],
+						       'results' => [
+							   $sort,
+							   {'$limit' => $limit + $offset},
+							   {'$skip'  => $offset}
+							   ]							    
+						    }
+						   }
+						  ])->all();
+	
+        my $total_count = $limit_result[0]->{'totals'}[0]->{'count'};
+
+	$limited_results = $limit_result[0]->{'results'};
+
+        # keep track of how many total matched
+        # vs just the ones we limit/offset'd
+        $self->total($total_count);
+        $self->total_raw($total_count);
 
 	# Reverse of above, we might get something back
 	# like "circuit: {name: " and we want to cast that back
 	# to "circuit.name: {" for use later
-	foreach my $limit_res (@limit_result){
+	foreach my $limit_res (@$limited_results){
 	    my $id = $limit_res->{'_id'};
 	    foreach my $key (keys $id){
 		my $str = $key;
@@ -2128,7 +2129,6 @@ sub _get_meta_limit_result {
 	    }
 	}
 
-        return \@limit_result;
     };
 
     if ($@){
@@ -2136,7 +2136,7 @@ sub _get_meta_limit_result {
         return;
     }
 
-    return \@limit_result;
+    return $limited_results;
 }
 
 sub _get_unwind_operations {
