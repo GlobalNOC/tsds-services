@@ -75,7 +75,6 @@ sub new {
     $self->grammar(Marpa::R2::Scanless::G->new({source  => \$language}));
 
     # connect to mongo
-    $self->mongo_ro( GRNOC::TSDS::MongoDB->new( config_file => $self->{'config_file'}, privilege => 'ro') );
     $self->mongo_rw( GRNOC::TSDS::MongoDB->new( config_file => $self->{'config_file'}, privilege => 'rw') );
 
     return $self;
@@ -125,14 +124,6 @@ sub actual_end {
 
     $self->{'query_actual_end'} = $actual_end if defined($actual_end);
     return $self->{'query_actual_end'};    
-}
-
-sub mongo_ro {
-    my $self  = shift;
-    my $mongo = shift;
-
-    $self->{'mongo_ro'} = $mongo if ($mongo);
-    return $self->{'mongo_ro'};
 }
 
 sub mongo_rw {
@@ -1086,10 +1077,10 @@ sub _query_event_database {
     $db_name =~ /(.+)\.event/;
     $db_name = $1;
 
-    my $database = $self->mongo_ro()->get_database($db_name);
+    my $database = $self->mongo_rw()->get_database($db_name);
 
     if (! defined $database){
-        $self->error($self->mongo_ro()->error());
+        $self->error($self->mongo_rw()->error());
         return;
     }
     my $metadata = $database->get_collection(METADATA)->find_one();
@@ -1250,10 +1241,10 @@ sub _query_database {
     }
 
     # Get a reference to our database
-    my $database = $self->mongo_ro()->get_database($db_name);
+    my $database = $self->mongo_rw()->get_database($db_name);
 
     if (! defined $database){
-        $self->error($self->mongo_ro()->error());
+        $self->error($self->mongo_rw()->error());
         return;
     }
 
