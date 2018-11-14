@@ -1848,14 +1848,8 @@ sub _generate_time_clause {
 	{'$and' => [{$start_name => {'$lte' => $end}},
 		    {$end_name   => undef}]
 	},
-	{'$and' => [{$end_name => {'$gte' => $start}},
-		    {$end_name => {'$lte' => $end}}]
-	},
-	{'$and' => [{$start_name => {'$gte' => $start}},
-		    {$start_name => {'$lte' => $end}}]
-	},
-	{'$and' => [{$start_name => {'$lte' => $start}},
-		    {$end_name   => {'$gte' => $end}}]
+	{'$and' => [{$start_name => {'$lte' => $end}},
+		    {$end_name => {'$gte' => $start}}]
 	}
 	];
 }
