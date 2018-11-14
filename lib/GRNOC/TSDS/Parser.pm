@@ -2003,6 +2003,13 @@ sub _get_meta_limit_result {
 	    }
 	    $loc->{$last_piece} = '$' . $by_field;	    
 
+	    # Can optimize to avoid having to test for existence of
+	    # identifier field, will always be there in TSDS
+	    # TODO - this could be extended to required fields, but
+	    # is payoff worth the extra query? We aren't currently 
+	    # tracking that in this module
+	    next if ($by_field eq 'identifier');
+
             # if the where clause already had this field in it,
             # we need to ensure our limit query contains both $exists
             # and whatever the original filter on that field was
