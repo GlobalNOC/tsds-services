@@ -1,3 +1,35 @@
+## GRNOC TSDS Services 1.6.2 -- Thu Nov 15 2018
+
+### Features:
+
+* ISSUE=8708 Substantially reduce memory usage in some cases by pre-processing documents as they
+stream from mongo instead of post accumulation.
+
+* ISSUE=8332 Changed "dirty" flag in documents from a timestamp to a boolean to increase index
+efficiency. This requires working with tsds-aggregate >= 1.2.0, as a similar change was made there.
+
+* ISSUE=9001 Changed calls to perl MongoDB's `database_names `to a more direct call that can 
+utilize the nameOnly parameter, avoiding excessive MongoDB locking during a lot of operations.
+
+* ISSUE=9002 Improved speed when combining histograms in a number of common cases by avoiding 
+recalculating indexes when the histograms shared the same dimensions.
+
+* Optimized to remove an unneeded query starting in Mongo 3.4 by utilizing $facet operator. This
+allows for count of total hints + pagination to work in a single query instead of two.
+
+* Optimized to remove testing for `$exists` in fields that will always be present.
+
+* Reduced overall amount of database connections used by lazy connecting in several places, collapsing
+certain cases to a single connection, and using a singleton approach for cases where multiple 
+libraries may be making the same connection.
+
+
+### Bugs:
+
+* Made the start/end consideration in all queries more efficient by removing unneeded cases.
+
+
+
 ## GRNOC TSDS Services 1.6.1 -- Tue Jul 24 2018
 
 ### Features:

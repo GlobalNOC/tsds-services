@@ -16,7 +16,7 @@ package GRNOC::TSDS;
 use strict;
 use warnings;
 
-our $VERSION = '1.6.1';
+our $VERSION = '1.6.2';
 
 sub new {
     my $caller = shift;
