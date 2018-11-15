@@ -75,9 +75,7 @@ sub new {
     $self->grammar(Marpa::R2::Scanless::G->new({source  => \$language}));
 
     # connect to mongo
-    $self->mongo_ro( GRNOC::TSDS::MongoDB->new( config_file => $self->{'config_file'}, privilege => 'ro') );
     $self->mongo_rw( GRNOC::TSDS::MongoDB->new( config_file => $self->{'config_file'}, privilege => 'rw') );
-    $self->mongo_root( GRNOC::TSDS::MongoDB->new( config_file => $self->{'config_file'}, privilege => 'root') );
 
     return $self;
 }
@@ -128,28 +126,12 @@ sub actual_end {
     return $self->{'query_actual_end'};    
 }
 
-sub mongo_ro {
-    my $self  = shift;
-    my $mongo = shift;
-
-    $self->{'mongo_ro'} = $mongo if ($mongo);
-    return $self->{'mongo_ro'};
-}
-
 sub mongo_rw {
     my $self  = shift;
     my $mongo = shift;
 
     $self->{'mongo_rw'} = $mongo if ($mongo);
     return $self->{'mongo_rw'};
-}
-
-sub mongo_root {
-    my $self  = shift;
-    my $mongo = shift;
-
-    $self->{'mongo_root'} = $mongo if ($mongo);
-    return $self->{'mongo_root'};
 }
 
 sub temp_table {
@@ -565,8 +547,8 @@ sub _write_temp_table {
 
     # make sure that it will clean up after itself if something goes wrong or
     # we don't re-enter here
-    my $temp_collection = $self->mongo_root()->get_collection($self->temp_database(),
-                                                              $self->temp_table());
+    my $temp_collection = $self->mongo_rw()->get_collection($self->temp_database(),
+							    $self->temp_table());
     
 
     if (! $temp_collection){
@@ -1095,10 +1077,10 @@ sub _query_event_database {
     $db_name =~ /(.+)\.event/;
     $db_name = $1;
 
-    my $database = $self->mongo_ro()->get_database($db_name);
+    my $database = $self->mongo_rw()->get_database($db_name);
 
     if (! defined $database){
-        $self->error($self->mongo_ro()->error());
+        $self->error($self->mongo_rw()->error());
         return;
     }
     my $metadata = $database->get_collection(METADATA)->find_one();
@@ -1259,10 +1241,10 @@ sub _query_database {
     }
 
     # Get a reference to our database
-    my $database = $self->mongo_ro()->get_database($db_name);
+    my $database = $self->mongo_rw()->get_database($db_name);
 
     if (! defined $database){
-        $self->error($self->mongo_ro()->error());
+        $self->error($self->mongo_rw()->error());
         return;
     }
 
@@ -1364,20 +1346,20 @@ sub _query_database {
             log_info("No limiting fields found, exiting query.");
             return [];
         }
-
+	
         my @or;
-
+	
         foreach my $point (@$limit_result){
             my @and;
             my $value = $point->{'_id'};
-
+	    
             foreach my $key (keys %$value){
-            push(@and, {$key => $value->{$key}});
+		push(@and, {$key => $value->{$key}});
             }
-
+	    
             push(@or, {'$and' => \@and});
         }
-
+	
         if (exists $meta_where_fields->{'$and'}){
             push(@{$meta_where_fields->{'$and'}}, {'$or' => \@or});
         }
@@ -1580,7 +1562,8 @@ sub _query_database {
 
         log_debug("Getting " . join(", ", @ds_fields) . " fields from $data_source");
 
-        my %queried_names;
+	# never want the _id field inside of mongo
+        my %queried_names = ("_id" => 0);
 
         my $cursor;
         my $aggregate_interval;
@@ -1784,24 +1767,11 @@ sub _query_database {
         # the change to 1,000 point docs seems to cause hi-res queries to time out when doing the mongo sort 
         # in the find clause on start.
         # observing this with mongodb 3.0.1 this may have been fixed in 3.0.3 should revisit later.
-        # for now doing the sort perl side here...
-        my @all_docs;
+        # for now doing the sort perl side here...       
         while (my $doc = $cursor->next()){
-            push(@all_docs, $doc);
-        }
-
-	log_debug("All docs returned from ->next in " . tv_interval($fetch_start, [gettimeofday]) . " seconds");
-
-	if ( $database->name ne $self->temp_database() ) {
-
-	     @all_docs = sort { $a->{'start'} <=> $b->{'start'} } @all_docs;
-	}
-
-        # loop through every doc returned by the query
-        foreach my $doc (@all_docs) {
 
             my $found_identifier = $doc->{'identifier'};
-            $identifiers_with_data{$found_identifier} = 1 if ( defined( $doc->{'identifier'} ) );
+            $identifiers_with_data{$found_identifier} = 1 if ( defined($found_identifier));
 
             # if we're selecting from a subquery result no additional tweaking is necessary, just push
             # and move on
@@ -1826,6 +1796,9 @@ sub _query_database {
             }        
         }
     }
+
+    log_debug("All docs returned from ->next in " . tv_interval($fetch_start, [gettimeofday]) . " seconds");
+
 
     # if any of our identifiers failed to have any data we still need to include them as return results,
     # just without any data values
@@ -1876,14 +1849,8 @@ sub _generate_time_clause {
 	{'$and' => [{$start_name => {'$lte' => $end}},
 		    {$end_name   => undef}]
 	},
-	{'$and' => [{$end_name => {'$gte' => $start}},
-		    {$end_name => {'$lte' => $end}}]
-	},
-	{'$and' => [{$start_name => {'$gte' => $start}},
-		    {$start_name => {'$lte' => $end}}]
-	},
-	{'$and' => [{$start_name => {'$lte' => $start}},
-		    {$end_name   => {'$gte' => $end}}]
+	{'$and' => [{$start_name => {'$lte' => $end}},
+		    {$end_name => {'$gte' => $start}}]
 	}
 	];
 }
@@ -2000,9 +1967,14 @@ sub _get_meta_limit_result {
 
     my %unique_by;
 
+    # only project fields we care about
+    my %project_fields;    
+
     # make sure we only query document where that field is even set
     foreach my $field (@$by_fields){
         my @sub_by_fields;
+
+	$project_fields{$field} = 1;
 
         if (ref $field eq 'ARRAY'){
             push(@sub_by_fields, $field->[0]);
@@ -2030,6 +2002,13 @@ sub _get_meta_limit_result {
 	    	$loc = $loc->{$piece};
 	    }
 	    $loc->{$last_piece} = '$' . $by_field;	    
+
+	    # Can optimize to avoid having to test for existence of
+	    # identifier field, will always be there in TSDS
+	    # TODO - this could be extended to required fields, but
+	    # is payoff worth the extra query? We aren't currently 
+	    # tracking that in this module
+	    next if ($by_field eq 'identifier');
 
             # if the where clause already had this field in it,
             # we need to ensure our limit query contains both $exists
@@ -2059,7 +2038,7 @@ sub _get_meta_limit_result {
 
 
     # query
-    my @limit_result;
+    my $limited_results;
     eval {
         # mapreduce is generally regarded as slow in the community and empirical testing
         # shows that it is generally worse off than the aggregation pipeline for
@@ -2079,31 +2058,10 @@ sub _get_meta_limit_result {
             push(@unwind, {'$match' => $limit_query});
         }
 
-	my $pipeline = [{'$match' => $limit_query}, 
-			@unwind, 
-			{
-			    '$group'   => {
-				'_id'   => $group_clause,
-				'count' => {'$sum' => 1}
-			    }
-			}];
-	
-        @limit_result = $collection->aggregate($pipeline)->all();
-        
-        my $total_count = 0;
-        foreach my $item (@limit_result){
-            $total_count += $item->{'count'};
-        }
-
-        # keep track of how many total matched
-        # vs just the ones we limit/offset'd
-        $self->total(scalar @limit_result);
-        $self->total_raw($total_count);
-
         # Default sort ordering to the "by" clause elements
         my $sort  = {'$sort'  => {'_id' => 1}};
-        my $group = {'_id' => $group_clause}; 
-
+        my $group = {'_id'    => $group_clause};
+       
         # If we had explicit order by fields, use those instead
         if (@$order_fields){
             $sort = {};
@@ -2130,18 +2088,35 @@ sub _get_meta_limit_result {
 
         log_debug("Inner meta sort is ", {filter => \&Data::Dumper::Dumper, value  => $sort});
 
-        @limit_result = $collection->aggregate([{'$match'  => $limit_query},
-                                                @unwind,
-                                                {'$group'  => $group},
-                                                $sort,
-                                                {'$limit'  => $limit + $offset},
-                                                {'$skip'   => $offset}
-                                               ])->all();
+
+        my @limit_result = $collection->aggregate([{'$match'  => $limit_query},
+						   {'$project' => \%project_fields},
+						   @unwind,
+						   {'$group'  => $group},
+						   {'$facet' => {
+						       'totals' => [{ '$group' => { _id => $group_clause, count => { '$sum' => 1  } } }],
+						       'results' => [
+							   $sort,
+							   {'$limit' => $limit + $offset},
+							   {'$skip'  => $offset}
+							   ]							    
+						    }
+						   }
+						  ])->all();
+	
+        my $total_count = $limit_result[0]->{'totals'}[0]->{'count'};
+
+	$limited_results = $limit_result[0]->{'results'};
+
+        # keep track of how many total matched
+        # vs just the ones we limit/offset'd
+        $self->total($total_count);
+        $self->total_raw($total_count);
 
 	# Reverse of above, we might get something back
 	# like "circuit: {name: " and we want to cast that back
 	# to "circuit.name: {" for use later
-	foreach my $limit_res (@limit_result){
+	foreach my $limit_res (@$limited_results){
 	    my $id = $limit_res->{'_id'};
 	    foreach my $key (keys $id){
 		my $str = $key;
@@ -2155,7 +2130,6 @@ sub _get_meta_limit_result {
 	    }
 	}
 
-        return \@limit_result;
     };
 
     if ($@){
@@ -2163,7 +2137,7 @@ sub _get_meta_limit_result {
         return;
     }
 
-    return \@limit_result;
+    return $limited_results;
 }
 
 sub _get_unwind_operations {
@@ -3971,6 +3945,10 @@ sub _combine_histograms {
 	my $bin_size = $hist->{'bin_size'};
 	my $bins = $hist->{'bins'};
 
+	# simple optimization to avoid having to recalc indexes, if bin_size is the same
+	# then index size will be same as well
+	my $is_same_size = ($bin_size == $aggregated_hist->bin_size() && $min == $aggregated_hist->data_min());
+
 	# handle every bin and its count in this histogram
 	while ( my ( $bin_index, $count ) = each( %$bins ) ) {
 
@@ -3978,11 +3956,10 @@ sub _combine_histograms {
 	    my $value = $min + ( $bin_index * $bin_size );
 
 	    # see if we already have a cached entry for the bin index of this value
-	    my $index = $index_cache->{$value};
+	    my $index = $is_same_size ? $bin_index : $index_cache->{$value};
 
 	    # determine the proper bin index of this value
 	    if ( !defined( $index ) ) {
-
 		$index = $aggregated_hist->get_index( $value );
 
 		# cache it for later

@@ -19,6 +19,7 @@ use warnings;
 
 use GRNOC::Log;
 use GRNOC::Config;
+use GRNOC::TSDS::MongoDB;
 
 sub new {
 
@@ -108,6 +109,10 @@ sub mongo_ro {
 
     $self->{'mongo_ro'} = $mongo if ( defined( $mongo ) );
 
+    if (! defined($self->{'mongo_ro'}) && $self->{'config_file'}){
+	$self->{'mongo_ro'} = GRNOC::TSDS::MongoDB->new( config_file => $self->{'config_file'}, privilege => 'ro' );
+    }
+
     return $self->{'mongo_ro'};
 }
 
@@ -117,6 +122,10 @@ sub mongo_rw {
 
     $self->{'mongo_rw'} = $mongo if ( defined( $mongo ) );
 
+    if (! defined($self->{'mongo_rw'}) && $self->{'config_file'}){
+	$self->{'mongo_rw'} = GRNOC::TSDS::MongoDB->new( config_file => $self->{'config_file'}, privilege => 'rw' );
+    }
+
     return $self->{'mongo_rw'};
 }
 
@@ -125,6 +134,10 @@ sub mongo_root {
     my ( $self, $mongo ) = @_;
 
     $self->{'mongo_root'} = $mongo if ( defined( $mongo ) );
+
+    if (! defined($self->{'mongo_root'}) && $self->{'config_file'}){
+	$self->{'mongo_root'} = GRNOC::TSDS::MongoDB->new( config_file => $self->{'config_file'}, privilege => 'root' );
+    }
 
     return $self->{'mongo_root'};
 }

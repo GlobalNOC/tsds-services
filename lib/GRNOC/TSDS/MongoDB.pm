@@ -1,3 +1,4 @@
+
 package GRNOC::TSDS::MongoDB;
 
 use strict;
@@ -18,6 +19,8 @@ our $DATA_SHARDING  = "{'identifier': 1, 'start': 1, 'end': 1}";
 #our $DATA_SHARDING  = "{'identifier': 1}";
 our $EVENT_SHARDING = "{'type': 1, 'start': 1, 'end': 1}";
 
+my %singleton;
+
 sub new {
     my $caller = shift;
 
@@ -29,6 +32,25 @@ sub new {
     };
 
     bless( $self, $class );
+
+    my $privilege;
+    if(!defined($self->{'privilege'})){
+        $self->error('You must specify the privilege you want mongo to connect with (root, ro, rw)');
+        return;
+    }
+    elsif($self->{'privilege'} eq 'root' ){
+        $privilege = 'root';	
+    }elsif($self->{'privilege'} eq 'ro' ){
+        $privilege = 'readonly';
+    }elsif($self->{'privilege'} eq 'rw' ){
+        $privilege = 'readwrite';
+    }else {
+        $self->error('You must specify the privilege you want mongo to connect with (root, ro, rw)');
+        return;
+    }    
+
+    return $singleton{$privilege} if (defined $singleton{$privilege});
+    $singleton{$privilege} = $self;
 
     my $config = GRNOC::Config->new(
         config_file => $self->{'config_file'},
@@ -48,24 +70,7 @@ sub new {
         $self->{'ignore_databases'}{$ignore_database} = 1;
     }
     $self->{'host'} = $host;
-    $self->{'port'} = $port;
-
-    
-    my $privilege;
-    if(!defined($self->{'privilege'})){
-        $self->error('You must specify the privilege you want mongo to connect with (root, ro, rw)');
-        return;
-    }
-    elsif($self->{'privilege'} eq 'root' ){
-        $privilege = 'root';
-    }elsif($self->{'privilege'} eq 'ro' ){
-        $privilege = 'readonly';
-    }elsif($self->{'privilege'} eq 'rw' ){
-        $privilege = 'readwrite';
-    }else {
-        $self->error('You must specify the privilege you want mongo to connect with (root, ro, rw)');
-        return;
-    }
+    $self->{'port'} = $port;   
 
     my $user = $self->{'config'}->get( "/config/mongo/$privilege" );
     $self->{'user'}     = $user->{'user'};
@@ -115,14 +120,27 @@ sub get_database {
         return 1;
     }
     
-    my @existing_dbs = $mongo->database_names;
+    my @existing_dbs = $self->_database_names();
     if (! grep { $_ eq $name } @existing_dbs){
-        $self->error("Unknown database \"$name\"");
-        return;
+	$self->error("Unknown database \"$name\"");
+	return;
     }
 
-
     return $mongo->get_database($name);
+}
+
+# The perl driver as of version 1.8 does not support using nameOnly parameter 
+# when fetching the database names, saving a number of locks and other such operations.
+# We to date never care about sizes or other info that this command returns such MongoClient->database_names
+# has only ever returned the names anyway
+sub _database_names {
+    my ($self) = @_;
+
+    my $results = $self->mongo()->get_database('admin')->run_command(["listDatabases" => 1,
+								      "nameOnly" => 1]);
+
+    return if (! $results->{'ok'});
+    return map { $_->{'name'} } @{$results->{'databases'}};
 }
 
 sub get_databases {
@@ -130,7 +148,8 @@ sub get_databases {
     
     my $mongo = $self->mongo();
 
-    my @all_databases = $mongo->database_names;
+    my @all_databases = $self->_database_names();
+
     return if ( !@all_databases);
 
     my @databases;
@@ -234,7 +253,7 @@ sub get_collection {
     my %args      = @_;
 
     my $create = $args{'create'};
-   
+    
     # make sure db exists 
     my $db = $self->get_database($db_name);
     if(!$db){
