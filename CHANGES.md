@@ -1,4 +1,4 @@
-## GRNOC TSDS Services 1.6.2 -- Thu Nov 15 2018
+## GRNOC TSDS Services 1.5.6 -- Thu Nov 15 2018
 
 ### Features:
 
