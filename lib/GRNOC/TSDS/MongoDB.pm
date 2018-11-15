@@ -472,7 +472,7 @@ sub _execute_mongo {
     my @json_lines;
     my $start_parsing = 0;
     foreach my $line (@lines) {
-        if( $line =~ /{/){
+        if( $line =~ /^{/){
             $start_parsing = 1;
         }
         next if(!$start_parsing);
