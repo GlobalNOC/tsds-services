@@ -1,3 +1,26 @@
+## GRNOC TSDS Services 1.6.2 -- Thu Nov 15 2018
+
+### Features:
+
+* ISSUE=8708 Substantially reduce memory usage in some cases by pre-processing documents as they
+stream from mongo instead of post accumulation.
+
+* ISSUE=9002 Improved speed when combining histograms in a number of common cases by avoiding 
+recalculating indexes when the histograms shared the same dimensions.
+
+* Optimized to remove testing for `$exists` in fields that will always be present.
+
+* Reduced overall amount of database connections used by lazy connecting in several places, collapsing
+certain cases to a single connection, and using a singleton approach for cases where multiple 
+libraries may be making the same connection.
+
+
+### Bugs:
+
+* Made the start/end consideration in all queries more efficient by removing unneeded cases.
+
+
+
 ## GRNOC TSDS Services 1.5.5 -- Tue Jul 24 2018
 
 ### Features:
