@@ -430,7 +430,7 @@ sub _create_users {
     # users will need that are not included with the built in read and readWrite roles
     print "Creating role tsds\n";
     my $response_json = $self->mongo_root()->_execute_mongo(
-        "db.getSiblingDB(\"admin\").createRole({role: \"tsds\", privileges: [{ resource: { cluster: true }, actions: [\"listDatabases\"]}, {resource: {db: \"\", collection: \"\"}, actions: [\"bypassDocumentValidation\"]}], roles: []})"
+        "db.getSiblingDB(\"admin\").createRole({role: \"tsds\", privileges: [{ resource: { cluster: true }, actions: [\"listDatabases\"]}], roles: []})"
     ) or return;
 
     if ( $response_json->{'ok'} ne '1') {
