@@ -2070,8 +2070,11 @@ sub _get_meta_limit_result {
             foreach my $item (@$order_fields){
                 my $name  = $item->[0];
                 my $dir   = $item->[1];
-                
-                if (! defined $dir || $dir  =~ /asc/){
+
+		# need this field projected to be able to sort on it
+		$project_fields{$name} = 1;             
+   
+                if (! defined $dir || $dir  =~ /asc/i){
                     $dir = 1;
                 }
                 else {
