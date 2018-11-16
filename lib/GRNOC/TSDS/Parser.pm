@@ -2114,12 +2114,13 @@ sub _get_meta_limit_result {
 	    $total_raw += $total_res->{'count'};
 	}
 
-	$limited_results = $limit_result[0]->{'results'};
-
         # keep track of how many total matched
         # vs just the ones we limit/offset'd
         $self->total($total_count);
         $self->total_raw($total_raw);
+
+
+	$limited_results = $limit_result[0]->{'results'};
 
 	# Reverse of above, we might get something back
 	# like "circuit: {name: " and we want to cast that back

@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 37;
+use Test::More tests => 39;
 use GRNOC::Config;
 use GRNOC::Log;
 use GRNOC::TSDS::DataService::Search;
@@ -24,7 +24,18 @@ my $ds = GRNOC::TSDS::DataService::Search->new( config_file => $config_file,
 ok( $ds, "search data service connected" );
 
 
-my $results = $ds->search( search => 'xe-0/1/0.0',
+# Test to make sure meta results (total) is correct in case
+# where we have no search term and an order by
+my $results = $ds->search( search => undef,
+                           measurement_type => ['tsdstest'],
+			   limit => 2,
+			   offset => 0,
+			   order_by => ["name_1", "name_2"]);
+
+is($results->{'total'}, 22, "got correct total for rtr.chic search");
+is(@{$results->{'results'}}, 2, "got correctly limited results for rtr.chic search");
+
+$results = $ds->search( search => 'xe-0/1/0.0',
 			   measurement_type => ['tsdstest'] )->{'results'};
 
 is( @$results, 1, "1 search result for xe-0/1/0.0" );
