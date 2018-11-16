@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 84;
+use Test::More tests => 86;
 
 use GRNOC::Config;
 use GRNOC::TSDS::DataService::MetaData;
@@ -19,6 +19,7 @@ my $logging_file = "$FindBin::Bin/conf/logging.conf";
 GRNOC::Log->new(config => $logging_file);
 
 my $meta_ds = GRNOC::TSDS::DataService::MetaData->new(config_file => $config_file);
+my $parser = $meta_ds->parser();
 
 # We're going to connect to Mongo manually to generate specific measurement
 # metadata documents so that it's easier to test this in a vacuum
@@ -322,6 +323,13 @@ ok($values->{'output'}{'max'} == 4000, "output max is good");
 ok($values->{'status'}{'min'} == 0, "status min is good");
 ok($values->{'status'}{'max'} == 1, "status max is good");
 
+
+
+# Now that we have more complex metadata in the system, do a few queries to
+# make sure it works okay coming back out
+my $arr = $parser->evaluate( 'get values.input, circuit.name between ("01/01/1970 00:00:00 UTC","01/01/1970 12:00:00 UTC") by circuit.name, circuit.description from tsdstest where circuit.name != null limit 5 offset 0 ');
+ok($arr, "complex field query handled correctly");
+is(@$arr, 2, "got 2 circuits back");
 
 
 sub _get_all_docs {
