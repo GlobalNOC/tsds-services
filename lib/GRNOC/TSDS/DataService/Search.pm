@@ -664,7 +664,7 @@ sub _get_search_result_data {
         # Since this was the query that determined the later "by" clause it actually
         # has the total we want to expose upwards, not the queries below
         ${$total} += $self->parser()->total() if($meta_ids eq 'ALL');
-        
+
         my @additional_wheres;
         foreach my $where_result (@$where_results){
             my @arr;
