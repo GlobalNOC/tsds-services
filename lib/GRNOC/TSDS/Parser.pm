@@ -2093,8 +2093,8 @@ sub _get_meta_limit_result {
 
 
         my @limit_result = $collection->aggregate([{'$match'  => $limit_query},
-						   {'$project' => \%project_fields},
-						   @unwind,
+						   @unwind, # unwind before project because unwind is also going to re-match the existing fields to filter
+						   {'$project' => \%project_fields},	       
 						   {'$group'  => $group},
 						   {'$facet' => {
 						       'totals' => [{ '$group' => { _id => $group_clause, count => { '$sum' => 1  } } }],
