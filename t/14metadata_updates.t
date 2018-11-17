@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 86;
+use Test::More tests => 88;
 
 use GRNOC::Config;
 use GRNOC::TSDS::DataService::MetaData;
@@ -330,7 +330,8 @@ ok($values->{'status'}{'max'} == 1, "status max is good");
 my $arr = $parser->evaluate( 'get values.input, circuit.name between ("01/01/1970 00:00:00 UTC","01/01/1970 12:00:00 UTC") by circuit.name, circuit.description from tsdstest where circuit.name != null limit 5 offset 0 ');
 ok($arr, "complex field query handled correctly");
 is(@$arr, 2, "got 2 circuits back");
-
+is($parser->total(), 2, "2 total results reported as meta stats");
+is($parser->total_raw(), 4, "2 total raw results reported as meta stats");
 
 sub _get_all_docs {
     my @fetched;

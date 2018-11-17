@@ -2092,13 +2092,14 @@ sub _get_meta_limit_result {
         log_debug("Inner meta sort is ", {filter => \&Data::Dumper::Dumper, value  => $sort});
 
 
+
         my @limit_result = $collection->aggregate([{'$match'  => $limit_query},
 						   @unwind, # unwind before project because unwind is also going to re-match the existing fields to filter
-						   {'$project' => \%project_fields},	       
-						   {'$group'  => $group},
+						   {'$project' => \%project_fields},	       						
 						   {'$facet' => {
 						       'totals' => [{ '$group' => { _id => $group_clause, count => { '$sum' => 1  } } }],
 						       'results' => [
+							   {'$group'  => $group},
 							   $sort,
 							   {'$limit' => $limit + $offset},
 							   {'$skip'  => $offset}
@@ -2107,6 +2108,7 @@ sub _get_meta_limit_result {
 						   }
 						  ])->all();
 	
+
 	my $total_raw = 0;
 	my $total_count = 0;
 	foreach my $total_res (@{$limit_result[0]->{'totals'}}){
@@ -2118,7 +2120,6 @@ sub _get_meta_limit_result {
         # vs just the ones we limit/offset'd
         $self->total($total_count);
         $self->total_raw($total_raw);
-
 
 	$limited_results = $limit_result[0]->{'results'};
 
