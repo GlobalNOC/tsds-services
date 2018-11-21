@@ -1,0 +1,16 @@
+#!/bin/bash
+
+sudo rm /usr/share/perl5/vendor_perl/GRNOC/TSDS.pm
+sudo rm /usr/share/perl5/vendor_perl/GRNOC/TSDS
+make clean
+clear
+perl Makefile.PL
+make rpm
+sudo yum remove -y grnoc-tsds-services.noarch
+sudo yum install -y /home/absheth/rpmbuild/RPMS/noarch/grnoc-tsds-services-1.6.2-4.el7.noarch.rpm
+sudo rm /usr/share/perl5/vendor_perl/GRNOC/TSDS.pm
+sudo rm -rf /usr/share/perl5/vendor_perl/GRNOC/TSDS
+sudo ln -sf /home/absheth/work/tsds-services/lib/GRNOC/TSDS.pm /usr/share/perl5/vendor_perl/GRNOC/TSDS.pm
+sudo ln -sf /home/absheth/work/tsds-services/lib/GRNOC/TSDS /usr/share/perl5/vendor_perl/GRNOC/TSDS
+sudo yum remove mongodb-org -y
+sudo /usr/bin/tsds_setup.pl
