@@ -591,7 +591,7 @@ sub upgrade{
         exit;
     }
 
-    print "Performing TSDS Databse Bootstrap";
+    print "\n Performing TSDS Databse Bootstrap\n";
 
     if(system("/usr/bin/tsds_install.pl")!=0){
         print "\n Error occured while performing TSDS Databse Bootstrap";
@@ -599,14 +599,14 @@ sub upgrade{
     }
 
     print "\n Memcached Installation";
-    print "\n Installing memcached";
+    print "\n Installing memcached \n";
 
     if(system("yum install -y memcached")!=0){
         print "Error occured while installing memcached server";
         exit;
     }
 
-    print "\n Turning on memcached server";
+    print "\n Turning on memcached server \n";
 
     if(system("service memcached start")!=0){
         print "Error occured while starting memcached server";
@@ -614,67 +614,68 @@ sub upgrade{
     }
 
     print "\n Redis Installation";
-    print "\n Installing redis";
+    print "\n Installing redis\n";
 
-    if(system("yum install -y redis")!=0){
+    if(system("yum install -y redis40u")!=0){
         print "Error occured while installing redis";
         exit;
     }
 
-    print "\n Turning on redis";
+    print "\n Turning on redis\n";
 
-    if(system("service redis start")!=0){
+    if(system("service redis restart")!=0){
         print "Error occured while starting redis";
         exit;
     }
 
     print "\n RabbitMQ Installation";
-    print "\n Installing rabbitmq server";
+    print "\n Installing rabbitmq server\n";
 
     if(system("yum install -y rabbitmq-server")!=0){
         print "Error occured while installing rabbitmq-server";
         exit;
     }
 
-    print "\n Enabling rabbitmq-management plugin";
+    # TODO: Uncomment this.
+    # print "\n Enabling rabbitmq-management plugin\n";
 
-    if(system("touch /etc/rabbitmq/enabled_plugins")!=0){
-        print "Error occured while creating /etc/rabbitmq/enabled_plugins file";
-        exit;
-    }
+    # if(system("touch /etc/rabbitmq/enabled_plugins")!=0){
+    #     print "Error occured while creating /etc/rabbitmq/enabled_plugins file";
+    #     exit;
+    # }
 
-    if(system("echo [rabbitmq_management]. >> /etc/rabbitmq/enabled_plugins")!=0){
-        print "Error occured while editing /etc/rabbitmq/enabled_plugins file";
-        exit;
-    }
+    # if(system("echo [rabbitmq_management]. >> /etc/rabbitmq/enabled_plugins")!=0){
+    #     print "Error occured while editing /etc/rabbitmq/enabled_plugins file";
+    #     exit;
+    # }
     my $filename = '/etc/rabbitmq/rabbitmq.config';
-    if(-e $filename) {
-        print "\n Rabbitmq config file exists";
-    }
-    else
-    {
-        print "\n Creating rabbitmq config file";
-        if(system("touch /etc/rabbitmq/rabbitmq.config")!=0){
-            print "Error occured while creating /etc/rabbitmq/rabbitmq.config file";
-            exit;
-        }
-        if(system("(
-                echo [
-                echo {mnesia, [{dump_log_write_threshold, 1000}]},
-                echo {rabbit, [
-                echo      {tcp_listeners, [5672]},
-                echo {hipe_compile, false},
-                echo {vm_memory_high_watermark, 0.75},
-                echo {vm_memory_high_watermark_paging_ratio, 0.75},
-                echo {disk_free_limit, \\\"500MB\\\"}
-                echo ]}
-                echo ].
-                )>> /etc/rabbitmq/rabbitmq.config")!=0)
-        {
-            print "\n Error occured while editing /etc/rabbitmq/rabbitmq.config file";
-            exit;
-        }
-    }
+    # if(-e $filename) {
+    #     print "\n Rabbitmq config file exists";
+    # }
+    # else
+    # {
+    #     print "\n Creating rabbitmq config file";
+    #     if(system("touch /etc/rabbitmq/rabbitmq.config")!=0){
+    #         print "Error occured while creating /etc/rabbitmq/rabbitmq.config file";
+    #         exit;
+    #     }
+    #     if(system("(
+    #             echo [
+    #             echo {mnesia, [{dump_log_write_threshold, 1000}]},
+    #             echo {rabbit, [
+    #             echo      {tcp_listeners, [5672]},
+    #             echo {hipe_compile, false},
+    #             echo {vm_memory_high_watermark, 0.75},
+    #             echo {vm_memory_high_watermark_paging_ratio, 0.75},
+    #             echo {disk_free_limit, \\\"500MB\\\"}
+    #             echo ]}
+    #             echo ].
+    #             )>> /etc/rabbitmq/rabbitmq.config")!=0)
+    #     {
+    #         print "\n Error occured while editing /etc/rabbitmq/rabbitmq.config file";
+    #         exit;
+    #     }
+    # }
     print "\n Adding hostname to /etc/hosts ";
 
     $old_str = "127.0.0.1";
@@ -684,15 +685,15 @@ sub upgrade{
         exit;
     }
 
-    print "\n Starting RabbitMQ server";
-    if(system("service rabbitmq-server start")!=0)
+    print "\n Starting RabbitMQ server \n";
+    if(system("service rabbitmq-server restart")!=0)
     {
         print "\n Error occured while starting rabbitmq-server";
         exit;
     }
 
-    print "\n Starting TSDS Writer Service";
-    if(system("service tsds_writer start")!=0)
+    print "\n Starting TSDS Writer Service \n";
+    if(system("service tsds_writer restart")!=0)
     {
         print "\n Error occured while starting tsds_writer";
         exit;
@@ -732,6 +733,7 @@ sub upgrade{
         }
     }
     if(system("(
+            echo INCLUDE conf.d/grnoc/tsds-services.conf
             echo INCLUDE conf.d/grnoc/tsds-services-temp.conf
             echo \\</VirtualHost\\>
             )>> /etc/httpd/conf/httpd.conf ")!=0)
@@ -741,12 +743,12 @@ sub upgrade{
     }
 
     print "\n Starting httpd service";
-    if(system("service httpd start")!=0){
+    if(system("service httpd restart")!=0){
         print "\n Error occured while starting httpd";
         exit;
     }
 
-    print "\n Installing Sphinx";
+    print "\n Installing Sphinx\n";
     if(system("yum -y install sphinx")!=0)
     {
         print "\n Error occured while installing Sphinx";
@@ -771,7 +773,7 @@ sub upgrade{
 
     print "\n Starting searchd ";
 
-    if(system("service searchd start")!=0){
+    if(system("service searchd restart")!=0){
         print "\n Error occured while starting searchd";
         exit;
     }
@@ -790,24 +792,24 @@ sub upgrade{
         exit;
     }
 
-    print "\n Installing TSDS Aggregate Configuration";
-    if(system("yum -y install grnoc-tsds-aggregate")!=0){
-        print "\n Error occured while installing grnoc-tsds-aggregate";
-        exit;
-    }
+    # print "\n Installing TSDS Aggregate Configuration";
+    # if(system("yum -y install grnoc-tsds-aggregate")!=0){
+    #     print "\n Error occured while installing grnoc-tsds-aggregate";
+    #     exit;
+    # }
 
-    print "\n Changing mongo configuration to point to current user and password configured in /etc/grnoc/tsds/services/config.xml";
-    my $old_user = "needs_rw";
-    my $new_user = "root";
-    my $old_pwd = "rw_password";
-    if(system("sed -i 's!$old_user!$new_user!g' /etc/grnoc/tsds/aggregate/config.xml")!=0){
-        print "\n Error occured while editing /etc/grnoc/tsds/aggregate/config.xml file";
-        exit;
-    }
-    if(system("sed -i 's!$old_pwd!$root_pwd!g' /etc/grnoc/tsds/aggregate/config.xml")!=0){
-        print "\n Error occured while editing /etc/grnoc/tsds/aggregate/config.xml file";
-        exit;
-    }
+    # print "\n Changing mongo configuration to point to current user and password configured in /etc/grnoc/tsds/services/config.xml";
+    # my $old_user = "needs_rw";
+    # my $new_user = "root";
+    # my $old_pwd = "rw_password";
+    # if(system("sed -i 's!$old_user!$new_user!g' /etc/grnoc/tsds/aggregate/config.xml")!=0){
+    #     print "\n Error occured while editing /etc/grnoc/tsds/aggregate/config.xml file";
+    #     exit;
+    # }
+    # if(system("sed -i 's!$old_pwd!$root_pwd!g' /etc/grnoc/tsds/aggregate/config.xml")!=0){
+    #     print "\n Error occured while editing /etc/grnoc/tsds/aggregate/config.xml file";
+    #     exit;
+    # }
 
     return 1;
 }
