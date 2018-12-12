@@ -85,10 +85,11 @@ sub upgrade{
 
 
     my $is_correct = "n";
+    my $change_ip  = "n";
     my $hostname;
     # my $ip;
     my $ip= "127.0.0.1";
-    while ($is_correct eq "n") {
+    while ($is_correct ne "y") {
 
 
         print "\n Please enter the accurate information below";
@@ -97,12 +98,21 @@ sub upgrade{
         $hostname = <>;
         chomp $hostname;
 
-        print "\n Please enter the ip address of the hostname entered above";
-        print "\n What is your hostname?\n";
-        # $ip = <>;
-        # chomp $ip;
+        print "\n Currently, the IP address is defaults to 127.0.0.1";
+        print "\n Do you wish to change it? Reply 'y' for yes and 'n' for no. \n ";
+        $change_ip = <>;
+        chomp $change_ip;
 
-        print "\n Is the hostname and the IP address entered above are correct? \n";
+        if ($change_ip eq 'y') {
+            print "\n Please enter the ip address of the hostname entered above";
+            print "\n What is your ip address?\n ";
+            $ip = <>;
+            chomp $ip;
+        } else {
+            print "\n Continuing with default IP address - 127.0.0.1\n";
+        }
+
+        print "\n Is the hostname and the IP address entered above are correct?";
         print "\n Please enter 'y' for yes and 'n' for no.\n ";
         $is_correct = <>;
         chomp $is_correct;

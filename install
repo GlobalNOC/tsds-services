@@ -14,6 +14,10 @@
 # sudo /usr/bin/tsds_setup.pl
 
 sudo systemctl daemon-reload
+sudo service simp-tsds stop
+sudo service simp-poller stop
+sudo service simp-comp stop
+sudo service simp-data stop
 sudo service mongos stop
 sudo service mongod-config1 stop
 sudo service mongod-shard1 stop
@@ -33,3 +37,8 @@ sudo rm -rf /usr/share/perl5/vendor_perl/GRNOC/TSDS
 sudo ln -sf /home/absheth/work/tsds-services/lib/GRNOC/TSDS.pm /usr/share/perl5/vendor_perl/GRNOC/TSDS.pm
 sudo ln -sf /home/absheth/work/tsds-services/lib/GRNOC/TSDS /usr/share/perl5/vendor_perl/GRNOC/TSDS
 sudo /usr/bin/tsds_setup.pl
+sudo service simp-data start
+sudo service simp-comp start
+sudo service simp-poller start
+sudo service simp-tsds start
+sudo service httpd restart
