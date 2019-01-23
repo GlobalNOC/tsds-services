@@ -98,7 +98,7 @@ sub upgrade{
         $hostname = <>;
         chomp $hostname;
 
-        print "\n Currently, the IP address is defaults to 127.0.0.1";
+        print "\n Currently, the IP address is set to default - 127.0.0.1";
         print "\n Do you wish to change it? Reply 'y' for yes and 'n' for no. \n ";
         $change_ip = <>;
         chomp $change_ip;
@@ -109,10 +109,12 @@ sub upgrade{
             $ip = <>;
             chomp $ip;
         } else {
-            print "\n Continuing with default IP address - 127.0.0.1\n";
+            print "\n Continuing with default IP address - $ip\n";
         }
 
-        print "\n Is the hostname and the IP address entered above are correct?";
+        print "\n Are the hostname and the IP address given below correct?";
+        print "\n Hostname: $hostname";
+        priny "\n IP: $ip";
         print "\n Please enter 'y' for yes and 'n' for no.\n ";
         $is_correct = <>;
         chomp $is_correct;
