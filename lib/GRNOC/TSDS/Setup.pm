@@ -114,7 +114,7 @@ sub upgrade{
 
         print "\n Are the hostname and the IP address given below correct?";
         print "\n Hostname: $hostname";
-        priny "\n IP: $ip";
+        print "\n IP: $ip";
         print "\n Please enter 'y' for yes and 'n' for no.\n ";
         $is_correct = <>;
         chomp $is_correct;
