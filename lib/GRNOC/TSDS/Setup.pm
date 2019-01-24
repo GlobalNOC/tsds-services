@@ -628,7 +628,7 @@ sub upgrade{
     print "\n Redis Installation";
     print "\n Installing redis\n";
 
-    if(system("yum install -y redis40u")!=0){
+    if(system("yum install -y redis")!=0){
         print "Error occured while installing redis";
         exit;
     }
