@@ -711,54 +711,7 @@ sub upgrade{
         exit;
     }
 
-    print "\n Editing /etc/httpd/conf/httpd.conf file";
-    if(system("(
-            echo \\<VirtualHost *:80\\>
-            )>> /etc/httpd/conf/httpd.conf ")!=0)
-    {
-        print("\n Error occured while editing /etc/httpd/conf/httpd.conf file");
-        exit;
-    }
-
-    print "\n checking if files exist before adding them to httpd.conf";
-    $filename = '/etc/httpd/conf.d/grnoc/yui.conf';
-    if(-e $filename) {
-        print "\n /etc/httpd/conf.d/grnoc/yui.conf file exists!";
-        if(system("(
-                echo INCLUDE conf.d/grnoc/yui.conf
-                )>> /etc/httpd/conf/httpd.conf ")!=0)
-        {
-            print("\n Error occured while editing /etc/httpd/conf/httpd.conf file");
-            exit;
-        }
-    }
-
-    $filename = '/etc/httpd/conf.d/grnoc/glue.conf';
-    if(-e $filename) {
-        print "\n /etc/httpd/conf.d/grnoc/glue.conf file exists!";
-        if(system("(
-                echo INCLUDE conf.d/grnoc/glue.conf
-                )>> /etc/httpd/conf/httpd.conf ")!=0)
-        {
-            print("\n Error occured while editing /etc/httpd/conf/httpd.conf file");
-            exit;
-        }
-    }
-    if(system("(
-            echo INCLUDE conf.d/grnoc/tsds-services.conf
-            echo INCLUDE conf.d/grnoc/tsds-services-temp.conf
-            echo \\</VirtualHost\\>
-            )>> /etc/httpd/conf/httpd.conf ")!=0)
-    {
-        print("\n Error occured while editing /etc/httpd/conf/httpd.conf file");
-        exit;
-    }
-
-    print "\n Starting httpd service";
-    if(system("service httpd restart")!=0){
-        print "\n Error occured while starting httpd";
-        exit;
-    }
+    
 
     print "\n Installing Sphinx\n";
     if(system("yum -y install sphinx")!=0)
@@ -822,6 +775,54 @@ sub upgrade{
     #     print "\n Error occured while editing /etc/grnoc/tsds/aggregate/config.xml file";
     #     exit;
     # }
+    print "\n Editing /etc/httpd/conf/httpd.conf file";
+    if(system("(
+            echo \\<VirtualHost *:80\\>
+            )>> /etc/httpd/conf/httpd.conf ")!=0)
+    {
+        print("\n Error occured while editing /etc/httpd/conf/httpd.conf file");
+        exit;
+    }
+
+    print "\n checking if files exist before adding them to httpd.conf";
+    $filename = '/etc/httpd/conf.d/grnoc/yui.conf';
+    if(-e $filename) {
+        print "\n /etc/httpd/conf.d/grnoc/yui.conf file exists!";
+        if(system("(
+                echo INCLUDE conf.d/grnoc/yui.conf
+                )>> /etc/httpd/conf/httpd.conf ")!=0)
+        {
+            print("\n Error occured while editing /etc/httpd/conf/httpd.conf file");
+            exit;
+        }
+    }
+
+    $filename = '/etc/httpd/conf.d/grnoc/glue.conf';
+    if(-e $filename) {
+        print "\n /etc/httpd/conf.d/grnoc/glue.conf file exists!";
+        if(system("(
+                echo INCLUDE conf.d/grnoc/glue.conf
+                )>> /etc/httpd/conf/httpd.conf ")!=0)
+        {
+            print("\n Error occured while editing /etc/httpd/conf/httpd.conf file");
+            exit;
+        }
+    }
+    if(system("(
+            echo INCLUDE conf.d/grnoc/tsds-services.conf
+            echo INCLUDE conf.d/grnoc/tsds-services-temp.conf
+            echo \\</VirtualHost\\>
+            )>> /etc/httpd/conf/httpd.conf ")!=0)
+    {
+        print("\n Error occured while editing /etc/httpd/conf/httpd.conf file");
+        exit;
+    }
+
+    print "\n Starting httpd service";
+    if(system("service httpd restart")!=0){
+        print "\n Error occured while starting httpd";
+        exit;
+    }
 
     return 1;
 }
