@@ -711,14 +711,30 @@ sub upgrade{
         exit;
     }
 
-    
+    print "\n ##########################################################################################"; 
 
     print "\n Installing Sphinx\n";
-    if(system("yum -y install sphinx")!=0)
-    {
-        print "\n Error occured while installing Sphinx";
-        exit;
+    if (system("yum -y install postgresql-libs unixODBC")) {
+	print "\n Error occured while installing postgresql-libs and unixOBDC";
+	exit;
     }
+    if (system("wget http://sphinxsearch.com/files/sphinx-2.2.11-1.rhel7.x86_64.rpm")) {
+	print "\n Error occured while downloading sphinx";
+	exit;
+    }
+    if (system("yum install sphinx-2.2.11-1.rhel7.x86_64.rpm -y")) {
+	print "\n Error occured while installing Sphinx";
+	exit;
+    }
+    # if (system()) {
+    #     
+    # }
+    
+    # if(system("yum -y install sphinx")!=0)
+    # {
+    #     print "\n Error occured while installing Sphinx";
+    #     exit;
+    # }
 
     print "\n Configuring Sphinx search";
     if(system("cp /etc/sphinx/sphinx.conf.tsds /etc/sphinx/sphinx.conf")!=0){
@@ -742,6 +758,8 @@ sub upgrade{
         print "\n Error occured while starting searchd";
         exit;
     }
+
+    print "\n ##########################################################################################"; 
 
     my $old_cron = "# */5 * * * * root /usr/bin/indexer tsds_metadata_delta_index --rotate > /dev/null 2>&1";
     my $new_cron = "*/5 * * * * root /usr/bin/indexer tsds_metadata_delta_index --rotate > /dev/null 2>&1";

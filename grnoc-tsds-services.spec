@@ -67,7 +67,7 @@ Requires: perl-GRNOC-Counter
 Requires: perl-Try-Tiny
 Requires: perl(List::Util)
 Requires: phantomjs
-
+Requires: wget
 
 %description
 GRNOC TSDS Services

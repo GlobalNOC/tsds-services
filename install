@@ -1,23 +1,12 @@
 #!/bin/bash
 
-# sudo service mongod-config1 stop
-# sudo rm /usr/share/perl5/vendor_perl/GRNOC/TSDS.pm
-# sudo rm /usr/share/perl5/vendor_perl/GRNOC/TSDS
-# make clean && clear && perl Makefile.PL && make rpm
-# sudo yum remove -y grnoc-tsds-services.noarch
-# sudo yum install -y /home/absheth/rpmbuild/RPMS/noarch/grnoc-tsds-services-1.6.2-4.el7.noarch.rpm
-# sudo rm /usr/share/perl5/vendor_perl/GRNOC/TSDS.pm
-# sudo rm -rf /usr/share/perl5/vendor_perl/GRNOC/TSDS
-# sudo ln -sf /home/absheth/work/tsds-services/lib/GRNOC/TSDS.pm /usr/share/perl5/vendor_perl/GRNOC/TSDS.pm
-# sudo ln -sf /home/absheth/work/tsds-services/lib/GRNOC/TSDS /usr/share/perl5/vendor_perl/GRNOC/TSDS
-# sudo yum remove mongodb-org -y
-# sudo /usr/bin/tsds_setup.pl
-
 sudo systemctl daemon-reload
-sudo service simp-tsds stop
-sudo service simp-poller stop
-sudo service simp-comp stop
+sudo systemctl stop vce
 sudo service simp-data stop
+sudo service simp-comp stop
+sudo service simp-poller stop
+sudo service simp-tsds stop
+sudo service mongod stop
 sudo service mongos stop
 sudo service mongod-config1 stop
 sudo service mongod-shard1 stop
@@ -25,20 +14,23 @@ sudo service searchd stop
 sudo service tsds_writer stop
 sudo rm -rf /var/lib/mongo/config1/*
 sudo rm -rf /var/lib/mongo/shard1/*
-sudo rm /usr/share/perl5/vendor_perl/GRNOC/TSDS.pm
-sudo rm /usr/share/perl5/vendor_perl/GRNOC/TSDS
+# sudo rm /usr/share/perl5/vendor_perl/GRNOC/TSDS.pm
+# sudo rm /usr/share/perl5/vendor_perl/GRNOC/TSDS
 make clean && clear && perl Makefile.PL && make rpm
 sudo yum remove -y grnoc-tsds-services.noarch
 sudo yum remove mongodb-org -y
 sudo yum remove sphinx -y
 sudo yum install -y /home/absheth/rpmbuild/RPMS/noarch/grnoc-tsds-services-1.6.2-4.el7.noarch.rpm
-sudo rm /usr/share/perl5/vendor_perl/GRNOC/TSDS.pm
-sudo rm -rf /usr/share/perl5/vendor_perl/GRNOC/TSDS
-sudo ln -sf /home/absheth/work/tsds-services/lib/GRNOC/TSDS.pm /usr/share/perl5/vendor_perl/GRNOC/TSDS.pm
-sudo ln -sf /home/absheth/work/tsds-services/lib/GRNOC/TSDS /usr/share/perl5/vendor_perl/GRNOC/TSDS
+# Only for testing -- Start
+# sudo rm /usr/share/perl5/vendor_perl/GRNOC/TSDS.pm
+# sudo rm -rf /usr/share/perl5/vendor_perl/GRNOC/TSDS
+# sudo ln -sf /home/absheth/tsds-services/lib/GRNOC/TSDS.pm /usr/share/perl5/vendor_perl/GRNOC/TSDS.pm
+# sudo ln -sf /home/absheth/tsds-services/lib/GRNOC/TSDS /usr/share/perl5/vendor_perl/GRNOC/TSDS
+# Only for testing -- End
 sudo /usr/bin/tsds_setup.pl
-sudo service simp-data start
-sudo service simp-comp start
-sudo service simp-poller start
-sudo service simp-tsds start
+sudo service simp-data restart
+sudo service simp-comp restart
+sudo service simp-poller restart
+sudo service simp-tsds restart
 sudo service httpd restart
+sudo systemctl start vce
