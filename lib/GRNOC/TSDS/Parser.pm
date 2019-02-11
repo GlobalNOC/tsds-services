@@ -3006,7 +3006,7 @@ sub _apply_aggregate {
     }
 
     # make sure we get the last point
-    $self->__process_bucket($aggregated, $bucket_data, $extent_start, $function, $extra) if (@{$bucket_data->{'bucket'}});
+    $self->__process_bucket($aggregated, $bucket_data, $extent_start, $function, $extra) if (@{$bucket_data->{'bucket'}} || @{$bucket_data->{'hists'}} );
 
     if ($math_symbol){
 	$aggregated = $self->_apply_math($aggregated, $math_symbol, $math_value);
@@ -3029,22 +3029,29 @@ sub __update_bucket {
     # we're looking at a retention aggregation
     if ( ref( $value ) ) {
 	
-	if ( !defined( $value->{'avg'} ) || !defined( $value->{'min'} ) || !defined( $value->{'max'} ) ) {
-	    $bucket_data->{'num_nulls'}++;
+	# we can be looking at either the raw histogram records or the result of a aggregate(..., histogram) result
+	$local_max = $value->{'max'} if (exists $value->{'max'});
+	$local_min = $value->{'min'} if (exists $value->{'min'});
+	
+	# 2 possibilities here - the whole thing can be the histogram such as in the case of an inner
+	# query doing aggregate(....,histogram), or it might be stored under ->hist if this is the inner query.
+	# TODO: would be nice to standardize this more, or add abstraction here. Seems a little hacky
+	if (exists $value->{'bins'} && exists $value->{'bin_size'}){
+	    push( @{$bucket_data->{'hists'}}, $value );
 	}
-	else {
-	    $local_max = $value->{'max'};
-	    $local_min = $value->{'min'};
-	    
+	elsif (exists $value->{'hist'}){
+	    push( @{$bucket_data->{'hists'}}, $value->{'hist'});
+	}
+	
+	if (exists $value->{'avg'}){
 	    $bucket_data->{'total'} += $value->{'avg'};
 	    push( @{$bucket_data->{'bucket'}}, $value->{'avg'} );	    
-	    push( @{$bucket_data->{'hists'}}, $value->{'hist'} );
 	}
+
     }
     
     # we're looking at raw highres data
     else {
-	$value = $value;
 	if ( !defined( $value ) ) {
 	    $bucket_data->{'num_nulls'}++;
 	}
