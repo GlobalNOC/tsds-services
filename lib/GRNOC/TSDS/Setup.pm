@@ -602,6 +602,28 @@ sub upgrade{
         print "\n Error occured while editing /etc/grnoc/tsds/services/config.xml file";
         exit;
     }
+    
+    print "\n Redis Installation";
+    print "\n Installing redis\n";
+
+    if(system("yum install -y redis")!=0){
+        print "Error occured while installing redis";
+        exit;
+    }
+
+    print "\n Turning on redis\n";
+
+    if(system("service redis restart")!=0){
+        print "Error occured while starting redis";
+        exit;
+    }
+    $seconds = $sleep_time;
+    while ($seconds != 0) {
+        print "\n Continuing in $seconds..";
+        sleep(1);
+        $seconds = $seconds - 1;
+    }
+    print "\n redis started.. \n";
 
     print "\n Performing TSDS Databse Bootstrap\n";
 
@@ -625,20 +647,7 @@ sub upgrade{
         exit;
     }
 
-    print "\n Redis Installation";
-    print "\n Installing redis\n";
-
-    if(system("yum install -y redis")!=0){
-        print "Error occured while installing redis";
-        exit;
-    }
-
-    print "\n Turning on redis\n";
-
-    if(system("service redis restart")!=0){
-        print "Error occured while starting redis";
-        exit;
-    }
+    
 
     print "\n RabbitMQ Installation";
     print "\n Installing rabbitmq server\n";
