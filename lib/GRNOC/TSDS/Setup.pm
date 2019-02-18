@@ -46,7 +46,7 @@ sub BUILD {
 
 ### public methods ###
 
-sub upgrade{
+sub setup{
 
     my ( $self ) = @_;
 
@@ -87,37 +87,29 @@ sub upgrade{
     my $is_correct = "n";
     my $change_ip  = "n";
     my $hostname;
-    # my $ip;
-    my $ip= "127.0.0.1";
+    my $ip;
     while ($is_correct ne "y") {
-
+	$ip= "127.0.0.1";
 
         print "\n Please enter the accurate information below";
         print "\n Execute 'hostname' command to get the hostname";
-        print "\n What is your hostname?\n ";
-        $hostname = <>;
-        chomp $hostname;
+        $hostname = $self->cli->get_input("\n Hostname ");
 
-        print "\n Currently, the IP address is set to default - 127.0.0.1";
-        print "\n Do you wish to change it? Reply 'y' for yes and 'n' for no. \n ";
-        $change_ip = <>;
-        chomp $change_ip;
-
+        print "\n Currently, the IP address is set to - $ip";
+        $change_ip = $self->cli->get_input("\n Do you wish to change it? Reply 'y' for yes and 'n' for no.", 'pattern' => 'y|n');
+	
         if ($change_ip eq 'y') {
             print "\n Please enter the ip address of the hostname entered above";
-            print "\n What is your ip address?\n ";
-            $ip = <>;
-            chomp $ip;
+	    $ip = $self->cli->get_input("\n New IP address ");
         } else {
             print "\n Continuing with default IP address - $ip\n";
         }
 
-        print "\n Are the hostname and the IP address given below correct?";
         print "\n Hostname: $hostname";
         print "\n IP: $ip";
-        print "\n Please enter 'y' for yes and 'n' for no.\n ";
-        $is_correct = <>;
-        chomp $is_correct;
+        print "\n Are the hostname and the IP address given above correct?";
+
+	$is_correct = $self->cli->get_input("\n Please enter 'y' for yes and 'n' for no.", 'pattern' => 'y|n');
     }
 
     print "\n Installing gnutls package for certtool to work";
@@ -175,16 +167,15 @@ sub upgrade{
         exit;
     }
 
-    print "\n Enter the number of config server and shard to setup (upto 3 supported by default):";
-    my $no_of_shard = <>;
-    chomp $no_of_shard;
+    # print "\n Enter the number of config server and shard to setup (upto 3 supported by default):";
+    my $no_of_shard = $self->cli->get_input("\n Enter the number of config server and shard to setup (1, 2 or 3) ", 'pattern' => '1|2|3');
+    # chomp $no_of_shard;
 
-    print "\n No of shards: $no_of_shard";
-    if ($no_of_shard == 0 || $no_of_shard > 3) {
-        print "\n Incorrect number of shards: $no_of_shard. Set to 1 by default";
-        $no_of_shard = 1;
-
-    }
+    # print "\n No of shards: $no_of_shard";
+    # if ($no_of_shard == 0 || $no_of_shard > 3) {
+    #     print "\n Incorrect number of shards: $no_of_shard. Set to 1 by default";
+    #     $no_of_shard = 1;
+    # }
 
     print "\n MongoDB Config Server Configuration";
     print "\n Making necessary changes to mongo config files /etc/init.d directory";
@@ -845,7 +836,7 @@ sub upgrade{
         exit;
     }
 
-    print "\n Starting httpd service";
+    print "\n Starting httpd service\n ";
     if(system("service httpd restart")!=0){
         print "\n Error occured while starting httpd";
         exit;
