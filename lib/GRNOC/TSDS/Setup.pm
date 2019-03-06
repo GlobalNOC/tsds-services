@@ -12,6 +12,7 @@ use Data::Dumper;
 use MongoDB;
 use Sort::Versions;
 use Sys::Hostname;
+use Expect;
 ### required attributes ###
 
 has config_file => ( is => 'ro',
@@ -84,33 +85,11 @@ sub setup{
     }
 
 
-    my $is_correct = "n";
-    my $change_ip  = "n";
-    my $hostname;
-    my $ip;
-    while ($is_correct ne "y") {
-	$ip= "127.0.0.1";
-
-        print "\n Please enter the accurate information below";
-        print "\n Execute 'hostname' command to get the hostname";
-        $hostname = $self->cli->get_input("\n Hostname ");
-
-        print "\n Currently, the IP address is set to - $ip";
-        $change_ip = $self->cli->get_input("\n Do you wish to change it? Reply 'y' for yes and 'n' for no.", 'pattern' => 'y|n');
-	
-        if ($change_ip eq 'y') {
-            print "\n Please enter the ip address of the hostname entered above";
-	    $ip = $self->cli->get_input("\n New IP address ");
-        } else {
-            print "\n Continuing with default IP address - $ip\n";
-        }
-
-        print "\n Hostname: $hostname";
-        print "\n IP: $ip";
-        print "\n Are the hostname and the IP address given above correct?";
-
-	$is_correct = $self->cli->get_input("\n Please enter 'y' for yes and 'n' for no.", 'pattern' => 'y|n');
-    }
+    my $seconds;
+    my $hostname = hostname();
+    my $ip = "127.0.0.1" ;
+    print "\n Hostname: $hostname \n";
+    print "\n IP: $ip";
 
     print "\n Installing gnutls package for certtool to work";
     if(system("yum -y install gnutls-utils.x86_64 rsyslog-gnutls ")!=0){
@@ -123,13 +102,71 @@ sub setup{
         exit;
     }
 
-    print "\n For the next step ignore all the questions except for common name";
-    print "\n Make sure to specify the proper hostname for the Common name option";
-
-    if(system("certtool -s --load-privkey /etc/pki/tls/private/mongo-$hostname.key --outfile /etc/pki/tls/certs/mongo-$hostname.crt")!=0){
-        print "\n Could not create a certificate file from key file";
-        exit;
+    my $default = "\n";
+    
+    my $exp = Expect->spawn('/usr/bin/certtool -s --load-privkey /etc/pki/tls/private/mongo-'.$hostname.'.key --outfile /etc/pki/tls/certs/mongo-'.$hostname.'.crt') or die "Cannot spwan: $!\n";
+    $seconds = 3;
+    while ($seconds != 0) {
+        print "\n Continuing in $seconds..";
+        sleep(1);
+        $seconds = $seconds - 1;
     }
+    
+    $exp->expect(0.1, "Common name:");
+    $exp->send($hostname."\n");
+    $exp->expect(0.1, "UID:");
+    $exp->send($default);
+    $exp->expect(0.1, "Organizational unit name:");
+    $exp->send($default);
+    $exp->expect(0.1, "Organization name:");
+    $exp->send($default);
+    $exp->expect(0.1, "Locality name:");
+    $exp->send($default);
+    $exp->expect(0.1, "State or province name:");
+    $exp->send($default);
+    $exp->expect(0.1, "Country name (2 chars):");
+    $exp->send($default);
+    $exp->expect(0.1, "Enter the subject's domain component (DC):");
+    $exp->send($default);
+    $exp->expect(0.1, "This field should not be used in new certificates.");
+    $exp->send($default);
+    $exp->expect(0.1, "E-mail:");
+    $exp->send($default);
+    $exp->expect(0.1, "Enter the certificate's serial number in decimal");
+    $exp->send($default);
+    $exp->expect(0.1, "The certificate will expire in (days):");
+    $exp->send("100000\n");
+    $exp->expect(0.1, "Does the certificate belong to an authority? (y/N):");
+    $exp->send($default);
+    $exp->expect(0.1, "Is this a TLS web client certificate? (y/N):");
+    $exp->send($default);
+    $exp->expect(0.1, "Will the certificate be used for IPsec IKE operations? (y/N):");
+    $exp->send($default);
+    $exp->expect(0.1, "Is this a TLS web server certificate? (y/N):");
+    $exp->send($default);
+    $exp->expect(0.1, "Enter a dnsName of the subject of the certificate:");
+    $exp->send($default);
+    $exp->expect(0.1, "Enter a URI of the subject of the certificate:");
+    $exp->send($default);
+    $exp->expect(0.1, "Enter the IP address of the subject of the certificate:");
+    $exp->send($default);
+    $exp->expect(0.1, "Enter the e-mail of the subject of the certificate:");
+    $exp->send($default);
+    $exp->expect(0.1, "Will the certificate be used for signing (required for TLS)? (Y/n):");
+    $exp->send($default);
+    $exp->expect(0.1, "Will the certificate be used for encryption (not required for TLS)? (Y/n):");
+    $exp->send($default);
+    $exp->expect(0.1, "Will the certificate be used to sign OCSP requests? (y/N):");
+    $exp->send($default);
+    $exp->expect(0.1, "Will the certificate be used to sign code? (y/N):");
+    $exp->send($default);
+    $exp->expect(0.1, "Will the certificate be used for time stamping? (y/N):");
+    $exp->send($default);
+    $exp->expect(0.1, "Enter the URI of the CRL distribution point:");
+    $exp->send($default);
+    $exp->expect(0.1, "Is the above information ok? (y/N):");
+    $exp->send("y\n");
+    $exp->soft_close();
 
     print "\n Appending cert file to key file";
     if(system("cat /etc/pki/tls/certs/mongo-$hostname.crt >> /etc/pki/tls/private/mongo-$hostname.key")!=0){
@@ -167,21 +204,12 @@ sub setup{
         exit;
     }
 
-    # print "\n Enter the number of config server and shard to setup (upto 3 supported by default):";
     my $no_of_shard = $self->cli->get_input("\n Enter the number of config server and shard to setup (1, 2 or 3) ", 'pattern' => '1|2|3');
-    # chomp $no_of_shard;
-
-    # print "\n No of shards: $no_of_shard";
-    # if ($no_of_shard == 0 || $no_of_shard > 3) {
-    #     print "\n Incorrect number of shards: $no_of_shard. Set to 1 by default";
-    #     $no_of_shard = 1;
-    # }
 
     print "\n MongoDB Config Server Configuration";
     print "\n Making necessary changes to mongo config files /etc/init.d directory";
     my $server_port;
 
-    my $seconds;
     for (my $i=1; $i <= $no_of_shard; $i++) {
         my $old_str = "/path/to/CA.crt";
         my $new_str = "/etc/pki/tls/certs/mongo-$hostname.crt";
@@ -233,39 +261,6 @@ sub setup{
             exit;
         }
 
-        # print "\n Removing sharding and cluster role from mongod-config$i file";
-        # $old_str = "sharding:";
-        # $new_str = "";
-
-        # if(system("sed -i 's#$old_str#$new_str#g' /etc/mongod-config$i.conf")!=0){
-        #     print "\n Error occured while editing /etc/mongod-config$i.conf file";
-        #     exit;
-        # }
-
-        # $old_str = " clusterRole: \"configsvr\"";
-        # $new_str = "";
-
-        # if(system("sed -i 's#$old_str#$new_str#g' /etc/mongod-config$i.conf")!=0){
-        #     print "\n Error occured while editing /etc/mongod-config$i.conf file";
-        #     exit;
-        # }
-
-        # print "\n Removing sharding and cluster role from mongod-config$i file";
-        # $old_str = "replication:";
-        # $new_str = "";
-
-        # if(system("sed -i 's#$old_str#$new_str#g' /etc/mongod-config$i.conf")!=0){
-        #     print "\n Error occured while editing /etc/mongod-config$i.conf file";
-        #     exit;
-        # }
-
-        # $old_str = "replSetName: \"cfgsvr\"";
-        # $new_str = "";
-
-        # if(system("sed -i 's#$old_str#$new_str#g' /etc/mongod-config$i.conf")!=0){
-        #     print "\n Error occured while editing /etc/mongod-config$i.conf file";
-        #     exit;
-        # }
 
         print "\n Starting mongod-config$i\n";
 
@@ -353,12 +348,6 @@ sub setup{
         exit;
     }
 
-    # $old_str = "localhost";
-    # $new_str = $hostname;
-    # if(system("sed -i 's#$old_str#$new_str#g' /etc/mongos.conf")!=0){
-    #     print "\n Error occured while editing /etc/mongos.conf file";
-    #     exit;
-    # }
 
     $old_str = "configDB: \"cfgsvr/localhost:27019,localhost:27020,localhost:27021\"";
     $new_str = "configDB: \"cfgsvr/";
@@ -404,51 +393,6 @@ sub setup{
     }
     print "\n mongos started.. \n";
 
-    # print "\n No admin or root user has been created yet";
-    # print "\n Adding root user to MongoDB";
-
-    # print "\n Enter password for the root user";
-    # my $root_pwd = $self->cli->get_password("Password");
-    # chomp $root_pwd;
-
-    # if(system("mongo admin --eval \"printjson(db.createUser({user: 'root', pwd: '$root_pwd', roles: [{role: 'root', db: 'admin'}]}));\" ")!=0){
-    #     print "\n Error occured while adding root user to MongoDB";
-    #     exit;
-    # }
-
-    # print "\n Editing credentials for root user in /etc/grnoc/tsds/services/config.xml \n";
-    # $old_str = "user=\\\"root\\\" password=\\\"password\\\"";
-    # $new_str = "user=\\\"root\\\" password=\\\"$root_pwd\\\"";
-
-    # if(system("sed -i 's!$old_str!$new_str!g' /etc/grnoc/tsds/services/config.xml")!=0){
-    #     print "\n Error occured while editing /etc/grnoc/tsds/services/config.xml file";
-    #     exit;
-    # }
-
-    # print "\n Enter a password for read only user :";
-    # my $tsds_ro_pwd = $self->cli->get_password("Password");
-    # chomp $tsds_ro_pwd;
-    # print "\n Enter a password for read write user :";
-    # my $tsds_rw_pwd =  $self->cli->get_password("Password");
-    # chomp $tsds_rw_pwd;
-
-    # print "\n Editing credentials for read only user";
-    # $old_str = "user=\\\"tsds_ro\\\" password=\\\"password\\\"";
-    # $new_str = "user=\\\"tsds_ro\\\" password=\\\"$tsds_ro_pwd\\\"";
-
-    # if(system("sed -i 's!$old_str!$new_str!g' /etc/grnoc/tsds/services/config.xml")!=0){
-    #     print "\n Error occured while editing /etc/grnoc/tsds/services/config.xml file";
-    #     exit;
-    # }
-
-    # print "\n Editing credentials for read write user";
-    # $old_str = "user=\\\"tsds_rw\\\" password=\\\"password\\\"";
-    # $new_str = "user=\\\"tsds_rw\\\" password=\\\"$tsds_rw_pwd\\\"";
-
-    # if(system("sed -i 's!$old_str!$new_str!g' /etc/grnoc/tsds/services/config.xml")!=0){
-    #     print "\n Error occured while editing /etc/grnoc/tsds/services/config.xml file";
-    #     exit;
-    # }
 
     print "\n MongoDB Sharding Configuration";
     print "\n Making necessary changes to mongod-shard config files /etc/ directory";
@@ -502,25 +446,6 @@ sub setup{
             print "\n Error occured while editing /etc/mongod-shard$i.conf file";
             exit;
         }
-
-        # print "\n Removing sharding and cluster role from mongod-shard$i file";
-        # $old_str = "sharding:";
-        # $new_str = "";
-
-        # if(system("sed -i 's#$old_str#$new_str#g' /etc/mongod-shard$i.conf")!=0){
-        #     print "\n Error occured while editing /etc/mongod-shard$i.conf file";
-        #     exit;
-        # }
-
-        # $old_str = "clusterRole: shardsvr";
-
-        # # $new_str = "clusterRole: \"cfgsvr\"";
-        # $new_str = "";
-
-        # if(system("sed -i 's#$old_str#$new_str#g' /etc/mongod-shard$i.conf")!=0){
-        #     print "\n Error occured while editing /etc/mongod-shard$i.conf file";
-        #     exit;
-        # }
 
         print "\n Starting mongod-shard$i \n";
 
@@ -648,46 +573,8 @@ sub setup{
         exit;
     }
 
-    # TODO: Uncomment this.
-    # print "\n Enabling rabbitmq-management plugin\n";
-
-    # if(system("touch /etc/rabbitmq/enabled_plugins")!=0){
-    #     print "Error occured while creating /etc/rabbitmq/enabled_plugins file";
-    #     exit;
-    # }
-
-    # if(system("echo [rabbitmq_management]. >> /etc/rabbitmq/enabled_plugins")!=0){
-    #     print "Error occured while editing /etc/rabbitmq/enabled_plugins file";
-    #     exit;
-    # }
     my $filename = '/etc/rabbitmq/rabbitmq.config';
-    # if(-e $filename) {
-    #     print "\n Rabbitmq config file exists";
-    # }
-    # else
-    # {
-    #     print "\n Creating rabbitmq config file";
-    #     if(system("touch /etc/rabbitmq/rabbitmq.config")!=0){
-    #         print "Error occured while creating /etc/rabbitmq/rabbitmq.config file";
-    #         exit;
-    #     }
-    #     if(system("(
-    #             echo [
-    #             echo {mnesia, [{dump_log_write_threshold, 1000}]},
-    #             echo {rabbit, [
-    #             echo      {tcp_listeners, [5672]},
-    #             echo {hipe_compile, false},
-    #             echo {vm_memory_high_watermark, 0.75},
-    #             echo {vm_memory_high_watermark_paging_ratio, 0.75},
-    #             echo {disk_free_limit, \\\"500MB\\\"}
-    #             echo ]}
-    #             echo ].
-    #             )>> /etc/rabbitmq/rabbitmq.config")!=0)
-    #     {
-    #         print "\n Error occured while editing /etc/rabbitmq/rabbitmq.config file";
-    #         exit;
-    #     }
-    # }
+    
     print "\n Adding hostname to /etc/hosts ";
 
     $old_str = "127.0.0.1";
@@ -726,15 +613,6 @@ sub setup{
 	print "\n Error occured while installing Sphinx";
 	exit;
     }
-    # if (system()) {
-    #     
-    # }
-    
-    # if(system("yum -y install sphinx")!=0)
-    # {
-    #     print "\n Error occured while installing Sphinx";
-    #     exit;
-    # }
 
     print "\n Configuring Sphinx search";
     if(system("cp /etc/sphinx/sphinx.conf.tsds /etc/sphinx/sphinx.conf")!=0){
@@ -775,24 +653,6 @@ sub setup{
         exit;
     }
 
-    # print "\n Installing TSDS Aggregate Configuration";
-    # if(system("yum -y install grnoc-tsds-aggregate")!=0){
-    #     print "\n Error occured while installing grnoc-tsds-aggregate";
-    #     exit;
-    # }
-
-    # print "\n Changing mongo configuration to point to current user and password configured in /etc/grnoc/tsds/services/config.xml";
-    # my $old_user = "needs_rw";
-    # my $new_user = "root";
-    # my $old_pwd = "rw_password";
-    # if(system("sed -i 's!$old_user!$new_user!g' /etc/grnoc/tsds/aggregate/config.xml")!=0){
-    #     print "\n Error occured while editing /etc/grnoc/tsds/aggregate/config.xml file";
-    #     exit;
-    # }
-    # if(system("sed -i 's!$old_pwd!$root_pwd!g' /etc/grnoc/tsds/aggregate/config.xml")!=0){
-    #     print "\n Error occured while editing /etc/grnoc/tsds/aggregate/config.xml file";
-    #     exit;
-    # }
     print "\n Editing /etc/httpd/conf/httpd.conf file";
     if(system("(
             echo \\<VirtualHost *:80\\>
