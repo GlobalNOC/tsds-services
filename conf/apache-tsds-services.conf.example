@@ -20,28 +20,30 @@ Alias /tsds/services /usr/lib/grnoc/tsds/services/cgi-bin
 </Location>
 
 <Directory /usr/lib/grnoc/tsds/services/cgi-bin>
-       <Files "admin.cgi">
-               RewriteEngine On
-               RewriteCond %{HTTPS} off
-               RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}
-               CosignProtected On
-               AuthType Cosign
-               AuthLDAPURL "ldaps://ldap.grnoc.iu.edu ldap2.grnoc.iu.edu/dc=grnoc,dc=iu,dc=edu?uid"
-               AuthLDAPBindDN uid=ldap,ou=people,dc=grnoc,dc=iu,dc=edu
-               AuthLDAPBindPassword [REDACTED]
-               AuthLDAPGroupAttribute member
-               Require ldap-group cn=snapp-admin,ou=webapps,dc=grnoc,dc=iu,dc=edu
-       </Files>
-       <Files "aggregation.cgi">
-               RewriteEngine On
-               RewriteCond %{HTTPS} off
-               RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}
-               CosignProtected On
-               AuthType Cosign
-               AuthLDAPURL "ldaps://ldap.grnoc.iu.edu ldap2.grnoc.iu.edu/dc=grnoc,dc=iu,dc=edu?uid"
-               AuthLDAPBindDN uid=ldap,ou=people,dc=grnoc,dc=iu,dc=edu
-               AuthLDAPBindPassword [REDACTED]
-               AuthLDAPGroupAttribute member
-               Require ldap-group cn=snapp-admin,ou=webapps,dc=grnoc,dc=iu,dc=edu
-       </Files>
+        Require all granted
+    #UNCOMMENT BELOW AND REMOVE ABOVE STATEMENT 
+       # <Files "admin.cgi">
+       #         RewriteEngine On
+       #         RewriteCond %{HTTPS} off
+       #         RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}
+       #         CosignProtected On
+       #         AuthType Cosign
+       #         AuthLDAPURL "ldaps://ldap.grnoc.iu.edu ldap2.grnoc.iu.edu/dc=grnoc,dc=iu,dc=edu?uid"
+       #         AuthLDAPBindDN uid=ldap,ou=people,dc=grnoc,dc=iu,dc=edu
+       #         AuthLDAPBindPassword [REDACTED]
+       #         AuthLDAPGroupAttribute member
+       #         Require ldap-group cn=snapp-admin,ou=webapps,dc=grnoc,dc=iu,dc=edu
+       # </Files>
+       # <Files "aggregation.cgi">
+       #         RewriteEngine On
+       #         RewriteCond %{HTTPS} off
+       #         RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}
+       #         CosignProtected On
+       #         AuthType Cosign
+       #         AuthLDAPURL "ldaps://ldap.grnoc.iu.edu ldap2.grnoc.iu.edu/dc=grnoc,dc=iu,dc=edu?uid"
+       #         AuthLDAPBindDN uid=ldap,ou=people,dc=grnoc,dc=iu,dc=edu
+       #         AuthLDAPBindPassword [REDACTED]
+       #         AuthLDAPGroupAttribute member
+       #         Require ldap-group cn=snapp-admin,ou=webapps,dc=grnoc,dc=iu,dc=edu
+       # </Files>
 </Directory>
