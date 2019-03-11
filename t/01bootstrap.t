@@ -10,11 +10,12 @@ use GRNOC::TSDS::Writer;
 use JSON::XS;
 use MongoDB;
 use Net::AMQP::RabbitMQ;
+use Net::RabbitMQ::Management::API;
 use POSIX qw( ceil );
 use FindBin;
 
-use constant NUM_DATA_POINTS => 8640; # one day
-use constant MESSAGE_SIZE => 40;
+use constant NUM_DATA_POINTS => 8640; # 1d for 10s, 3month for 10m
+use constant MESSAGE_SIZE => 1000; # ensure document alignment
 use constant MAX_VALUE => 10_000_000_000;
 use constant INTERVAL => 10;
 use constant NUM_EVENTS => 1000;
@@ -49,28 +50,33 @@ my $rabbit = Net::AMQP::RabbitMQ->new();
 $rabbit->connect( $rabbit_host, {'port' => $rabbit_port} );
 $rabbit->channel_open( 1 );
 
+# blow out the channel in case other things were lurking around from a previous run
+$rabbit->purge(1, $rabbit_queue);
+
 my $measurements = {};
 
-$measurements->{'rtr.chic'}{'ge-0/0/0'} = 1;
-$measurements->{'rtr.newy'}{'xe-0/1/0.0'} = 1;
-$measurements->{'rtr.chic'}{'interface3'} =1;
-$measurements->{'rtr.chic'}{'interface4'} =1;
-$measurements->{'rtr.chic'}{'interface5'} =1;
-$measurements->{'rtr.chic'}{'interface6'} =1;
-$measurements->{'rtr.chic'}{'interface7'} =1;
-$measurements->{'rtr.chic'}{'interface8'} =1;
-$measurements->{'rtr.chic'}{'interface9'} =1;
-$measurements->{'rtr.chic'}{'interface10'} =1;
-$measurements->{'rtr.chic'}{'interface11'} =1;
-$measurements->{'rtr.newy'}{'interface3'} =1;
-$measurements->{'rtr.newy'}{'interface4'} =1;
-$measurements->{'rtr.newy'}{'interface5'} =1;
-$measurements->{'rtr.newy'}{'interface6'} =1;
-$measurements->{'rtr.newy'}{'interface7'} =1;
-$measurements->{'rtr.newy'}{'interface8'} =1;
-$measurements->{'rtr.newy'}{'interface9'} =1;
-$measurements->{'rtr.newy'}{'interface10'} =1;
-$measurements->{'rtr.newy'}{'interface11'} =1;
+$measurements->{'rtr.chic'}{'ge-0/0/0'}   = 10;
+$measurements->{'rtr.newy'}{'xe-0/1/0.0'} = 10;
+$measurements->{'rtr.chic'}{'interface3'} = 10;
+$measurements->{'rtr.chic'}{'interface4'} = 10;
+$measurements->{'rtr.chic'}{'interface5'} = 10;
+$measurements->{'rtr.chic'}{'interface6'} = 10;
+$measurements->{'rtr.chic'}{'interface7'} = 10;
+$measurements->{'rtr.chic'}{'interface8'} = 10;
+$measurements->{'rtr.chic'}{'interface9'} = 10;
+$measurements->{'rtr.chic'}{'interface10'} = 10;
+$measurements->{'rtr.chic'}{'interface11'} = 10;
+$measurements->{'rtr.newy'}{'interface3'} = 10;
+$measurements->{'rtr.newy'}{'interface4'} = 10;
+$measurements->{'rtr.newy'}{'interface5'} = 10;
+$measurements->{'rtr.newy'}{'interface6'} = 10;
+$measurements->{'rtr.newy'}{'interface7'} = 10;
+$measurements->{'rtr.newy'}{'interface8'} = 10;
+$measurements->{'rtr.newy'}{'interface9'} = 10;
+$measurements->{'rtr.newy'}{'interface10'} = 10;
+$measurements->{'rtr.newy'}{'interface11'} = 10;
+$measurements->{'rtr.seat'}{'interface1'} = 60*10; # This interface is much slower, useful to do long range calculations
+$measurements->{'rtr.seat'}{'interface2'} = 60*10; # This interface is much slower, useful to do long range calculations
 
 # first, we'll send data to initialize the measurements
 my @nodes = keys( %$measurements );
@@ -109,6 +115,7 @@ foreach my $node ( @nodes ) {
 
     foreach my $intf ( @intfs ) {
 
+	my $interval = $measurements->{$node}{$intf};
         my $messages = [];
         my $time = 0;
 
@@ -119,7 +126,7 @@ foreach my $node ( @nodes ) {
 
             my $message = {'type' => $unit_test_db,
                            'time' => $time,
-                           'interval' => INTERVAL,
+                           'interval' => $interval,
                            'values' => {'input' => $input,
                                         'output' => $output},
                            'meta' => {'node' => $node,
@@ -127,7 +134,7 @@ foreach my $node ( @nodes ) {
                                       'network' => 'Test Network'}};
 
             push( @$messages, $message );
-            $time += INTERVAL;
+            $time += $interval;
 
             # send it off to rabbit/mongo
             if ( @$messages == MESSAGE_SIZE ) {
@@ -168,18 +175,37 @@ for (my $i = 1; $i <= NUM_EVENTS; $i++){
     _send(\@messages);
 }
 
+# setup rabbitmq management to check queue depth
+my $rabbit_management = Net::RabbitMQ::Management::API->new(url => "http://" . $rabbit_host . ":15672/api");
+
+# will take longer to run under devel cover
+my $max_time = $INC{'Devel/Cover.pm'} ? 800 : 200;
+
+my $start = time();
+
 # setup timer to stop writer
 $SIG{'ALRM'} = sub {
 
-    $writer->stop();
+    my $queue_size = -1;
+    eval {
+	$queue_size = $rabbit_management->get_queue( name => $rabbit_queue,	
+						     vhost => '%2f' )->content()->{'messages'};
+	diag("queue size is $queue_size");
+    };
+    if ( $@ ) {
+	warn("Error getting queue info: $@" );
+    }
+
+    if ($queue_size == 0 || time() - $start >= $max_time){
+	$writer->stop();
+    }
+    else {
+	alarm( 10 );
+    }
 };
 
-my $sleep = 200;
-
-# sleep longer if running under Devel::Cover
-$sleep = 800 if ( $INC{'Devel/Cover.pm'} );
-
-alarm( $sleep );
+# kick off our watcher
+alarm( 10 );
 
 # start up a temporary tsds receiver that will read messages off our queue
 diag( "starting writer" );
