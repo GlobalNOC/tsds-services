@@ -17,6 +17,7 @@ use Sys::Hostname;
 use List::Util qw(min max);
 use Scalar::Util;
 use POSIX;
+use DateTime;
 
 use GRNOC::Log;
 
@@ -43,6 +44,7 @@ use constant AGGREGATE_MIN        => 3;
 use constant AGGREGATE_HIST       => 4;
 use constant AGGREGATE_PERCENTILE => 5;
 use constant AGGREGATE_SUM        => 6;
+use constant AGGREGATE_COUNT      => 7;
 
 ### constructor ###
 
@@ -2877,9 +2879,18 @@ sub _apply_aggregate {
 
     my ($math_symbol, $math_value) = $self->_find_math($tokens);
 
+    # see if we have a specific time alignement
+    my $align;
+    for (my $i = 0; $i < @$tokens; $i++){
+	if ($tokens->[$i] eq 'align'){
+	    $align = $tokens->[$i +1];
+	    last;
+	}
+    }
+
     my $set = $self->_find_value( $name, $data, $extent );
 
-    if ( !defined( $set ) ) {
+    if ( !defined( $set ) || @$set == 0 ) {
 	return {
 	    $rename => []
 	};
@@ -2898,7 +2909,8 @@ sub _apply_aggregate {
 	'min'        => AGGREGATE_MIN,
 	'histogram'  => AGGREGATE_HIST,
 	'percentile' => AGGREGATE_PERCENTILE,
-	'sum'        => AGGREGATE_SUM
+	'sum'        => AGGREGATE_SUM,
+	'count'      => AGGREGATE_COUNT
 	);
     $function = $func_lookup{$function};
 
@@ -2913,7 +2925,7 @@ sub _apply_aggregate {
 	hists     => []
     };
 
-    my $extent_start;
+    my ($extent_start, $extent_end);
 
     my $aggregated = [];
 
@@ -2924,32 +2936,28 @@ sub _apply_aggregate {
 	my $point = $set->[$i];
 
 	# Align the time to whatever bucket we're looking at
-	my $time  = int($point->[0] / $extent) * $extent;
+	my $time  = $point->[0];#int($point->[0] / $extent) * $extent;
 	my $value = $point->[1];
+
 
 	my $is_outside_extent = 0;
 
 	# Is this the start of a new bucket? Data is sorted by time so 
 	# we'll only see this after the last extent has finished
 	if (! defined $extent_start) {
-	    $extent_start = $time;
-	}
-	# Otherwise check to see if we're still inside this bucket. If we
-	# aren't, we'll have to finish the current bucket before doing anything
-	# with this data point
-	else {
-	    $is_outside_extent = ($time - $extent_start) >= $extent;
+	    ($extent_start, $extent_end) = $self->__get_extent($time, $extent, $align);
 	}
 
 	# This datapoint falls outside the previous bucket, so let's wrap that bucket up
 	# since we're sorted by time we know there are no more points left in it
-	if ($is_outside_extent){
-	    my $data = $self->__process_bucket($aggregated, $bucket_data, $extent_start, $function, $extra);
+	if ($time >= $extent_end){
+
+	    $self->__process_bucket($aggregated, $bucket_data, $extent_start, $function, $extra);
 
 	    # reset tracking, our current start is now the start
 	    # of this data point and our accumulators are empty
-	    # The time has already been aligned
-	    $extent_start = $time;
+	    ($extent_start, $extent_end) = $self->__get_extent($time, $extent, $align);
+
 	    $bucket_data = {
 		max       => undef,
 		min       => undef,
@@ -2974,6 +2982,26 @@ sub _apply_aggregate {
     return {
 	$rename => $aggregated
     };
+}
+
+sub __get_extent {
+    my $self      = shift;
+    my $timestamp = shift;
+    my $extent    = shift;
+    my $align     = shift;
+
+    if ($align){
+	my $dt = DateTime->from_epoch(epoch => $timestamp);
+	# This is a bit dangerous, but the BNF align specifications
+	# match to the DateTime names
+	$dt->truncate(to => $align);
+	my $start_epoch = $dt->epoch();
+	$dt->add($align . "s" => 1);
+	return ($start_epoch, $dt->epoch());	    
+    }
+
+    my $start = int($timestamp / $extent) * $extent;
+    return ($start, $start + $extent);
 }
 
 # Helper function for apply_aggregate()
@@ -3085,6 +3113,9 @@ sub __process_bucket {
     }
     elsif ( $function == AGGREGATE_SUM ){
 	push(@$aggregated, [$extent_start, $total]);
+    }
+    elsif ( $function == AGGREGATE_COUNT ) {
+	push(@$aggregated, [$extent_start, scalar(@{$bucket_data->{'bucket'}})]);
     }
 }
 
@@ -3764,7 +3795,7 @@ sub _get_base_field_extent {
 
     if ($el->[0] eq 'aggregate'){
         $extent = $el->[2];
-        
+
         if (ref $el->[3] eq 'ARRAY' && $el->[3][0] eq 'percentile'){
             $histogram = 1;
         }

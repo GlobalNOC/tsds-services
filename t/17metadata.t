@@ -34,7 +34,7 @@ foreach my $type (@$types){
     $found = $type;
 }
 ok(defined $found, "found $testdb measurement");
-is($found->{'measurement_count'}, 29, "got all active measurements in $testdb" );
+is($found->{'measurement_count'}, 31, "got all active measurements in $testdb" );
 
 
 # get_meta_fields
