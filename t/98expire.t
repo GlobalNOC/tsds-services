@@ -32,7 +32,7 @@ my $num_removed;
 # expire default/hires retention data
 $agent->expire( "default" );
 $num_removed = $agent->expire_data();
-is( $num_removed, 180, "expired 180 hires docs (9 each for 20 measurements)" );
+is( $num_removed, 198, "expired 198 hires docs (9 each for 22 measurements)" );
 
 # expire five minute retention data
 $agent->expire( "five_min" );

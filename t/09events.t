@@ -19,7 +19,7 @@ ok($query, "query data service connected");
 my $result = $query->run_query(query => "get type, start, end, identifier, text, node between(\"01/01/1970 00:00:00 UTC\", \"01/02/1970 00:00:00 UTC\") from tsdstest.event ordered by start, text");
 ok($result, "tsdstest.event query completed successfully");
 
-is(@$result, 48, "found 48 events");
+is(@$result, 72, "found 72 events");
 
 my $first = $result->[0];
 is($first->{'text'}, "This is the event at index 1 for node rtr.chic", "correct event text");

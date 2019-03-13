@@ -83,7 +83,12 @@ extrapolate ::= 'extrapolate' '(' field_word ',' number ')' action => remove_sym
 
 all ::= 'all' '(' field_word ')' action => remove_symbols
 
-aggregate ::= 'aggregate' '(' field_word ',' number ',' aggregator_function ')' action => remove_symbols
+aggregate ::= 'aggregate' '(' field_word ',' number ',' aggregator_function ')' 'align' aggregate_align action => remove_symbols
+	      |
+              'aggregate' '(' field_word ',' number ',' aggregator_function ')' action => remove_symbols
+
+aggregate_align ::= 'week' | 'month' | 'year'
+
 
 aggregator_function ::= 'average'
 		    	|
@@ -94,6 +99,8 @@ aggregator_function ::= 'average'
 			'histogram'
                         |
                         'sum'
+			|
+			'count'
 			|
 			'percentile' '(' number ')' action => remove_symbols
 
