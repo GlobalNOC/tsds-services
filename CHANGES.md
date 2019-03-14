@@ -1,3 +1,28 @@
+## GRNOC TSDS Services 1.5.7 -- Thu Mar 13 2019
+
+### Features:
+
+* Added "align" clause to aggregate() calls. This feature does more intelligent time alignment
+than straight epoch seconds math, such as weeks or months that may start/end on inconsistent extents.
+It also does an implicit level of aggregation to that, so aligning to week will generate a weekly
+average or max, depending on what aggregate it's attached to. This allows queries to specify a different
+level of aggregation to fetch data vs how to combine it without resorting to subqueries in all cases.
+
+  e.g. aggregate(values.input, timeframe, average) align week
+
+
+* Added ability to use "count" as an aggregator function in aggregate() calls. This allows queries
+to return the number of datapoints in a bucket independent of their values.
+
+* Refactored some of the unit tests to include longer duration interfaces, and to run the Writer
+process more efficiently.
+
+### Bugs:
+
+* Fixed issue where histograms returned from inner queries were not processed correctly in outer queries
+making using of the aggregate() function.
+
+
 ## GRNOC TSDS Services 1.5.6 -- Thu Nov 15 2018
 
 ### Features:
