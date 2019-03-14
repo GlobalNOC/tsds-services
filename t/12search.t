@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 37;
+use Test::More tests => 39;
 use GRNOC::Config;
 use GRNOC::Log;
 use GRNOC::TSDS::DataService::Search;
