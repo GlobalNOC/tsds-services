@@ -96,11 +96,11 @@ is($arr->[0]{'output'}[2][1], 95115.5, "got aggregate value");
 is($arr->[0]{'intf'}, "interface11");
 
 # With Grouping By
-$arr= $query->run_query( query =>'get node, intf, aggregate(values.output, 300, average) as output between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") by node from tsdstest where node="rtr.chic" ordered by intf asc ');
+$arr= $query->run_query( query =>'get node, intf, aggregate(values.output, 300, average) as output between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") by node, intf from tsdstest where node="rtr.chic" ordered by intf asc ');
 ok($arr, "query request to fetch values.output by node sent successfully");
-is(@$arr, 1, "got 1 result");
-is($arr->[0]{'output'}[0][1], 125295.5, "got aggregate value");
-is($arr->[0]{'intf'}, "interface11");
+is(@$arr, 10, "got 10 results");
+is($arr->[0]{'output'}[0][1], 103695.5, "got aggregate value");
+is($arr->[0]{'intf'}, "ge-0/0/0");
 
 # With Grouping by first
 $arr= $query->run_query( query =>'get intf, node, aggregate(values.output, 300, average) as output between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") by node first(intf) from tsdstest where node="rtr.chic" ');
