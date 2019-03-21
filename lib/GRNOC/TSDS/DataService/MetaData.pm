@@ -1233,7 +1233,7 @@ sub _do_update_measurement_metadata {
     while (my $doc = $cursor->next()){
 	push(@docs, $doc);
     }
-    
+
     log_debug("Found " . scalar(@docs) . " docs to update");
     
     # First record all of the times so we can see which ones need changing
@@ -1290,7 +1290,10 @@ sub _do_update_measurement_metadata {
         # nothing else
 	{
 	    no warnings 'uninitialized';
-	    if ($is_same && defined $end && $orig_end ne $end){
+	    if ($is_same && ((defined $end && $orig_end ne $end)
+			     ||
+			     (! defined $end && defined $orig_end && $i == @docs-1)))
+		{
 		$last_end = $end;
 		$original{'end'} = $end;
 		$measurements->delete_one({_id => $orig_id});
