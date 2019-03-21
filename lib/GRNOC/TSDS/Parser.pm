@@ -31,6 +31,7 @@ use GRNOC::TSDS::Constraints;
 ### constants ###
 
 use constant DEFAULT_GROUPING => "__DEFAULT_GROUPING__";
+use constant TIMESTAMP_GROUP  => "__timestamp";
 use constant DATA         => 'data';
 use constant MEASUREMENTS => 'measurements';
 use constant METADATA     => 'metadata';
@@ -344,7 +345,7 @@ sub _process_tokens {
 
     my $between_fields   = $self->_get_between($tokens);
 
-    my $by_tokens        = $self->_get_by($tokens);
+    my ($by_tokens, $by_in_time) = $self->_get_by($tokens);
 
     my $order_fields     = $self->_get_order($tokens);
 
@@ -451,8 +452,13 @@ sub _process_tokens {
     }
 
     if (@$by_tokens > 0 && ! $is_event){
-        $inner_result = $self->_apply_by( $by_tokens, $inner_result, $get_fields );
+        $inner_result = $self->_apply_by( $by_tokens, $inner_result, $get_fields, $by_in_time );
     }
+
+    # after applying "by" we can prune out all the start/end times of the documents
+    # these are needed for originally querying, associating to metadata, and possibly
+    # grouping by time component, but aren't needed after this
+    map{ delete $_->{'start'}; delete $_->{'end'} } @$inner_result;
 
     # Now apply the aggregations on the data sets
     my $final_results = $self->_apply_aggregation_functions($inner_result, $get_fields, $with_details, $between_fields);
@@ -1036,6 +1042,7 @@ sub _get_by {
     my @copy = @$tokens;
 
     my $by_fields;
+    my $group_time = 0;
 
     while (@copy){
 	my $token = shift @copy;
@@ -1053,10 +1060,36 @@ sub _get_by {
     # by fields are optional, might be no grouping
     $by_fields ||= [];
 
-    log_debug("By fields: ", {filter => \&Data::Dumper::Dumper,
-			      value  => $by_fields});
+    log_debug("Raw by fields: ", {filter => \&Data::Dumper::Dumper,
+				  value  => $by_fields});
+    
+    # Figure out if grouping by time is a part of this
+    # We don't actually need it to remain in the group by
+    for (my $i = @$by_fields - 1; $i >= 0; $i--){
+	my $by_field = $by_fields->[$i];
+	if (ref $by_field eq 'ARRAY'){
+	    for (my $j = @$by_field - 1; $j >= 0; $j--){
+		my $sub_field = $by_field->[$j];
+		if ($sub_field eq TIMESTAMP_GROUP){
+		    $group_time = 1;
+		    splice(@$by_field, $j, 1);
+		}
+	    }
+	}
+	else {
+	    if ($by_field eq TIMESTAMP_GROUP){
+		$group_time = 1;
+		splice(@$by_fields, $i, 1);
+	    }
+	}
+    }
 
-    return $by_fields;
+    log_debug("Final by fields: ", {filter => \&Data::Dumper::Dumper,
+				    value  => $by_fields});
+    log_debug("Grouping by time: $group_time");
+
+
+    return ($by_fields, $group_time);
 }
 
 sub _query_event_database {
@@ -1826,8 +1859,6 @@ sub _query_database {
 
         # remove reference to internal field stuff
         delete $doc->{'_id'};
-        delete $doc->{'start'};
-        delete $doc->{'end'};
         delete $doc->{'__tsds_temp_id'};
     }
 
@@ -2352,7 +2383,7 @@ sub _apply_limit_offset {
 
 sub _apply_by {
 
-    my ( $self, $tokens, $data, $get_fields ) = @_;
+    my ( $self, $tokens, $data, $get_fields, $by_in_time ) = @_;
 
     # We can either group one document or a set of documents, this makes
     # the later code path easier to follow
@@ -2439,6 +2470,44 @@ sub _apply_by {
             $group_value .= $value;	    
 	}
 
+	# If we're trying to group metadata by its time extents
+	# let's examine that first before deciding what to keep
+	if ($by_in_time && exists $bucket{$group_value}){
+	    # These start at current values but will get moved as needed to adjust
+	    # the extents that need filling in, as possible
+	    my $current_start = $doc->{'start'};
+	    my $current_end   = defined $doc->{'end'} ? $doc->{'end'} : 9999999999;
+
+	    # Get all of the previously used docs in start order
+	    my @sorted = sort {$a->{'start'} <=> $b->{'start'} } @{$bucket{$group_value}};
+
+	    my $prev_end = -1;
+
+	    for (my $j = 0; $j < @sorted; $j++){
+		my $existing_doc = $sorted[$j];
+
+		my $existing_start = $existing_doc->{'start'};
+		my $existing_end   = defined $existing_doc->{'end'} ? $existing_doc->{'end'} : 9999999999;		
+
+		if ($current_start < $existing_start && $current_start > $prev_end){
+		    my $truncated = $self->_clone_truncate($doc, $current_start, $existing_start);
+		    push(@{$bucket{$group_value}}, $truncated);
+		    $keep = 0;
+
+		    # Move our "start" pointer forwards so that if we visit the next
+		    $current_start = $existing_end;
+		}
+		if ($current_end > $existing_end && ($j == @sorted - 1 ||
+						 $current_end < $sorted[$j+1]->{'start'})){
+		    my $truncated = $self->_clone_truncate($doc, $existing_end, $current_end);
+		    push(@{$bucket{$group_value}}, $truncated);
+		    $keep = 0;
+		}
+
+		$prev_end = $existing_end;
+	    }
+	}
+
 	push(@{$bucket{$group_value}}, $doc) if ($keep);
     }
 
@@ -2474,6 +2543,52 @@ sub _apply_by {
     log_debug("Grouping resulted in " . @result . " documents");
 
     return \@result;
+}
+
+# Takes a merged data/metadata document and truncates it
+# to the specified time.
+sub _clone_truncate {
+    my $self = shift;
+    my $doc = shift;
+    my $new_start = shift;
+    my $new_end = shift;
+
+    $doc = clone($doc);
+
+    $doc->{'start'} = $new_start;
+    $doc->{'end'} = $new_end;
+
+    # Find any value fields and make sure they're inside these new bounds
+    foreach my $key (keys %$doc){
+	my $value = $doc->{$key};
+
+	# Fresh out of the DB it's going to be 
+	# {"values": {"output": [ [], [], [] ....] } }
+	if (ref $value eq 'HASH' && $key eq 'values'){
+	    foreach my $key2 (keys %$value){
+		my $value2 = $value->{$key2};
+		for (my $i = @$value2 - 1; $i >= 0; $i--){
+		    if ($value2->[$i][0] >= $new_end || $value2->[$i][0] < $new_start){
+			splice($value2, $i, 1);
+		    }
+		}
+
+	    }
+	}
+
+	# If this was out of a subquery it may just be a straight array
+	# {"values.output": [ [], [], [].... ]}
+	if (ref $value eq 'ARRAY' && $value->[0] eq 'ARRAY'){
+	    for (my $i = @$value - 1; $i >= 0; $i--){
+		if ($value->[$i][0] >= $new_end || $value->[$i][0] < $new_start){
+		    warn "doing splice, sizeof array = " . scalar(@$value);
+		    splice($value, $i, 1);
+		}
+	    }
+	}
+    }
+
+    return $doc;
 }
 
 sub _combine_docs {
@@ -2887,6 +3002,8 @@ sub _apply_aggregate {
 	    last;
 	}
     }
+    $default .= " align $align" if ($align);
+
 
     my $set = $self->_find_value( $name, $data, $extent );
 
