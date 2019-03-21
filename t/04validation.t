@@ -187,7 +187,7 @@ $arr= $query->run_query( query =>'get sum(aggregate(values.input,360,max)) as MA
 ok($arr, "query request to get sum (aggregate(values.input,360,max)) ) sent successfully");
 
 $result=$arr->[0]->{'MAXSUM'};
-ok(defined $result, "Compound statement sum(aggregate function with max) executed and value returned back successfully ");
+is($result, 12085776, "Compound statement sum(aggregate function with max) executed and value returned back successfully ");
 
 $arr= $query->run_query( query =>'get aggregate(values.input,7200,max) as MAXVALUE between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") from tsdstest where node="rtr.chic" ');
 $result=$arr->[0]->{'MAXVALUE'};
