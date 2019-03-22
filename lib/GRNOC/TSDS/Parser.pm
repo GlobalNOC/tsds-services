@@ -458,7 +458,7 @@ sub _process_tokens {
     # after applying "by" we can prune out all the start/end times of the documents
     # these are needed for originally querying, associating to metadata, and possibly
     # grouping by time component, but aren't needed after this
-    map{ delete $_->{'start'}; delete $_->{'end'} } @$inner_result;
+    map{ delete $_->{'start'}; delete $_->{'end'} } @$inner_result unless ($is_event);
 
     # Now apply the aggregations on the data sets
     my $final_results = $self->_apply_aggregation_functions($inner_result, $get_fields, $with_details, $between_fields);
@@ -2613,7 +2613,7 @@ sub _clone_truncate {
 
 	# Fresh out of the DB it's going to be 
 	# {"values": {"output": [ [], [], [] ....] } }
-	if (ref $value eq 'HASH' && $key =~ /^values\./){
+	if (ref $value eq 'HASH' && ($key eq 'values' || $key =~ /^values\./)){
 	    foreach my $key2 (keys %$value){
 		my $value2 = $value->{$key2};
 		for (my $i = @$value2 - 1; $i >= 0; $i--){
@@ -2630,7 +2630,6 @@ sub _clone_truncate {
 	if (ref $value eq 'ARRAY' && $value->[0] eq 'ARRAY'){
 	    for (my $i = @$value - 1; $i >= 0; $i--){
 		if ($value->[$i][0] >= $new_end || $value->[$i][0] < $new_start){
-		    warn "doing splice, sizeof array = " . scalar(@$value);
 		    splice($value, $i, 1);
 		}
 	    }
