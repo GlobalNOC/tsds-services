@@ -26,7 +26,7 @@ my $query   = GRNOC::TSDS::DataService::Query->new(config_file => $config_file,
 
 # We have a 5 minute aggregate from the bootstrapping, so we're going to first query hires
 # and verify that that works as normal
-my $res = $query->run_query(query => 'get values.output, node, intf, description between(0, 7200) from tsdstest where intf = "ge-0/0/0" and node = "rtr.chic"');
+my $res = $query->run_query(query => 'get values.output, node, intf, description between(0, 7200) from tsdstest where intf = "xe-0/1/0.0" and node = "rtr.newy"');
 ok(defined $res, "got query response");
 is($res->[0]->{'values.output'}[0][0], 0,  "first timestamp of hi-res data is correct");
 is($res->[0]->{'values.output'}[-1][0], 7190, "last timestamp of hi-res data is correct");
@@ -38,7 +38,7 @@ is($query->actual_end(), 7200, "actual query end time reported as 7200");
 # 3000 % 300 = 0, so end should be 7200
 # 300 % 0 = 0, so start should be 0
 # Also verify that the meta fields are there
-$res = $query->run_query(query => 'get aggregate(values.output, 300, average) as values.output, node, intf, description between(300, 3000) from tsdstest where intf = "ge-0/0/0" and node = "rtr.chic"');
+$res = $query->run_query(query => 'get aggregate(values.output, 300, average) as values.output, node, intf, description between(300, 3000) from tsdstest where intf = "xe-0/1/0.0" and node = "rtr.newy"');
 ok(defined $res, "got query response");
 is($res->[0]->{'values.output'}[0][0], 300,  "first timestamp of aligned aggregate data is correct");
 is($res->[0]->{'values.output'}[-1][0], 2700, "last timestamp of aligned aggregate data is correct");
@@ -52,7 +52,7 @@ is($query->actual_end(), 3000, "actual query end time reported as 3000");
 # asking for 300s data. This should return a query where the start is floored and the end
 # is ceiled to 300s to make sure it encompasses all the data.
 # Also verify that the meta fields are there
-$res = $query->run_query(query => 'get aggregate(values.output, 300, average) as values.output, node, intf, description between(7, 641) by intf, node from tsdstest where intf = "ge-0/0/0" and node = "rtr.chic"');
+$res = $query->run_query(query => 'get aggregate(values.output, 300, average) as values.output, node, intf, description between(7, 641) by intf, node from tsdstest where intf = "xe-0/1/0.0" and node = "rtr.newy"');
 
 ok(defined $res, "got query response");
 is($res->[0]->{'values.output'}[0][0], 0, "first timestamp of misaligned aggregate data query is correct");
