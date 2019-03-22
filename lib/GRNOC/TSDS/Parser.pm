@@ -452,7 +452,7 @@ sub _process_tokens {
     }
 
     if (@$by_tokens > 0 && ! $is_event){
-        $inner_result = $self->_apply_by( $by_tokens, $inner_result, $get_fields, $by_in_time );
+        $inner_result = $self->_apply_by( $by_tokens, $inner_result, $get_fields, $by_in_time, $between_fields );
     }
 
     # after applying "by" we can prune out all the start/end times of the documents
@@ -2383,7 +2383,7 @@ sub _apply_limit_offset {
 
 sub _apply_by {
 
-    my ( $self, $tokens, $data, $get_fields, $by_in_time ) = @_;
+    my ( $self, $tokens, $data, $get_fields, $by_in_time, $between_fields ) = @_;
 
     # We can either group one document or a set of documents, this makes
     # the later code path easier to follow
@@ -2423,7 +2423,7 @@ sub _apply_by {
         @$data = sort { 
             my $sort_res = 0;
             foreach my $key (@sort_keys){
-                    $sort_res = $sort_res || ($a->{$key} cmp $b->{$key});
+                    $sort_res = $sort_res || ($self->_find_value($key, $a) cmp $self->_find_value($key, $b));
             }
                 return $sort_res;
         } @$data;
@@ -2478,6 +2478,14 @@ sub _apply_by {
 	    my $current_start = $doc->{'start'};
 	    my $current_end   = defined $doc->{'end'} ? $doc->{'end'} : 9999999999;
 
+	    # Cap the time consideration to the actual query times
+	    if ($current_start < $between_fields->[0]){
+		$current_start = $between_fields->[0];
+	    }
+	    if ($current_end > $between_fields->[1]){
+		$current_end = $between_fields->[1];
+	    }
+
 	    # Get all of the previously used docs in start order
 	    my @sorted = sort {$a->{'start'} <=> $b->{'start'} } @{$bucket{$group_value}};
 
@@ -2489,16 +2497,16 @@ sub _apply_by {
 		my $existing_start = $existing_doc->{'start'};
 		my $existing_end   = defined $existing_doc->{'end'} ? $existing_doc->{'end'} : 9999999999;		
 
-		if ($current_start < $existing_start && $current_start > $prev_end){
-		    my $truncated = $self->_clone_truncate($doc, $current_start, $existing_start);
+		if ($current_start < $existing_start && $current_start > $prev_end){		    		    
+		    my $truncated = $self->_clone_truncate($doc, $current_start, $existing_start);		
 		    push(@{$bucket{$group_value}}, $truncated);
-		    $keep = 0;
+		    $keep = 0; # don't need to keep the base doc since we merged in the truncated one
 
 		    # Move our "start" pointer forwards so that if we visit the next
 		    $current_start = $existing_end;
 		}
 		if ($current_end > $existing_end && ($j == @sorted - 1 ||
-						 $current_end < $sorted[$j+1]->{'start'})){
+						     $current_end < $sorted[$j+1]->{'start'})){
 		    my $truncated = $self->_clone_truncate($doc, $existing_end, $current_end);
 		    push(@{$bucket{$group_value}}, $truncated);
 		    $keep = 0;
@@ -2564,7 +2572,7 @@ sub _clone_truncate {
 
 	# Fresh out of the DB it's going to be 
 	# {"values": {"output": [ [], [], [] ....] } }
-	if (ref $value eq 'HASH' && $key eq 'values'){
+	if (ref $value eq 'HASH' && $key =~ /^values\./){
 	    foreach my $key2 (keys %$value){
 		my $value2 = $value->{$key2};
 		for (my $i = @$value2 - 1; $i >= 0; $i--){
