@@ -3071,7 +3071,7 @@ sub __update_bucket {
 	    push( @{$bucket_data->{'hists'}}, $value->{'hist'});
 	}
 	
-	if (exists $value->{'avg'}){
+	if (exists $value->{'avg'} && defined $value->{'avg'}){
 	    $bucket_data->{'total'} += $value->{'avg'};
 	    push( @{$bucket_data->{'bucket'}}, $value->{'avg'} );	    
 	}
