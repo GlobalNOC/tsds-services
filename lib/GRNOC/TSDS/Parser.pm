@@ -2577,7 +2577,7 @@ sub _clone_truncate {
 		my $value2 = $value->{$key2};
 		for (my $i = @$value2 - 1; $i >= 0; $i--){
 		    if ($value2->[$i][0] >= $new_end || $value2->[$i][0] < $new_start){
-			splice($value2, $i, 1);
+			splice(@$value2, $i, 1);
 		    }
 		}
 
@@ -2589,7 +2589,7 @@ sub _clone_truncate {
 	if (ref $value eq 'ARRAY' && $value->[0] eq 'ARRAY'){
 	    for (my $i = @$value - 1; $i >= 0; $i--){
 		if ($value->[$i][0] >= $new_end || $value->[$i][0] < $new_start){
-		    splice($value, $i, 1);
+		    splice(@$value, $i, 1);
 		}
 	    }
 	}
