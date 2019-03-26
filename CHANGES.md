@@ -1,3 +1,21 @@
+## GRNOC TSDS Services 1.5.8 -- Thu Mar 26 2019
+
+### Features:
+
+* Added "__timestamp" as an optional by clause element. Including this in the by
+clause will make unique merging also consider the start/end times when determining
+uniqueness. For example, grouping by a circuit's first interface by default will pick
+one interface and use it for the entire query timeframe. Grouping by the circuit's first
+interface and __timestamp will make it use the first interface for as long as that
+interface existed, and then the next interface, etc for the duration of the query. Careful
+use of order by is recommended when doing this to ensure your results are sane.
+
+### Bugs:
+
+* Fixed an issue introduced in the last release that would cause aggregates of aggregates
+to emit a lot of warnings in cases where some value types weren't defined.
+
+
 ## GRNOC TSDS Services 1.5.7 -- Thu Mar 13 2019
 
 ### Features:
