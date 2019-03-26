@@ -1,6 +1,6 @@
 Summary: GRNOC TSDS Services
 Name: grnoc-tsds-services
-Version: 1.6.3
+Version: 1.6.4
 Release: 1%{?dist}
 License: GRNOC
 Group: Measurement
