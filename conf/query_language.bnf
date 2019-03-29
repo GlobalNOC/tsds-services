@@ -87,7 +87,7 @@ aggregate ::= 'aggregate' '(' field_word ',' number ',' aggregator_function ')' 
 	      |
               'aggregate' '(' field_word ',' number ',' aggregator_function ')' action => remove_symbols
 
-aggregate_align ::= 'week' | 'month' | 'year'
+aggregate_align ::= 'day' | 'week' | 'month' | 'year'
 
 
 aggregator_function ::= 'average'
