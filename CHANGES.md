@@ -1,3 +1,49 @@
+## GRNOC TSDS Services 1.6.4 -- Thu Mar 26 2019
+
+### Features:
+
+* Added "__timestamp" as an optional by clause element. Including this in the by
+clause will make unique merging also consider the start/end times when determining
+uniqueness. For example, grouping by a circuit's first interface by default will pick
+one interface and use it for the entire query timeframe. Grouping by the circuit's first
+interface and __timestamp will make it use the first interface for as long as that
+interface existed, and then the next interface, etc for the duration of the query. Careful
+use of order by is recommended when doing this to ensure your results are sane.
+
+### Bugs:
+
+* Fixed an issue introduced in the last release that would cause aggregates of aggregates
+to emit a lot of warnings in cases where some value types weren't defined.
+
+
+## GRNOC TSDS Services 1.6.3 -- Thu Mar 13 2019
+
+### Features:
+
+* Added "align" clause to aggregate() calls. This feature does more intelligent time alignment
+than straight epoch seconds math, such as weeks or months that may start/end on inconsistent extents.
+It also does an implicit level of aggregation to that, so aligning to week will generate a weekly
+average or max, depending on what aggregate it's attached to. This allows queries to specify a different
+level of aggregation to fetch data vs how to combine it without resorting to subqueries in all cases.
+
+  e.g. aggregate(values.input, timeframe, average) align week
+
+
+* Added ability to use "count" as an aggregator function in aggregate() calls. This allows queries
+to return the number of datapoints in a bucket independent of their values.
+
+* Refactored some of the unit tests to include longer duration interfaces, and to run the Writer
+process more efficiently.
+
+* Added tsds_setup script to make first time installation and setup of pieces such as Mongo more
+streamlined and automated.
+
+### Bugs:
+
+* Fixed issue where histograms returned from inner queries were not processed correctly in outer queries
+making using of the aggregate() function.
+
+
 ## GRNOC TSDS Services 1.6.2 -- Thu Nov 15 2018
 
 ### Features:
