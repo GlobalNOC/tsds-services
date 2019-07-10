@@ -2191,8 +2191,6 @@ sub _get_unwind_operations {
 
     my @unwind;
 
-    my @to_scan;
-
     if (ref $field eq 'ARRAY'){
 	foreach my $f (@$field){
 	    @unwind = (@unwind, $self->_get_unwind_operations($metadata, $f, $seen_fields));
@@ -2208,17 +2206,37 @@ sub _get_unwind_operations {
 	return @unwind;
     }
 
-    $field =~ /^([^.]+)\.?/;
-    my $field_match = $1;
-    if ($field_match
-	&& defined $metadata->{'meta_fields'}{$field_match}{'array'}
-	&& $metadata->{'meta_fields'}{$field_match}{'array'} eq '1'
-	&& ! exists $seen_fields->{$field_match}) {
+    # looking for field.subfield
+    my @pieces   = split(/\./, $field);
+    my $meta_loc = $metadata->{'meta_fields'};
 
-	log_debug("Adding an unwind for field $field_match due to by field $field");
-	push(@unwind, {'$unwind' => '$' . $field_match});
-	$seen_fields->{$field_match} = 1;
+    for (my $i = 0; $i < @pieces; $i++){
+	my $piece = $pieces[$i];
+
+	last if (! exists $meta_loc->{$piece});
+	$meta_loc = $meta_loc->{$piece};
+
+	if(defined $meta_loc->{'array'} 
+	   && $meta_loc->{'array'} eq 1){
+	    
+	    my $full_path = join(".", @pieces[0..$i]);
+	    
+	    next if (exists $seen_fields->{$full_path});
+	    $seen_fields->{$full_path} = 1;
+	    
+	    log_debug("Adding an unwind for field $full_path due to by field $field");	    
+	    push(@unwind, {'$unwind' => '$' . $full_path});
+	}
+
+	if (exists $meta_loc->{'fields'}){
+	    $meta_loc = $meta_loc->{'fields'};
+	}
     }
+
+    # Make sure we're putting deeper unwinds later
+    @unwind = sort( { my $count_a = () = $a->{'$unwind'} =~ /\./g;
+		      my $count_b = () = $b->{'$unwind'} =~ /\./g;
+		      $count_a <=> $count_b } @unwind);
 
     return @unwind;
 }

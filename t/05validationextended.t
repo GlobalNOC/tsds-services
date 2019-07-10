@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 213;
+use Test::More tests => 217;
 
 # testing multiple where operators
 use GRNOC::Config;
@@ -486,10 +486,8 @@ $measurements->update_one({_id => $hack_doc->{'_id'}}, {'$set' => {'max_bandwidt
 my $arr = $query->run_query( query =>'get max_bandwidth, values.input as base, values.input / max_bandwidth  as scaled, intf between("01/01/1970 00:00:00 UTC","01/10/1970 00:00:00 UTC") by intf from tsdstest where node="rtr.chic" and intf = "ge-0/0/0"');
 $measurements->update_one({_id => $hack_doc->{'_id'}}, {'$unset' => {'max_bandwidth' => 1}});
 
-
 ok($arr, "query request with having sent successfully");
 is(@$arr, 1, "got 1 interface response");
-
 
 # base and multiplied should have the same number of elements, and each item in multiplied
 # should be its corresponding position item in base times 2
@@ -507,6 +505,32 @@ for (my $i = 0; $i < @$base; $i++){
     $good = $good && (($base_val / $bandwidth) == $scaled_val);
 }
 is($good, 1, "base and scaled points are correctly scaled");
+
+
+
+#############
+# TODO: same as above, hack for metadata updates
+# This is testing multiple levels of unwinding, circuit is an array and role inside of it is an array
+###########
+my @ids = $measurements->distinct('_id', {'node' => 'rtr.chic'})->all;
+
+$measurements->update({_id => {'$in' => \@ids}}, {'$set' => {'circuit' => [{"name" => "circuit foo 1", "description" => "circuit foo desc 1", "role" => ["role1", "role2", "role3"] },
+									  {"name" => "circuit foo 2", "description" => "circuit foo desc 2", "role" => ["role1", "role2", "role3"] },
+									  {"name" => "circuit foo 3", "description" => "circuit foo desc 3", "role" => ["role1", "role2"] }]}}, {'multi' => 1});
+$arr = $query->run_query( query =>'get node, intf, circuit.name, circuit.role between("01/01/1970 00:00:00 UTC","01/10/1970 00:00:00 UTC") by node, intf, circuit.name, circuit.role from tsdstest where node="rtr.chic" ordered by circuit.name, circuit.role');
+ok($arr, "query request with having sent successfully");
+# should be 10 interfaces, each with 3 circuits, and each of those with 3, 3, and 2 roles, see above update
+is(@$arr, 10 * (2*3 + 2), "got correct number of responses after multiple unwinds");
+
+# same query but without node, intf, should be a unique set of 3 circuit names, two with 3 roles and 1 with 2
+$arr = $query->run_query( query =>'get node, intf, circuit.name, circuit.role between("01/01/1970 00:00:00 UTC","01/10/1970 00:00:00 UTC") by circuit.name, circuit.role from tsdstest where node="rtr.chic" ordered by circuit.name, circuit.role');
+ok($arr, "query request with having sent successfully");
+is(@$arr, (2*3 + 2), "got correct number of responses after multiple unwinds");
+
+# CLEAR OUR BAD TODO ABOVE
+$measurements->update({_id => {'$in' => \@ids}}, {'$unset' => {'circuit' => 1}}, {'multi' => 1});
+
+
 
 
 # Test multiple embedded operators on single field
