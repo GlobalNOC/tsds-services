@@ -1,0 +1,151 @@
+{
+    "type": "optical",
+    "label": "Optical",
+    "expire_after": 86400,
+    "meta_fields": {
+        "intf": {
+            "required": 1,
+            "ordinal": 2
+        },
+        "node": {
+            "required": 1,
+            "ordinal": 1
+        },
+        "alternate_intf": {},
+        "circuit": {
+            "required": 0,
+            "classifier": 1,
+            "array": 1,
+            "fields": {
+                "carrier": {},
+                "carrier_type": {},
+                "circuit_id": {},
+                "customer": {},
+                "customer_type": {},
+                "description": {
+                    "ordinal": 2
+                },
+                "name": {
+                    "ordinal" : 1
+                },
+                "owner": {},
+                "role": {},
+                "speed": {},
+                "type": {}
+            }
+        },
+        "contracted_bandwidth": {},
+        "description": {
+            "ordinal": 3
+        },
+        "entity": {
+            "fields": {
+                "contracted_bandwidth": {},
+                "name": {},
+                "type": {}
+            },
+            "required": 0
+        },
+        "interface_address": {
+            "required": 0,
+            "classifier": 0,
+            "array": 1,
+            "fields": {
+                "mask": {},
+                "type": {},
+                "value": {}
+            }
+        },
+        "interface_id": {},
+        "max_bandwidth": {},
+        "network": {},
+        "node_management_address": {},
+        "node_role": {},
+        "node_type": {},
+        "parent_interface": {},
+        "pop": {
+            "required": 0,
+            "fields": {
+                "locality": {},
+                "name": {},
+                "type": {}
+            }
+        },
+        "service": {
+            "array" : 1,
+            "required": 0,
+            "classifier": 1,
+            "fields": {
+                "contracted_bandwidth": {},
+                "description": {
+                    "ordinal": 2
+                },
+                "entity": {},
+                "entity_type": {},
+                "name": {
+                    "ordinal": 1
+                },
+                "service_id": {},
+                "type": {}
+            }
+        },
+        "tag" : {},
+        "type" : {}
+    },
+    "values": {
+        "txpower": {
+            "ordinal": 1,
+            "description": "Transmit Power",
+            "units": "dBm"
+        },
+        "rxpower": {
+            "ordinal": 2,
+            "description": "Receive Power",
+            "units": "dBm"
+        },
+        "errored_seconds": {
+            "description": "Errored Seconds",
+            "units": "s"
+        },
+        "input_bits": {
+            "description": "Input Bits/s", 
+            "units": "bps"
+        },
+        "input_errors": {
+            "description": "Input Errors/s", 
+            "units": "pps"
+        },
+        "input_packets": {
+            "description": "Input Packet/s",
+            "units": "pps"
+        },
+        "orl": {
+            "description": "ORL",
+            "units": "dB"
+        },
+        "output_bits": {
+            "description": "Output Bit/s",
+            "units": "bps"
+        },
+        "output_errors": {
+            "description": "Output Error/s",
+            "units": "pps"
+        },
+        "output_packets": {
+            "description": "Output Packet/s",
+            "units": "pps"
+        },
+        "postfec": {
+            "description": "Post-FEC Error/s",
+            "units": "bps"
+        },
+        "prefec": {
+            "description": "Pre-FEC Error/s",
+            "units": "bps"
+        },
+        "severely_errored_seconds": {
+            "description": "Severely Errored Seconds",
+            "units": "s"
+        }
+    }
+}
