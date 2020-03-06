@@ -738,8 +738,10 @@ sub _where_helper {
 	if (! $no_type_check && defined( $field2 ) && $field2 =~ /^-?\d+(\.\d+)?$/ && $operator ne 'like' && $operator ne 'not like'){
 	    my ($res, $uniq)   = $self->_where_helper([$field, $operator, $field2], 1);
 	    my ($res2, $uniq2) = $self->_where_helper([$field, $operator, $field2 * 1], 1);
-	    push(@{$cooked{'$or'}}, $res);
-	    push(@{$cooked{'$or'}}, $res2);
+            # if we're doing negation or positive, invert the operator for mongo
+	    my $mongo_op = $operator eq '!=' ? '$and' : '$or';
+	    push(@{$cooked{$mongo_op}}, $res);
+	    push(@{$cooked{$mongo_op}}, $res2);	    
 	    %unique = (%unique, %$uniq);
 	    %unique = (%unique, %$uniq2);
 	}
