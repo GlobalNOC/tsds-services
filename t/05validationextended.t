@@ -552,15 +552,17 @@ ok($arr, "complex field name handled correctly");
 
 
 # Test that aggregate(... sum) works
-$arr = $query->run_query( query =>'get aggregate(values.input, 1, sum) as sum, all(intf) as intfs between ("01/01/1970 00:00:00 UTC","01/01/1970 01:00:00 UTC") from tsdstest where node = "rtr.chic" ');
+# This also tests that the sum function doesn't return 0 for all nulls, since the datapoints
+# at the end of this timerange are all null
+$arr = $query->run_query( query =>'get aggregate(values.input, 1, sum) as sum, all(intf) as intfs between ("01/01/1970 00:00:00 UTC","01/02/1970 01:00:00 UTC") from tsdstest where node = "rtr.chic" ');
 ok($arr, "query request to fetch values.input sent successfully");
 
-is(@{$arr->[0]->{'sum'}}, 360, "got right number of data points");
+is(@{$arr->[0]->{'sum'}}, 8999, "got right number of data points");
 is(@{$arr->[0]->{'intfs'}}, 10, "got right number of intfs");
 is($arr->[0]->{'sum'}[0][0], 0, "got first ts");
 is($arr->[0]->{'sum'}[0][1], 1252810, "got first val");
 is($arr->[0]->{'sum'}[1][0], 10, "got second ts");
 is($arr->[0]->{'sum'}[1][1], 1252820, "got second val");
-is($arr->[0]->{'sum'}[-1][0], 3590, "got last ts");
-is($arr->[0]->{'sum'}[-1][1], 1256400, "got last val");
+is($arr->[0]->{'sum'}[-1][0], 89980, "got last ts");
+is($arr->[0]->{'sum'}[-1][1], undef, "got last val");
 

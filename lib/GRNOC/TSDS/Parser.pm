@@ -3146,7 +3146,7 @@ sub _apply_aggregate {
 	    $bucket_data = {
 		max       => undef,
 		min       => undef,
-		total     => 0,
+		total     => undef,
 		num_nulls => 0,
 		bucket    => [],
 		hists     => []
@@ -3262,7 +3262,7 @@ sub __process_bucket {
 
     # most common one, short circuit here
     if ($function == AGGREGATE_AVERAGE){
-	if ( @$bucket == 0 ) {		    
+	if ( @$bucket == 0 || !defined($total) ) {	    
 	    push( @$aggregated, [$extent_start, undef] );
 	}		
 	else {
