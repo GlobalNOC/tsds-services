@@ -538,6 +538,25 @@ sub process_meta_index {
         my $indexes = $database->get_collection( 'measurements' )->indexes();
 	$indexes->create_one([$field => 1]);
     }
+
+    # This is suboptimal but ensures tidiness - after adding
+    # a metadata field, re-check its parent to ensure that it isn't
+    # indexed. Parent fields are never referenced in TSDS, they
+    # exist only as containers for subtypes. Since there is a limit
+    # of 64 indexes in Mongo, we need to be prudent about what we index
+    my $metadata = $database->get_collection('metadata')->find_one();
+
+    foreach my $base_field (keys %{$metadata->{'meta_fields'}}){
+	if (keys %{$metadata->{'meta_fields'}{$base_field}{'fields'}}){
+	    my $index = $database->get_collection('measurements')->indexes();
+	    foreach my $existing ($index->list()->all()){
+		if (exists $existing->{'key'}{$base_field} && keys %{$existing->{'key'}} == 1){
+		    log_info("Dropping index for parent field $base_field");
+		    $index->drop_one($existing->{'name'});
+		}
+	    }
+	}
+    }
 }
 
 # returns a flat list of all meta fields and their children
