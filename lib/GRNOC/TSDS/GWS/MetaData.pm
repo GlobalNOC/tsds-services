@@ -132,7 +132,7 @@ sub _init_methods {
     $self->websvc()->register_method( $method );   
 
     # static parameter of get_meta_field_values()
-    my @static_parameters = ({  
+    my $static_parameters = [{
         name        => 'measurement_type',
         required    => 1,
         multiple    => 0,
@@ -150,14 +150,14 @@ sub _init_methods {
         multiple    => 0,
         pattern     => $NUMBER_ID,
         description => 'What offset to use when getting the list of values'
-    });
+    }];
 
 
     $method = GRNOC::WebService::Method::JIT->new( 
          name                             => 'get_meta_field_values',
          description                      => 'Gets all the values currently set on the meta_field(s).',
          expires                          => '-1d',
-         static_input_parameters          => \@static_parameters,
+         static_input_parameters          => $static_parameters,
          dynamic_input_parameter_callback => sub { 
             $self->_get_meta_field_values_dynamic_parameters(@_);
          },  
@@ -169,7 +169,7 @@ sub _init_methods {
     $self->websvc()->register_method( $method );
 
     # static parameter of get_distinct_meta_field_values()
-    @static_parameters = ({
+    $static_parameters = [{
         name        => 'measurement_type',
         required    => 1,
         multiple    => 0,
@@ -181,14 +181,14 @@ sub _init_methods {
         multiple    => 0,
         pattern     => $NUMBER_ID,
         description => 'The maximum number of results to show'
-    });
+    }];
 
 
     $method = GRNOC::WebService::Method::JIT->new(
          name                             => 'get_distinct_meta_field_values',
          description                      => 'Gets all the values currently set on the meta_field(s).',
          expires                          => '-1d',
-         static_input_parameters          => \@static_parameters,
+         static_input_parameters          => $static_parameters,
          dynamic_input_parameter_callback => sub {
             $self->_get_meta_field_values_dynamic_parameters(@_);
          },
