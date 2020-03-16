@@ -7,7 +7,7 @@ use FindBin;
 use GRNOC::Log; 
 use GRNOC::TSDS::Parser;
 
-use Test::More tests => 82;
+use Test::More tests => 83;
 
 use Data::Dumper;
 
@@ -77,6 +77,7 @@ my @basic_queries = (
     'get output, description between ("01/02/2014", "01/03/2014") from collection where description like "foo!"',
     'get output, description between ("01/02/2014", "01/03/2014") from collection where description like "a comment?#"',
     'get output, description between ("01/02/2014", "01/03/2014") from collection where description like "carot ^ percent % dollar $"',
+    'get output, description between ("01/02/2014", "01/03/2014") from collection where description like "has an = sign" or description like "!= == = sign"',
 
     # having clause
     'get output, description, average(values.input) as avg between ("01/02/2014", "01/03/2014") from collection having avg > 50',
@@ -151,6 +152,7 @@ foreach my $query ((@basic_queries, @complex_queries)){
         #warn $error;
 	BAIL_OUT("Error was: $error");
     }
+
 
     ok(! defined $error, $query);
 }

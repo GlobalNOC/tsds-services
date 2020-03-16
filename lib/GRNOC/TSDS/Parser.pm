@@ -679,8 +679,6 @@ sub _get_where {
     log_debug("Unique where names: ", {filter => \&Data::Dumper::Dumper,
 				       value  => $where_names});
 
-
-
     return ($parsed_where, $where_names);
 }
 
