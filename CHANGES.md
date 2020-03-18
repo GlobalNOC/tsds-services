@@ -1,3 +1,24 @@
+## GRNOC TSDS Services 1.6.5 -- Mon Mar 16 2020
+
+### Features:
+
+* Support '=' character in where clause's, such as `where x like "="`
+* Added 'day' as a support target for the 'align' option in aggregate
+* Added support for nested unwind operations, such as extracting an array
+of elements inside of an arrayed element.
+
+### Bugs:
+
+* Parent metadata elements should no longer be indexed. These fields
+are never directly accessed in TSDS and are taking up space / index slots
+in Mongo for no reason.
+* Fixed case where != applied to a numeric datafield would generate an
+incorrect query.
+* Fixed case where when aggregating data, a bucket of all null datapoints
+would return 0 in the case of sum'ing. Now returns null.
+* Fixed issue with get_meta_field_values not respecting the offset parameter
+
+
 ## GRNOC TSDS Services 1.6.4 -- Thu Mar 26 2019
 
 ### Features:
