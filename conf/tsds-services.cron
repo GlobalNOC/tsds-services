@@ -7,6 +7,6 @@
 # do the tsds self measuring every 5 minutes
 # */5 * * * * root /usr/bin/tsds_meta.py > /dev/null 2>&1
 
-# sphinx delta indexer and merger
+# sphinx indexer
 # */5 * * * * root /usr/bin/indexer tsds_metadata_delta_index --rotate > /dev/null 2>&1
-# 1,31 * * * * root /usr/bin/indexer --merge tsds_metadata_index tsds_metadata_delta_index --rotate > /dev/null 2>&1
+

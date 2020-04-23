@@ -202,14 +202,14 @@ sub _index_metadata {
     # index $limit measurements at a time
     for(my $offset = 0; $offset < $total; $offset += $limit){
     
-    log_debug("creating sphinx xmlpipe2 documents for (limit: $limit, offset: $offset) of $total...");
+	log_debug("creating sphinx xmlpipe2 documents for (limit: $limit, offset: $offset) of $total...");
 
-        my $find = {};
+        my $find = { end => undef };
         # if last_updated_offset is specified, use it to get only measurements updated in the past specified days
         if (defined($start_time)) {
-            my $find = { last_updated => { '$gte' => $start_time } };
+	    $find = { last_updated => { '$gte' => $start_time } };
         }
-        my @msmts = $msmt_col->find($find)->hint( 'last_updated_1' )->limit($limit)->skip($offset)->all();
+        my @msmts = $msmt_col->find($find)->limit($limit)->skip($offset)->all();
 
         # flatten out measurements to be indexed and make separate indexes for any classifiers that are set.
         # ISSUE=892 PROJ=160: Write out the xmlpipe2 docs as we go to avoid problems with excessively large 
