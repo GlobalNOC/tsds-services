@@ -27,7 +27,7 @@ use Data::Dumper;
 ### constants ###
 
 use constant DATA_CACHE_EXPIRATION => 60 * 60;
-use constant AGGREGATE_CACHE_EXPIRATION => 60 * 60;
+use constant AGGREGATE_CACHE_EXPIRATION => 60 * 60 * 48;
 use constant MEASUREMENT_CACHE_EXPIRATION => 60 * 60;
 use constant QUEUE_PREFETCH_COUNT => 5;
 use constant QUEUE_FETCH_TIMEOUT => 10 * 1000;
@@ -1133,7 +1133,7 @@ sub _process_data_document {
         else {
 
             $self->memcache->set( $cache_id,
-                                  {'value_types' => $document->value_types},
+                                  $cached, # This originally set the same value_types as below, but made it so that partial updates didn't work. Keep whatever was already in the cache instead.
                                   DATA_CACHE_EXPIRATION );
         }
     }
@@ -1245,7 +1245,7 @@ sub _process_aggregate_document {
         else {
 
             $self->memcache->set( $cache_id,
-                                  {'value_types' => $document->value_types},
+                                  $cached,
                                   AGGREGATE_CACHE_EXPIRATION );
         }
     }
