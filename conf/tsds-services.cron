@@ -8,5 +8,5 @@
 # */5 * * * * root /usr/bin/tsds_meta.py > /dev/null 2>&1
 
 # sphinx indexer
-# */5 * * * * root /usr/bin/indexer tsds_metadata_delta_index --rotate > /dev/null 2>&1
+# */30 * * * * root /usr/bin/indexer tsds_metadata_delta_index --rotate > /dev/null 2>&1
 
