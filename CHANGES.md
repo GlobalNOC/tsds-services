@@ -1,3 +1,14 @@
+## GRNOC TSDS Services 1.6.6 -- Mon May 4 2020
+
+### Features:
+
+* Tweaked the caching and message fetching worker processes employ to 
+help reduce memory usage, particularly in cases where things are backed up
+* Adjusted sphinx configuration to only search for active measurements. This
+feature will ultimately be removed in a future release, but this helps existing
+deployments that have gathered lots of measurements over time.
+
+
 ## GRNOC TSDS Services 1.6.5 -- Mon Mar 16 2020
 
 ### Features:
