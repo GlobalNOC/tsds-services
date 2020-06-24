@@ -1470,21 +1470,21 @@ sub _create_data_document {
 
             # determine proper start and end time of *new* document
             my $doc_length = $interval * HIGH_RESOLUTION_DOCUMENT_SIZE;
-            my $new_start = nlowmult( $doc_length, $data_point->time );
+            my $new_start = int($data_point->time / $doc_length) * $doc_length;
             my $new_end = $new_start + $doc_length;
-
-            # determine the *new* document that this message would belong within
-            my $new_document = GRNOC::TSDS::DataDocument->new( data_type => $data_type,
-                                                               measurement_identifier => $identifier,
-                                                               interval => $interval,
-                                                               start => $new_start,
-                                                               end => $new_end );
 
             # mark the document for this data point if one hasn't been set already
             my $unique_doc = $unique_documents->{$identifier}{$new_start}{$new_end};
 
             # we've never handled a data point for this document before
             if ( !$unique_doc ) {
+
+		# determine the *new* document that this message would belong within
+		my $new_document = GRNOC::TSDS::DataDocument->new( data_type => $data_type,
+								   measurement_identifier => $identifier,
+								   interval => $interval,
+								   start => $new_start,
+								   end => $new_end );	       
 
                 # mark it as being a new unique document we need to handle
                 $unique_documents->{$identifier}{$new_start}{$new_end} = $new_document;
