@@ -68,7 +68,7 @@ if ( !defined( $mongo ) ) {
 my $database = $mongo->get_database( $unit_test_db );
 
 # reset all of the internal testing stuff
-my $reset_status = $mongo->_execute_mongo('["tsdstest", "__tsds_temp_space", "measurement_type_name", "tsds_reports", "tsds_version"].forEach(function(d){ db.getSiblingDB(d).dropDatabase(); })');
+my $reset_status = $mongo->_execute_mongo('["tsdstest", "tsdstest_two", "__tsds_temp_space", "measurement_type_name", "tsds_reports", "tsds_version"].forEach(function(d){ db.getSiblingDB(d).dropDatabase(); })');
 
 my $database_dir = "$FindBin::Bin/conf/databases/";
 my $tsds_install = GRNOC::TSDS::Install->new(

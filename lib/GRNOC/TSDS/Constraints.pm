@@ -95,6 +95,20 @@ sub parse_constraints {
     return {'$and' => $queries};
 }
 
+sub get_databases {
+    my ( $self ) = @_;
+
+    my $constraints = $self->get_constraints();
+
+    if (!defined($constraints) or @$constraints <= 0) {
+	return;
+    }
+    
+    my @databases = map { $_->{'database'} } @$constraints;
+    
+    return \@databases;
+}
+
 sub get_constraints {
     my ( $self, %args ) = @_;
 

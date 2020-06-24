@@ -1987,15 +1987,9 @@ sub _get_constraint_databases {
     if (defined($constraints_file)) {
 
         my $constraint_obj = GRNOC::TSDS::Constraints->new( config_file => $constraints_file );
-        my $constraints = $constraint_obj->get_constraints();
 
-        if (!defined($constraints) or @$constraints <= 0) {
-            return;
-        }
+	return $constraint_obj->get_databases();
 
-        my @databases = map { $_->{'database'} } @$constraints;
-
-        return \@databases;
     }
     
     return;
