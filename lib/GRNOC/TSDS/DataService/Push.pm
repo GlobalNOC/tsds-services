@@ -43,6 +43,7 @@ sub _setup_push_restrictions {
 
     $self->config->{'force_array'} = 1;
     my $push_names = $self->config->get('/config/push-users/user/@name');
+    $self->config->{'force_array'} = 0;
 
     foreach my $user (@$push_names){
 	my $databases = $self->config->get("/config/push-users/user[\@name='$user']/database");
