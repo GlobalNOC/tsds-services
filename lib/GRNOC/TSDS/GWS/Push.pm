@@ -74,7 +74,10 @@ sub _add_data {
 
     my ( $self, $method, $args ) = @_;
 
-    my $results = $self->push_ds()->add_data( $self->process_args( $args ));
+    my %processed = $self->process_args( $args );
+    $processed{'user'} = $ENV{'REMOTE_USER'};
+
+    my $results = $self->push_ds()->add_data( %processed );
 
     # handle error
     if ( !$results ) {

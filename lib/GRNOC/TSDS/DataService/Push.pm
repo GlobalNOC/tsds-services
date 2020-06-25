@@ -16,11 +16,9 @@ use warnings;
 
 use base 'GRNOC::TSDS::DataService';
 
+use JSON::XS;
 use Net::AMQP::RabbitMQ;
 use Data::Dumper;
-
-# this will hold the only actual reference to this object
-my $singleton;
 
 sub new {
 
@@ -29,37 +27,136 @@ sub new {
     my $class = ref( $caller );
     $class = $caller if ( !$class );
 
-    # if we've created this object (singleton) before, just return it
-    return $singleton if ( defined( $singleton ) );
-
     my $self = $class->SUPER::new( @_ );
 
     bless( $self, $class );
 
-    # store our newly created object as the singleton
-    $singleton = $self;
+    $self->_setup_push_restrictions();
 
     return $self;
 }
 
-sub add_data {
+sub _setup_push_restrictions {
+    my ( $self ) = @_;
 
-    my ( $self, %args ) = @_;
+    my $push_restrictions = {};
 
-    my $data = $args{'data'};
+    $self->config->{'force_array'} = 1;
+    my $push_names = $self->config->get('/config/push-users/user/@name');
+
+    foreach my $user (@$push_names){
+	my $databases = $self->config->get("/config/push-users/user[\@name='$user']/database");
+
+	foreach my $database (@$databases){
+	    my $db_name  = $database->{'name'};
+	    my $metadata = $database->{'metadata'} || [];
+
+	    my $meta_restrictions = {};
+	    foreach my $metadata (@$metadata){
+		$meta_restrictions->{$metadata->{'field'}} = $metadata->{'pattern'};
+	    }
+
+	    $push_restrictions->{$user}{$db_name} = $meta_restrictions;
+	}
+    }    
+
+    $self->{'push_restrictions'} = $push_restrictions;
+}
+
+sub _connect_rabbit {
+    my ( $self ) = @_;
 
     my $rabbit_host = $self->config->get( '/config/rabbit/@host' );
     my $rabbit_port = $self->config->get( '/config/rabbit/@port' );
     my $rabbit_queue = $self->config->get( '/config/rabbit/@queue' );
     
     my $rabbit = Net::AMQP::RabbitMQ->new();   
+    $self->{'rabbit'} = $rabbit;   
+    $self->{'rabbit_queue'} = $rabbit_queue;
 
     eval {
-
 	$rabbit->connect( $rabbit_host, {'port' => $rabbit_port} );
 	$rabbit->channel_open( 1 );
+    };
 
-	$rabbit->publish( 1, $rabbit_queue, $data, {'exchange' => ''} );
+    if ( $@ ){
+	$self->error( 'Unable to connect to RabbitMQ.' );
+	return;	
+    }
+
+    return 1;
+}
+
+sub _validate_message {
+    my ( $self, $data, $username) = @_;
+
+    my $restrictions = $self->{'push_restrictions'}{$username};
+
+    return 1 if (! $restrictions);
+
+    my $json;
+
+    # First some basic data structure sanity checking
+    eval {
+	$json = JSON::XS::decode_json($data);
+    };
+    if ( $@ ){
+	$self->error("Unable to decode data as JSON");
+	return;
+    }
+
+    if (ref($json) ne 'ARRAY'){
+	$self->error("Data must be an array");
+	return;
+    }
+
+    # Now actual validations
+    foreach my $element (@$json){
+
+	# Can the user write to this TSDS type?
+	my $type = $element->{'type'};
+	if (! exists $restrictions->{$type}){
+	    $self->error("User not allowed to send data for type $type");
+	    return;
+	}
+
+	# Can the user submit updates for metadata patterns
+	# matchings its restrictions?
+	my $metadata = $element->{'meta'} || {};
+	foreach my $key (keys %$metadata){
+	    my $value = $metadata->{$key};
+	    if (exists $restrictions->{$type}{$key}){
+		my $pattern = $restrictions->{$type}{$key};
+		if ($value !~ /$pattern/){
+		    $self->error("Metadata $key = $value not allowed to be updated for user");
+		    return;
+		}
+	    }
+	}
+    }
+
+    return 1;
+}
+
+sub add_data {
+
+    my ( $self, %args ) = @_;
+
+    my $data     = $args{'data'};
+    my $user     = $args{'user'};
+
+    my $rabbit   = $self->{'rabbit'};
+
+    if (! $rabbit || ! $rabbit->is_connected()){
+	$self->_connect_rabbit() || return;
+    }
+
+    # If this user is limited to sending data for specific things,
+    # we need to unpack the message and make sure it's okay
+    $self->_validate_message($data, $user) || return;    
+
+    eval {
+	$rabbit->publish( 1, $self->{'rabbit_queue'}, $data, {'exchange' => ''} );
     };
 
     # detect error
@@ -69,7 +166,7 @@ sub add_data {
 	return;
     }
      
-    return "data sent successfully";
+    return "Data queued to rabbit successfully";
 }
 
 1;

@@ -51,4 +51,16 @@
         <database>tsds_version</database>
     </ignore-databases>
 
+    <!-- Add restrictions to specific users on what types of data they
+         are allowed to send, and to what metadata. Any user not specificed
+	 here that can reach the push services is assumed to have global
+	 writing permissions in TSDS -->
+    <push-users>
+         <user name="foo-user">
+	     <database name="interface">
+	         <metadata field="node" pattern="(foo.edu|bar.com)$" />
+	     </database>
+	 </user>
+    </push-users>
+
 </config>
