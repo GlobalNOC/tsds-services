@@ -31,7 +31,7 @@ use JSON;
 use Data::Compare;
 
 ### constants ###
-use constant DEFAULT_COLLECTIONS => ['data', 'event', 'measurements', 'metadata', 'aggregate', 'expire'];
+use constant DEFAULT_COLLECTIONS => ['data', 'measurements', 'metadata', 'aggregate', 'expire'];
 
 # this will hold the only actual reference to this object
 my $singleton;
@@ -98,15 +98,13 @@ sub get_measurement_types {
 
         my $fields         = $meta_collection->find_one();
         my $label          = $fields->{'label'};
-        my $data_doc_limit = $fields->{'data_doc_limit'};
-        my $event_limit    = $fields->{'event_limit'};
+        my $data_doc_limit = $fields->{'data_doc_limit'};        
         my $search_weight  = $fields->{'search_weight'};
         my $ignore_si      = $fields->{'ignore_si'};
 
         my $measurement_type = {
             'name' => $type,
-            'label'=> $label,
-            'event_limit' => $event_limit,
+            'label'=> $label,           
             'data_doc_limit' => $data_doc_limit,
             'search_weight' => $search_weight,
             'ignore_si' => $ignore_si
@@ -762,13 +760,9 @@ sub add_measurement_type {
 
     # create the default collections for a measurement_type and ensure indexes on each of them
     foreach my $col_name (@{DEFAULT_COLLECTIONS()}){
-        if( $col_name eq 'data' || $col_name eq 'measurements' || $col_name eq 'event' ){
+        if( $col_name eq 'data' || $col_name eq 'measurements' ){
 
-            # events and data/measurements are sharded differently
             my $shard_key = $GRNOC::TSDS::MongoDB::DATA_SHARDING;
-            if ($col_name eq 'event'){
-                $shard_key = $GRNOC::TSDS::MongoDB::EVENT_SHARDING;
-            }
 
             # add shard for collection, this also creates the collection it seems
             if(!$self->mongo_root()->add_collection_shard( $measurement_type, $col_name, $shard_key )){
@@ -956,8 +950,7 @@ sub update_measurement_types {
     my $set = {};
     $set->{'label'} = $args{'label'} if(exists($args{'label'}));
     $set->{'ignore_si'} = $args{'ignore_si'} if(exists($args{'ignore_si'}));
-    $set->{'data_doc_limit'} = $self->parse_int($args{'data_doc_limit'}) if(exists($args{'data_doc_limit'}));
-    $set->{'event_limit'}    = $self->parse_int($args{'event_limit'})    if(exists($args{'event_limit'}));
+    $set->{'data_doc_limit'} = $self->parse_int($args{'data_doc_limit'}) if(exists($args{'data_doc_limit'}));    
     $set->{'search_weight'}  = $self->parse_int($args{'search_weight'})  if(exists($args{'search_weight'}));
 
     if(%$set){

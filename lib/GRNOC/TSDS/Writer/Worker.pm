@@ -7,10 +7,8 @@ use GRNOC::TSDS::DataType;
 use GRNOC::TSDS::Constants;
 use GRNOC::TSDS::AggregateDocument;
 use GRNOC::TSDS::DataDocument;
-use GRNOC::TSDS::EventDocument;
 use GRNOC::TSDS::Writer::AggregateMessage;
 use GRNOC::TSDS::Writer::DataMessage;
-use GRNOC::TSDS::Writer::EventMessage;
 use GRNOC::TSDS::RedisLock;
 
 use MongoDB;
@@ -304,7 +302,6 @@ sub _consume_messages {
 
     # gather all messages to process
     my $data_to_process = [];
-    my $events_to_process = [];
     my $aggregates_to_process = [];
 
     # keep track and build up all of the bulk operations we'll want to do at the end
@@ -331,7 +328,6 @@ sub _consume_messages {
         my $text = $message->{'text'};
         my $start = $message->{'start'};
         my $end = $message->{'end'};
-        my $event_type = $message->{'event_type'};
         my $identifier = $message->{'identifier'};
 
         # make sure a type was specified
@@ -341,8 +337,8 @@ sub _consume_messages {
             next;
         }
 
-        # does it appear to be an aggregate or event message?
-        if ( $type =~ /^(.+)\.(aggregate|event)$/ ) {
+        # does it appear to be an aggregate message?
+        if ( $type =~ /^(.+)\.(aggregate)$/ ) {
 
             my $data_type_name = $1;
             my $message_type = $2;
@@ -380,33 +376,8 @@ sub _consume_messages {
                 next;
             }
 
-            # was it an event?
-            if ( $message_type eq "event" ) {
-
-                my $event_message;
-
-                try {
-
-                    $event_message = GRNOC::TSDS::Writer::EventMessage->new( data_type => $data_type,
-                                                                             affected => $affected,
-                                                                             text => $text,
-                                                                             start => $start,
-                                                                             end => $end,
-                                                                             identifier => $identifier,
-                                                                             type => $event_type );
-                }
-
-                catch {
-
-                    $self->logger->error( $_ );
-                };
-
-                # include this to our list of events to process if it was valid
-                push( @$events_to_process, $event_message ) if $event_message;
-            }
-
             # was it an aggregate?
-            elsif ( $message_type eq "aggregate" ) {
+            if ( $message_type eq "aggregate" ) {
 
                 my $aggregate_message;
 
@@ -490,7 +461,7 @@ sub _consume_messages {
         }
     }
 
-    # process all of the data points and events within this message
+    # process all of the data points within this message
     my $success = 1;
 
     try {
@@ -517,16 +488,6 @@ sub _consume_messages {
                                            acquired_locks => $acquired_locks );
         }
 
-        # at least one event to process
-        if ( @$events_to_process > 0 ) {
-
-            $self->logger->debug( "Processing " . @$events_to_process . " event messages." );
-
-            $self->_process_event_messages( messages => $events_to_process,
-                                            bulk_creates => $bulk_creates,
-                                            bulk_updates => $bulk_updates,
-                                            acquired_locks => $acquired_locks );
-        }
 
         # perform all (most, except for data type changes..) create and update operations in bulk
         $self->_process_bulks( $bulk_creates );
@@ -584,87 +545,6 @@ sub _process_bulks {
 
                 # throw an exception so this entire message will get requeued
                 die( "bulk update failed: " . $ret->last_errmsg() );
-            }
-        }
-    }
-}
-
-sub _process_event_messages {
-
-    my ( $self, %args ) = @_;
-
-    my $messages = $args{'messages'};
-    my $bulk_creates = $args{'bulk_creates'};
-    my $bulk_updates = $args{'bulk_updates'};
-    my $acquired_locks = $args{'acquired_locks'};
-
-    # all unique documents we're handling (and their corresponding events)
-    my $unique_documents = {};
-
-    # handle every message
-    foreach my $message ( @$messages ) {
-
-        my $data_type = $message->data_type;
-        my $start = $message->start;
-        my $end = $message->end;
-        my $affected = $message->affected;
-        my $text = $message->text;
-        my $type = $message->type;
-        my $event = $message->event;
-
-        # determine proper start and end time of document
-        my $doc_start = nlowmult( EVENT_DOCUMENT_DURATION, $start );
-        my $doc_end = $doc_start + EVENT_DOCUMENT_DURATION;
-
-        # determine the document that this event would belong within
-        my $document = GRNOC::TSDS::EventDocument->new( data_type => $data_type,
-                                                        start => $doc_start,
-                                                        end => $doc_end,
-                                                        type => $type );
-
-        # mark the document for this event if one hasn't been set already
-        my $unique_doc = $unique_documents->{$data_type->name}{$type}{$document->start}{$document->end};
-
-        # we've never handled an event for this document before
-        if ( !$unique_doc ) {
-
-            # mark it as being a new unique document we need to handle
-            $unique_documents->{$data_type->name}{$type}{$document->start}{$document->end} = $document;
-            $unique_doc = $unique_documents->{$data_type->name}{$type}{$document->start}{$document->end};
-        }
-
-        # add this as another event to update/set in the document
-        $unique_doc->add_event( $event );
-    }
-
-    # handle every distinct document that we'll need to update
-    my @data_types = keys( %$unique_documents );
-
-    foreach my $data_type ( sort @data_types ) {
-
-        my @types = keys( %{$unique_documents->{$data_type}} );
-
-        foreach my $type ( sort @types ) {
-
-            my @starts = keys( %{$unique_documents->{$data_type}{$type}} );
-
-            foreach my $start ( sort { $a <=> $b }@starts ) {
-
-                my @ends = keys( %{$unique_documents->{$data_type}{$type}{$start}} );
-
-                foreach my $end ( sort { $a <=> $b } @ends ) {
-
-                    my $document = $unique_documents->{$data_type}{$type}{$start}{$end};
-
-                    # process this event document, including all events contained within it
-                    $self->_process_event_document( document => $document,
-                                                    bulk_creates => $bulk_creates,
-                                                    bulk_updates => $bulk_updates,
-                                                    acquired_locks => $acquired_locks );
-
-                    # all done with this document, remove it so we don't hold onto its memory
-                    delete( $unique_documents->{$data_type}{$type}{$start}{$end} );
-                }
             }
         }
     }
@@ -967,114 +847,6 @@ sub _process_aggregate_messages {
     }
 }
 
-sub _process_event_document {
-
-    my ( $self, %args ) = @_;
-
-    my $document = $args{'document'};
-    my $bulk_creates = $args{'bulk_creates'};
-    my $bulk_updates = $args{'bulk_updates'};
-    my $acquired_locks = $args{'acquired_locks'};
-
-    my $data_type = $document->data_type;
-    my $data_type_name = $data_type->name;
-    my $type = $document->type;
-    my $start = $document->start;
-    my $end = $document->end;
-
-    $self->logger->debug( "Processing event document $data_type_name / $type / $start / $end." );
-
-    # get lock for this event document
-    my $lock = $self->redislock->lock( type       => $data_type_name,
-                                       collection => 'event',
-                                       identifier => $type,
-                                       start      => $start,
-                                       end        => $end ) or die "Unable to lock event document $data_type_name / $type / $start / $end, requeueing";
-
-    push( @$acquired_locks, $lock );
-
-    my $cache_id = $self->redislock->get_cache_id( type       => $data_type_name,
-						   collection => 'event',
-						   identifier => $type,
-						   start      => $start,
-						   end        => $end );
-    
-    # its already in our cache, seen it before
-    if ( my $cached = $self->memcache->get( $cache_id ) ) {
-
-        $self->logger->debug( 'Found document in cache, updating.' );
-
-        # retrieve the full old document from mongo
-        my $old_doc = GRNOC::TSDS::EventDocument->new( data_type => $data_type,
-                                                       type => $type,
-                                                       start => $start,
-                                                       end => $end )->fetch();
-
-        # update it and its events accordingly
-        $self->_update_event_document( new_document => $document,
-                                       old_document => $old_doc,
-                                       bulk_updates => $bulk_updates,
-                                       acquired_locks => $acquired_locks );
-
-        # re-cache existing entry found in cache
-        $self->memcache->set( $cache_id,
-                              1,
-                              DATA_CACHE_EXPIRATION );
-    }
-
-    # not in cache, we'll have to query mongo to see if its there
-    else {
-
-        $self->logger->debug( 'Document not found in cache.' );
-
-        # retrieve the full old document from mongo
-        my $old_doc = GRNOC::TSDS::EventDocument->new( data_type => $data_type,
-                                                       type => $type,
-                                                       start => $start,
-                                                       end => $end )->fetch();
-
-        # document exists in mongo, so we'll need to update it
-        if ( $old_doc ) {
-
-            # we found it in the database, set our cache accordingly to mark that it exists
-            $self->memcache->set( $cache_id,
-                                  1,
-                                  DATA_CACHE_EXPIRATION );
-
-            $self->logger->debug( 'Document exists in mongo, updating.' );
-
-            # update it and its events accordingly
-            $self->_update_event_document( new_document => $document,
-                                           old_document => $old_doc,
-                                           bulk_updates => $bulk_updates,
-                                           acquired_locks => $acquired_locks );
-        }
-
-        # doesn't exist in mongo, we'll need to create it along with its data points we added to it
-        else {
-
-            $self->logger->debug( 'Document does not exist in mongo, creating.' );
-
-            my $bulk = $bulk_creates->{$data_type_name}{'event'};
-
-            # haven't initialized a bulk op for this data type + collection yet
-            if ( !defined( $bulk ) ) {
-
-                my $collection = $data_type->database->get_collection( 'event' );
-
-                $bulk = $collection->initialize_unordered_bulk_op();
-                $bulk_creates->{$data_type_name}{'event'} = $bulk;
-            }
-
-            $document->create( bulk => $bulk );
-        }
-
-        # dont update memcache here, because it might fail during the bulk op; we'll find it and update cache later
-    }
-
-    $self->logger->debug( "Finished processing event document $data_type_name / $type / $start / $end." );
-}
-
 sub _process_data_document {
 
     my ( $self, %args ) = @_;
@@ -1306,71 +1078,6 @@ sub _process_aggregate_document {
     $self->logger->debug( "Finished processing aggregate document $data_type_name - $interval / $measurement_identifier / $start / $end." );
 }
 
-sub _update_event_document {
-
-    my ( $self, %args ) = @_;
-
-    my $old_document = $args{'old_document'};
-    my $new_document = $args{'new_document'};
-    my $bulk_updates = $args{'bulk_updates'};
-    my $acquired_locks = $args{'acquired_locks'};
-
-    my $old_events = $old_document->events;
-    my $new_events = $new_document->events;
-
-    # index the old events by their unique criteria
-    my $event_index = {};
-
-    foreach my $old_event ( @$old_events ) {
-
-        my $start = $old_event->start;
-        my $identifier = $old_event->identifier;
-
-        $event_index->{$start}{$identifier} = $old_event;
-    }
-
-    foreach my $new_event ( @$new_events ) {
-
-        my $start = $new_event->start;
-        my $identifier = $new_event->identifier;
-
-        # either replace/update existing event or add brand new event
-        $event_index->{$start}{$identifier} = $new_event;
-    }
-
-    my $events = [];
-
-    my @starts = keys( %$event_index );
-
-    foreach my $start ( @starts ) {
-
-        my @identifiers = keys( %{$event_index->{$start}} );
-
-        foreach my $identifier ( @identifiers ) {
-
-            my $event = $event_index->{$start}{$identifier};
-
-            push( @$events, $event );
-        }
-    }
-
-    my $data_type = $new_document->data_type;
-    my $collection_name = 'event';
-
-    my $bulk = $bulk_updates->{$data_type->name}{$collection_name};
-
-    # haven't initialized a bulk op for this data type + collection yet
-    if ( !defined( $bulk ) ) {
-
-        my $collection = $data_type->database->get_collection( $collection_name );
-
-        $bulk = $collection->initialize_unordered_bulk_op();
-        $bulk_updates->{$data_type->name}{$collection_name} = $bulk;
-    }
-
-    $new_document->events( $events );
-    $new_document->update( bulk => $bulk );
-}
 
 sub _create_data_document {
 

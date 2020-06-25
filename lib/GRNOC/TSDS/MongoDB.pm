@@ -16,8 +16,6 @@ use Sys::Hostname;
 use Data::Dumper;
 
 our $DATA_SHARDING  = "{'identifier': 1, 'start': 1, 'end': 1}";
-#our $DATA_SHARDING  = "{'identifier': 1}";
-our $EVENT_SHARDING = "{'type': 1, 'start': 1, 'end': 1}";
 
 my %singleton;
 
@@ -405,24 +403,6 @@ sub add_collection_shard {
     }
 
     return 1;
-}
-
-sub add_event_shard {
-    my ( $self, $db_name ) = @_;
-
-    my $response_json = $self->_execute_mongo( 
-        "sh.shardCollection(\"$db_name\.event\", {'type': 1, 'start': 1, 'end': 1})"
-    ) or return;
-
-    if ( $response_json->{'ok'} ne '1') {
-        # ignore error if its due to it already being sharded
-        if ( $response_json->{'errmsg'} !~ /already sharded/ ) {
-            $self->error( "Error while sharding $db_name event: " . $response_json->{'errmsg'} );
-            return;
-        }
-    }
-
-    return 1;   
 }
 
 sub _execute_mongo {

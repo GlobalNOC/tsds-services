@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 2;
+use Test::More tests => 1;
 
 use GRNOC::Config;
 use GRNOC::TSDS::Constants;
@@ -18,7 +18,6 @@ use constant NUM_DATA_POINTS => 8640; # 1d for 10s, 3month for 10m
 use constant MESSAGE_SIZE => 1000; # ensure document alignment
 use constant MAX_VALUE => 10_000_000_000;
 use constant INTERVAL => 10;
-use constant NUM_EVENTS => 1000;
 
 use Data::Dumper;
 
@@ -153,28 +152,6 @@ foreach my $node ( @nodes ) {
     }
 }
 
-# send event information
-for (my $i = 1; $i <= NUM_EVENTS; $i++){
-
-    my @messages;
-
-    foreach my $node (@nodes){
-
-        my $message = {'type'  => $unit_test_db . '.event',
-                       'start' => 3600 * $i,
-                       'end'   => 3600 * $i + 350,
-                       'identifier' => "$node event $i",
-                       'event_type' => 'alarm',
-                       'affected' => {'node' => [$node]},
-                       'text' => "This is the event at index $i for node $node"};
-
-
-        push(@messages, $message);
-    }
-
-    _send(\@messages);
-}
-
 # setup rabbitmq management to check queue depth
 my $rabbit_management = Net::RabbitMQ::Management::API->new(url => "http://" . $rabbit_host . ":15672/api");
 
@@ -230,12 +207,6 @@ my $collection = $database->get_collection( 'data' );
 my $total_docs = $num_measurements * ceil( NUM_DATA_POINTS / HIGH_RESOLUTION_DOCUMENT_SIZE );
 my $num_docs = $collection->count( {} );
 is( $num_docs, $total_docs, "$total_docs data documents created" );
-
-# make sure all expected event documents were created in mongo
-$collection = $database->get_collection( 'event' );
-$num_docs = $collection->count( {} );
-
-is( $num_docs, 42, "42 event documents created" );
 
 # re-index all alerts for search
 diag( "need to index alerts for search, root/sudo required" );

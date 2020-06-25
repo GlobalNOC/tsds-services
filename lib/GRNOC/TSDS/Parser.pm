@@ -36,7 +36,6 @@ use constant DATA         => 'data';
 use constant MEASUREMENTS => 'measurements';
 use constant METADATA     => 'metadata';
 use constant AGGREGATE    => 'aggregate';
-use constant EVENT        => 'event';
 use constant BNF_FILE => '/usr/share/doc/grnoc/tsds/query_language.bnf';
 
 use constant AGGREGATE_AVERAGE    => 1;
@@ -400,35 +399,7 @@ sub _process_tokens {
 
     log_debug("Getting all results: $need_all");
 
-    # Are we looking for events or data?
-    my $is_event = 0;
-    if ($from_field =~ /\.event/){
-        $is_event = 1;
-    }
-
-    log_debug("is_event: $is_event");
-
-
-    my $inner_result;
-
-    # Now grab the data from the database.
-    # If we're fetching event data the steps are slightly
-    # different than regular data
-    if ($is_event){
-        $inner_result = $self->_query_event_database(
-            from           => $from_field,
-            where          => $where_fields,
-            where_names    => $where_fields,
-            fields         => $get_fields,
-            between        => $between_fields,
-            order          => $order_fields,
-            need_all       => $need_all,
-            limit          => $limit,
-            offset         => $offset
-        );
-    }
-    else {
-        $inner_result = $self->_query_database(
+    my $inner_result = $self->_query_database(
             from           => $from_field,
             where          => $where_fields,
             where_names    => $where_names,
@@ -442,7 +413,7 @@ sub _process_tokens {
             symbols        => $doc_symbols,
 	    text_query     => $text_query
         );
-    }
+   
     return if (! defined $inner_result);
 
     # apply the specified by grouping or the default
@@ -451,14 +422,14 @@ sub _process_tokens {
         $by_tokens = [DEFAULT_GROUPING];
     }
 
-    if (@$by_tokens > 0 && ! $is_event){
+    if (@$by_tokens > 0){
         $inner_result = $self->_apply_by( $by_tokens, $inner_result, $get_fields, $by_in_time, $between_fields );
     }
 
     # after applying "by" we can prune out all the start/end times of the documents
     # these are needed for originally querying, associating to metadata, and possibly
     # grouping by time component, but aren't needed after this
-    map{ delete $_->{'start'}; delete $_->{'end'} } @$inner_result unless ($is_event);
+    map{ delete $_->{'start'}; delete $_->{'end'} } @$inner_result;
 
     # Now apply the aggregations on the data sets
     my $final_results = $self->_apply_aggregation_functions($inner_result, $get_fields, $with_details, $between_fields);
@@ -1092,131 +1063,6 @@ sub _get_by {
     return ($by_fields, $group_time);
 }
 
-sub _query_event_database {
-    my ( $self, %args ) = @_;
-
-    my $db_name         = $args{'from'};
-    my $where_fields    = $args{'where'};
-    my $where_names     = $args{'where_names'};
-    my $fields          = $args{'fields'};
-    my $between_fields  = $args{'between'};
-    my $order_fields    = $args{'order'};
-    my $need_all        = $args{'need_all'};
-    my $limit           = $args{'limit'};
-    my $offset          = $args{'offset'};
-
-    my $queried_field_names = $self->_get_field_names( $fields );
-
-    # the database name will look like `interface.event`
-    # so we need to pull out just the first part
-    $db_name =~ /(.+)\.event/;
-    $db_name = $1;
-
-    my $database = $self->mongo_rw()->get_database($db_name);
-
-    if (! defined $database){
-        $self->error($self->mongo_rw()->error());
-        return;
-    }
-    my $metadata = $database->get_collection(METADATA)->find_one();
-
-    my $collection = $database->get_collection(EVENT);
-
-    if (! $between_fields){
-        $self->error("Querying the main data storage requires a between clause");
-        return;
-    }
-
-    # we need to examine the query to remap any "deep" fields as such affected
-    # to be correctly prefixed if not already
-    $self->_prefix_event_fields($where_fields);
-
-    my $query = clone($where_fields);
-
-    my $time_clause = $self->_generate_time_clause($between_fields->[0],
-						   $between_fields->[1],
-						   end_name => "last_event_end");
-
-    if (exists $query->{'$and'}){
-        push(@{$query->{'$and'}}, {'$or' => $time_clause});
-    }
-    else {
-        $query->{'$and'} = [{'$or' => $time_clause}];
-    }
-
-    log_debug("Event query ", {filter => \&Data::Dumper::Dumper,
-			       value  => $query});
-
-    my @aggregate_ops = (
-        {'$match'  => $query},
-        {'$unwind' => '$events'},
-        {'$match'  => $query},
-	);
-
-    if (defined $limit){
-        push(@aggregate_ops, {'$limit' => $limit + $offset});
-        push(@aggregate_ops, {'$skip' => $offset});
-    }
-
-    my $results;
-
-    my $event_count;
-    my $is_over_event_limit = 0;
-    eval {
-        if($metadata->{'event_limit'}){
-            # push on a count aggregate op
-            push(@aggregate_ops, {'$group' => { _id => undef, 'count' => { '$sum' => 1 }}});
-            $event_count = [$collection->aggregate(\@aggregate_ops)->all()]->[0]{'count'};
-            log_debug("got $event_count results with a event_limit of ".$metadata->{'event_limit'});
-            if($event_count > $metadata->{'event_limit'}){
-                $is_over_event_limit = 1;
-                return;
-            }
-            # pop off count aggregate op
-            pop(@aggregate_ops);
-        }
-        $results = [$collection->aggregate(\@aggregate_ops)->all()];
-    };
-    if ($is_over_event_limit) {
-        $self->error( "Your query generated $event_count events which is greater than the configured limit of ".$metadata->{'event_limit'}.". Either refactor your query or use limit and offset to page your results.");
-        return;
-    }
-    if (! defined $results){
-        $self->error("Error during event aggregation: $@");
-        return;
-    }
-
-    log_debug("Query resulted in " . scalar(@$results) . " events");
-
-    # go through and "unpack" the structure so that it's accessible upwards
-    # without needing to go into the packed structure of events
-    my @unpacked;
-
-    foreach my $result (@$results){
-        my $unpacked = {
-            start          => delete $result->{'events'}{'start'},
-            end            => delete $result->{'events'}{'end'},
-            identifier     => delete $result->{'events'}{'identifier'},
-            text           => delete $result->{'events'}{'text'},
-            type           => delete $result->{'type'}
-        };
-
-        # prune out any events that don't actually fit here according to
-        # their own start/end times
-        # The initial search is on the container document, now we need
-        # to get more specific
-        next if ( ($unpacked->{'start'} < $between_fields->[0] && $unpacked->{'end'} < $between_fields->[0]) ||
-                  ($unpacked->{'start'} > $between_fields->[1] && $unpacked->{'end'} > $between_fields->[1]) );
-
-        foreach my $key (keys %{$result->{'events'}{'affected'}}){
-            $unpacked->{$key} = $result->{'events'}{'affected'}{$key};
-        }
-
-        push(@unpacked, $unpacked);
-    }
-
-    return \@unpacked;
-}
 
 sub _query_database {
 
@@ -2245,49 +2091,6 @@ sub _get_unwind_operations {
 		      $count_a <=> $count_b } @unwind);
 
     return @unwind;
-}
-
-sub _prefix_event_fields {
-    my $self         = shift;
-    my $where_fields = shift;
-
-    if (ref $where_fields eq 'ARRAY'){
-	foreach my $field (@$where_fields){
-	    $self->_prefix_event_fields($field);
-	}
-    }
-    elsif (ref $where_fields eq 'HASH'){
-	foreach my $where_key (keys %$where_fields){
-	    if ($where_key !~ /^\$/ &&
-		$where_key !~ /^type$/ &&
-		$where_key !~ /^start$/ &&
-		$where_key !~ /^last_event_end$/ &&
-		$where_key !~ /^type$/){
-
-		my $new_key;
-		if ($where_key eq 'text'){
-		    $new_key = 'events.text';
-		    $where_fields->{$new_key} = $where_fields->{$where_key};
-		}
-		elsif ( $where_key eq 'identifier' ) {
-		    $new_key = 'events.identifier';
-		    $where_fields->{$new_key} = $where_fields->{$where_key};
-		}
-		else {
-		    $new_key = 'events.affected.' . $where_key;
-		    $where_fields->{$new_key} = $where_fields->{$where_key};
-		}
-		delete $where_fields->{$where_key};
-		$where_key = $new_key;
-	    }
-
-	    my $where_value = $where_fields->{$where_key};
-
-            if (ref $where_value){
-                $self->_prefix_event_fields($where_fields->{$where_key});
-            }
-	}
-    }
 }
 
 sub _verify_where_fields {

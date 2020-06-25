@@ -199,12 +199,6 @@ sub _init_methods {
                                   multiple      => 0,
                                   description   => 'A system safeguard that sets the maximum number of mongo documents a query can match for this measurement_type' );
     
-    $method->add_input_parameter( name          => 'event_limit',
-                                  pattern       => $NUMBER_ID,
-                                  required      => 0,
-                                  multiple      => 0,
-                                  description   => 'A system safeguard that sets the maximum number of events a query can return for this measurement_type' );
-
     $method->add_input_parameter( name          => 'search_weight',
                                   pattern       => $NUMBER_ID,
                                   required      => 0,

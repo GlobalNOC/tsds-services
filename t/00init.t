@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 9;
+use Test::More tests => 8;
 
 use GRNOC::Config;
 use GRNOC::TSDS::MongoDB;
@@ -81,7 +81,7 @@ diag( 'GRNOC::TSDS::Install::install error: ' . $tsds_install->error) if defined
 ok($installed, "Install Succeeded");
 
 # ISSUE=12363 verify sharding
-my $sharded_collections = [ 'data', 'data_300', 'data_3600', 'data_86400', 'event', 'measurements' ];
+my $sharded_collections = [ 'data', 'data_300', 'data_3600', 'data_86400', 'measurements' ];
 
 foreach my $collection_name ( @$sharded_collections ) {
 

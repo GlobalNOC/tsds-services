@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 11;
+use Test::More tests => 7;
 
 use GRNOC::Config;
 use GRNOC::Log;
@@ -59,28 +59,3 @@ ok($res->[0]{'success'}, "data_doc_limit removed");
 # Verify query works after data_doc_limit removed
 $arr= $query->run_query( query =>'get average(values.output) between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") from tsdstest where intf = "ge-0/0/0" ');
 ok($arr, "query returned");
-
-
-
-# set event_limit
-$res = $metadata->update_measurement_types(
-    name => 'tsdstest',
-    event_limit => 40
-);
-ok($res->[0]{'success'}, "event_limit set");
-
-# verify event query blocked
-$arr= $query->run_query(query => "get type, start, end, identifier, text, node between(\"01/01/1970 00:00:00 UTC\", \"01/02/1970 00:00:00 UTC\") from tsdstest.event ordered by start, text");
-ok(!defined($arr), "event query blocked");
-
-# remove event_limit
-$res = $metadata->update_measurement_types(
-    name => 'tsdstest',
-    event_limit => undef
-);
-ok($res->[0]{'success'}, "event_limit removed");
-
-# verify event query 
-$arr= $query->run_query(query => "get type, start, end, identifier, text, node between(\"01/01/1970 00:00:00 UTC\", \"01/02/1970 00:00:00 UTC\") from tsdstest.event ordered by start, text");
-ok($arr, "event query returned");
-

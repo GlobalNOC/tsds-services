@@ -66,8 +66,6 @@ lib/GRNOC/TSDS/DataService/Query.pm
 lib/GRNOC/TSDS/DataService/Report.pm
 lib/GRNOC/TSDS/DataService/Search.pm
 lib/GRNOC/TSDS/DataType.pm
-lib/GRNOC/TSDS/Event.pm
-lib/GRNOC/TSDS/EventDocument.pm
 lib/GRNOC/TSDS/Expire.pm
 lib/GRNOC/TSDS/GWS.pm
 lib/GRNOC/TSDS/GWS/Admin.pm
@@ -104,7 +102,6 @@ lib/GRNOC/TSDS/Util/ConfigChooser.pm
 lib/GRNOC/TSDS/Writer.pm
 lib/GRNOC/TSDS/Writer/AggregateMessage.pm
 lib/GRNOC/TSDS/Writer/DataMessage.pm
-lib/GRNOC/TSDS/Writer/EventMessage.pm
 lib/GRNOC/TSDS/Writer/Worker.pm
 lib/GRNOC/TSDS/MetaStats.pm
 lib/GRNOC/TSDS/Setup.pm
@@ -118,7 +115,6 @@ t/05validationextended.t
 t/06whereconditionvalidation.t
 t/07change_interval.t
 t/08new_value_type.t
-t/09events.t
 t/10bad_data.t
 t/11constraints.t
 t/12search.t
