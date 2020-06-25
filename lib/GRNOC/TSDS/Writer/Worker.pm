@@ -29,7 +29,7 @@ use Data::Dumper;
 use constant DATA_CACHE_EXPIRATION => 60 * 60;
 use constant AGGREGATE_CACHE_EXPIRATION => 60 * 60 * 48;
 use constant MEASUREMENT_CACHE_EXPIRATION => 60 * 60;
-use constant QUEUE_PREFETCH_COUNT => 1;
+use constant QUEUE_PREFETCH_COUNT => 5;
 use constant QUEUE_FETCH_TIMEOUT => 10 * 1000;
 use constant RECONNECT_TIMEOUT => 10;
 
