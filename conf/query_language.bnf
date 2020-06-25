@@ -2,10 +2,6 @@
 lexeme default = forgiving => 1
 :start ::= query
 query ::=    
-    # Event queries do not use a by clause and have a different database nomenclature
-    get field_list between between_clause from event_database optional_where optional_limit_offset optional_order action => ::array
-    |
-
     # Direct Database queries require a between clause
     get field_list between between_clause optional_by from database optional_where optional_having optional_limit_offset optional_order action => ::array
     |
@@ -231,10 +227,6 @@ phrase_end ~ '"'
 optional_phrase_segment ::= phrase_segment*
 
 phrase_segment ~ [()\[\]_\.a-zA-Z0-9@\-/:'&|,\\ \t\n*<>;{}^!#$%?+=]+
-
-# event databases are like regular databases except they have
-# a ".event" at the end, such as "interface.event"
-event_database ::= database '.event' action => collapse
 
 # database names can only have alpha characters in them 
 # or underscores

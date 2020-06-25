@@ -241,8 +241,6 @@ rm -rf $RPM_BUILD_ROOT
 %{perl_vendorlib}/GRNOC/TSDS/DataType.pm
 %{perl_vendorlib}/GRNOC/TSDS/DataPoint.pm
 %{perl_vendorlib}/GRNOC/TSDS/DataDocument.pm
-%{perl_vendorlib}/GRNOC/TSDS/EventDocument.pm
-%{perl_vendorlib}/GRNOC/TSDS/Event.pm
 %{perl_vendorlib}/GRNOC/TSDS/Expire.pm
 %{perl_vendorlib}/GRNOC/TSDS/GWS.pm
 %{perl_vendorlib}/GRNOC/TSDS/GWS/Admin.pm
@@ -267,7 +265,6 @@ rm -rf $RPM_BUILD_ROOT
 %{perl_vendorlib}/GRNOC/TSDS/Writer.pm
 %{perl_vendorlib}/GRNOC/TSDS/Writer/AggregateMessage.pm
 %{perl_vendorlib}/GRNOC/TSDS/Writer/DataMessage.pm
-%{perl_vendorlib}/GRNOC/TSDS/Writer/EventMessage.pm
 %{perl_vendorlib}/GRNOC/TSDS/Writer/Worker.pm
 %{perl_vendorlib}/GRNOC/TSDS/MetaStats.pm
 %{perl_vendorlib}/GRNOC/TSDS/Setup.pm
