@@ -11,6 +11,8 @@ use GRNOC::TSDS::Writer::AggregateMessage;
 use GRNOC::TSDS::Writer::DataMessage;
 use GRNOC::TSDS::RedisLock;
 
+use GRNOC::TSDS::DataService::MetaData;
+
 use MongoDB;
 use Net::AMQP::RabbitMQ;
 use Cache::Memcached::Fast;
@@ -61,6 +63,8 @@ has memcache => ( is => 'rwp' );
 has locker => ( is => 'rwp' );
 
 has json => ( is => 'rwp' );
+
+has metadata_ds => ( is => 'rwp' );
 
 ### public methods ###
 
@@ -133,6 +137,10 @@ sub start {
 
     # connect to rabbit
     $self->_rabbit_connect();
+
+    # set up metadata_ds object, will handle metadata messages
+    my $metadata_ds = GRNOC::TSDS::DataService::MetaData->new(config_file => $self->config->{'config_file'});
+    $self->_set_metadata_ds( $metadata_ds );
 
     $self->logger->debug( 'Starting RabbitMQ consume loop.' );
 
@@ -303,6 +311,7 @@ sub _consume_messages {
     # gather all messages to process
     my $data_to_process = [];
     my $aggregates_to_process = [];
+    my $meta_to_process = [];
 
     # keep track and build up all of the bulk operations we'll want to do at the end
     my $bulk_creates = {};
@@ -338,7 +347,7 @@ sub _consume_messages {
         }
 
         # does it appear to be an aggregate message?
-        if ( $type =~ /^(.+)\.(aggregate)$/ ) {
+        if ( $type =~ /^(.+)\.(aggregate|metadata)$/ ) {
 
             my $data_type_name = $1;
             my $message_type = $2;
@@ -382,7 +391,7 @@ sub _consume_messages {
                 my $aggregate_message;
 
                 try {
-
+		    
                     $aggregate_message = GRNOC::TSDS::Writer::AggregateMessage->new( data_type => $data_type,
                                                                                      time => $time,
                                                                                      interval => $interval,
@@ -398,6 +407,20 @@ sub _consume_messages {
                 # include this to our list of aggregates to process if it was valid
                 push( @$aggregates_to_process, $aggregate_message ) if $aggregate_message;
             }
+	    elsif ( $message_type eq 'metadata' ) {
+
+		my $meta_update = {
+		    "tsds_type" => $data_type_name,
+		    "start"     => $time,
+		    "end"       => $end
+		};
+	       
+		foreach my $meta_field (keys %$meta){
+		    $meta_update->{$meta_field} = $meta->{$meta_field};
+		}
+
+		push(@$meta_to_process, $meta_update); 		
+	    }
         }
 
         # must be a data message
@@ -488,13 +511,19 @@ sub _consume_messages {
                                            acquired_locks => $acquired_locks );
         }
 
-
         # perform all (most, except for data type changes..) create and update operations in bulk
         $self->_process_bulks( $bulk_creates );
         $self->_process_bulks( $bulk_updates );
 
         # release all the locks we're acquired for the docs we're changing
         $self->_release_locks( $acquired_locks );
+
+
+	# This does it's own locking, so we'll do that here after we release any locks above.
+	if ( @$meta_to_process > 0 ) {
+	    $self->metadata_ds()->update_measurement_metadata(values => $meta_to_process, type_field => "tsds_type", fatal => 1);
+	}
+
     }
 
     catch {

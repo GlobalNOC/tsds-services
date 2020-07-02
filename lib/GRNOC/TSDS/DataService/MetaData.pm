@@ -1089,6 +1089,8 @@ sub update_measurement_metadata {
 
     my $updates    = dclone($args{'values'});
     my $type_field = $args{'type_field'}; 
+    my $fatal      = $args{'fatal'} || 0; # Whether we should throw exceptions or not
+                                          # on recoverable errors. 
 
     if (! $type_field){
 	$self->error("Missing 'type_field' argument");
@@ -1109,6 +1111,7 @@ sub update_measurement_metadata {
     
     foreach my $obj (@$updates){
 	my $num_updated = $self->_do_update_measurement_metadata($obj, $type_field, $metadata_cache);
+	die $self->error() if (! defined $num_updated && $fatal);
 	return if (! defined $num_updated);
 	
 	$modified += $num_updated;

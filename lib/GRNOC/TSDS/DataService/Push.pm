@@ -115,7 +115,7 @@ sub _validate_message {
     foreach my $element (@$json){
 
 	# Can the user write to this TSDS type?
-	my $type = $element->{'type'};
+	my ($type, $is_metadata) = $element->{'type'} =~ /^(.+?)(\.metadata)?$/;
 	if (! exists $restrictions->{$type}){
 	    $self->error("User not allowed to send data for type $type");
 	    return;
