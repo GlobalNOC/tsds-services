@@ -1,3 +1,25 @@
+## GRNOC TSDS Services 1.6.7 -- Mon Jul 6 2020
+
+### Features:
+
+* Allow for updating metadata through the standard tsds_writer messages.
+This change simply requires adding ".metadata" to the type being sent. Non
+required metadata fields in the message will be processed accordingly. This
+is a separate message from the previously standard value messages.
+* Allow for scoping of certain data types and metadata patterns for users
+in the push API. This allows additional users to push data without exposing
+the risk that they send data for elements they are not allowed to.
+* Improved performance when changing interval of datasets.
+* Removed the unused `event` portion of code in an effort to consolidate
+and simplify code. 
+
+### Bug Fixes:
+
+* Fixed issue where it was possible to bypass a constraint. Previously
+if a  particular view did not have the measurement type defined at all, 
+it was incorrectly considered unconstrained instead of globally denied.
+
+
 ## GRNOC TSDS Services 1.6.6 -- Mon May 4 2020
 
 ### Features:
