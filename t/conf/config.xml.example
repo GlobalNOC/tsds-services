@@ -48,4 +48,14 @@
         <database>tsds_reports</database>
     </ignore-databases>
 
+    <push-users>
+         <user name="foo-user">
+             <database name="interface">
+                 <metadata field="node" pattern="(foo.edu|bar.com)$" />
+             </database>
+             <database name="otherdb">
+             </database>
+         </user>
+    </push-users>
+
 </config>
