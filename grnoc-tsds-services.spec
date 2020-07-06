@@ -1,6 +1,6 @@
 Summary: GRNOC TSDS Services
 Name: grnoc-tsds-services
-Version: 1.6.6
+Version: 1.6.7
 Release: 1%{?dist}
 License: GRNOC
 Group: Measurement
@@ -8,8 +8,6 @@ URL: http://globalnoc.iu.edu
 Source0: %{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 BuildArch: noarch
-BuildRequires: httpd-devel
-BuildRequires: mod_perl-devel
 BuildRequires: perl-Test-Simple
 BuildRequires: perl-Net-RabbitMQ-Management-API
 Requires: perl >= 5.8.8
@@ -78,6 +76,9 @@ GRNOC TSDS Services
 %build
 %{__perl} Makefile.PL PREFIX="%{buildroot}%{_prefix}" INSTALLDIRS="vendor"
 make
+
+%post
+/usr/bin/systemctl daemon-reload
 
 %install
 rm -rf $RPM_BUILD_ROOT
