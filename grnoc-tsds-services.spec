@@ -153,6 +153,7 @@ make pure_install
 %{__install} bin/tsds_fix_measurements.pl %{buildroot}/usr/bin/tsds_fix_measurements.pl
 %{__install} bin/tsds-decom.pl %{buildroot}/usr/bin/tsds-decom.pl
 %{__install} bin/tsds_setup.pl %{buildroot}/usr/bin/tsds_setup.pl
+%{__install} bin/tsds-change-required-metadata.pl %{buildroot}/usr/bin/tsds-change-required-metadata.pl
 
 
 %{__install} systemd/mongod-config1.service %{buildroot}/usr/lib/systemd/system/mongod-config1.service
@@ -295,6 +296,7 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/tsds_upgrade.pl
 /usr/bin/tsds_writer
 /usr/bin/tsds_setup.pl
+/usr/bin/tsds-change-required-metadata.pl
 
 %config(noreplace) /etc/init.d/tsds_writer
 %config(noreplace) /etc/init.d/tsds_meta

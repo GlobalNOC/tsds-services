@@ -8,6 +8,7 @@ bin/tsds_writer
 bin/tsds_fix_measurements.pl
 bin/tsds-decom.pl
 bin/tsds_setup.pl
+bin/tsds-change-required-metadata.pl
 CHANGES.md
 conf/apache-tsds-services-temp.conf.example
 conf/apache-tsds-services.conf.example
