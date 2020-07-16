@@ -150,6 +150,7 @@ sub add_data {
 
     if (! $rabbit || ! $rabbit->is_connected()){
 	$self->_connect_rabbit() || return;
+	$rabbit = $self->{'rabbit'};
     }
 
     # If this user is limited to sending data for specific things,
@@ -163,7 +164,7 @@ sub add_data {
     # detect error
     if ( $@ ) {
 
-	$self->error( 'An error occurred publishing the data.' );
+	$self->error( 'An error occurred publishing the data: ' . $@);
 	return;
     }
      
