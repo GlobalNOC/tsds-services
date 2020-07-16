@@ -1,3 +1,18 @@
+## GRNOC TSDS Services 1.6.8 -- Thu Jul 16 2020
+
+### Features:
+
+* Including a new script for changing the values of required metadata
+fields. This will allow for things like renaming a host while maintaining
+continuity in the data.
+
+### Bug Fixes:
+
+* Fixed issue introduced in 1.6.7 where subqueries to constrained locations
+would fail due to their use of a temporary table.
+* Fixed issue with reconnecting to RMQ in the Push webservice API
+
+
 ## GRNOC TSDS Services 1.6.7 -- Mon Jul 6 2020
 
 ### Features:
