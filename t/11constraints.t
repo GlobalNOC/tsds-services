@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 9;
+use Test::More tests => 11;
 
 use GRNOC::TSDS::MongoDB;
 use GRNOC::TSDS::Constraints;
@@ -58,5 +58,10 @@ ok(! defined $result && $query->error() =~ m/Not permitted to run/, "got reject 
 $result = $query->run_query( query =>'get average(values.output) between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") from notexists where intf = "ge-0/0/0" ');
 ok(! defined $result && $query->error() =~ m/Unknown database/, "got reject from unknown database");
 
+# Make sure a subquery with a base allowed database works since it will use a temporary table/database and shouldn't hit constraints when using that
+$result = $query->run_query( query =>'get values.foo from (get average(values.output) as foo between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") from tsdstest where intf = "ge-0/0/0") ');
+ok(defined $result, "got response from allow database and subquery");
 
-
+# Make sure a subquery with a base NOT allowed database does not work 
+$result = $query->run_query( query =>'get values.foo from (get average(values.output) as foo between ("01/01/1970 00:00:00 UTC","01/01/1970 13:31:00 UTC") from tsdstest_two where intf = "ge-0/0/0") ');
+ok(! defined $result && $query->error() =~ m/Not permitted to run/, "got reject from not allowed database in subquery");

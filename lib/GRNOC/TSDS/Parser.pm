@@ -1184,8 +1184,7 @@ sub _query_database {
     if (defined($self->{'constraints_file'})) {
         my $constraints = GRNOC::TSDS::Constraints->new( config_file => $self->{'constraints_file'} );
 
-	my $allowed_database = grep {$_ eq $db_name} @{$constraints->get_databases()};
-	if (! $allowed_database){
+        if ($db_name ne $self->temp_database() && ! grep({$_ eq $db_name} @{$constraints->get_databases()})){
 	    $self->error("Not permitted to run query on $db_name");
 	    return;
 	}
