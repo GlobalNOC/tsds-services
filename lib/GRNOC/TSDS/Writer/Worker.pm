@@ -123,7 +123,7 @@ sub start {
 
     $self->_set_mongo_rw( $mongo );
 
-    $self->_set_redislock( GRNOC::TSDS::RedisLock->new( config => $self->config ) );
+    $self->_redis_connect();
 
     # connect to memcache
     my $memcache_host = $self->config->get( '/config/memcache/@host' );
@@ -529,6 +529,8 @@ sub _consume_messages {
     catch {
 
         $self->logger->error( "Error processing messages: $_" );
+
+	$self->_redis_connect();
 
         # release any outstanding locks
         $self->_release_locks( $acquired_locks );
@@ -1587,6 +1589,26 @@ sub _fetch_data_types {
 
     # update the list of known data types
     $self->_set_data_types( $data_types );
+}
+
+sub _redis_connect {
+    my ( $self ) = @_;
+
+    while ( 1 ) {
+
+	my $connected = 0;
+
+	try {
+	    $self->_set_redislock( GRNOC::TSDS::RedisLock->new( config => $self->config ) );
+	    $connected = 1;
+	}
+	catch {
+	    $self->logger->error( "Error connecting to Redis: $_" );
+	};
+
+	last if $connected;
+	sleep( RECONNECT_TIMEOUT );
+    }
 }
 
 sub _rabbit_connect {

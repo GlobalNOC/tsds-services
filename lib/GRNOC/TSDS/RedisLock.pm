@@ -37,7 +37,10 @@ sub BUILD {
 
     try {
 
-        $redis = Redis->new( server => "$redis_host:$redis_port" );
+        $redis = Redis->new( server => "$redis_host:$redis_port",
+                             reconnect => 120,
+                             every => 3 * 1000 * 1000 ); # microseconds
+
     }
 
     catch {
