@@ -15,9 +15,13 @@ use Data::Dumper;
 my $USAGE = "$0 [--doit <actually make changes, not the default>]";
 
 my $config_file = "/etc/grnoc/tsds/services/config.xml";
+my $target_measurement = "";
+my $target_hostname    = "";
 my $doit        = 0;
 
 GetOptions("c|config=s", \$config_file,
+           "t|target_measurement=s", \$target_measurement,
+           "n|target_hostname=s", \$target_hostname,
 	   "doit", \$doit) or die;
 
 if (! $doit){
@@ -43,18 +47,44 @@ my $locker = Redis::DistLock->new( servers => [$redis],
 				   retry_delay => 0.1);
 
 my @dbs = $mongo->database_names();
+my @exclude_dbs = ("admin", "config");
+
 
 # Scan every database
 foreach my $db_name (@dbs){
 
+    if ( $db_name ~~ @exclude_dbs ) { next; }
+    if ( $target_measurement ne "" && $target_measurement ne $db_name ) { 
+      print "Skipping $db_name\n";
+      next;
+    }
+    print "Checking $db_name\n";
+
     my $db               = $mongo->get_database($db_name);
     my $measurements_col = $db->get_collection('measurements');
-
     # Grab the unique set of identifiers, ie the unique series of
     # measurement metadata
-    my $unique_identifiers = $db->run_command({distinct => "measurements", key => "identifier"});
-    next if (! ref $unique_identifiers || ! $unique_identifiers->{'values'});
-    $unique_identifiers = $unique_identifiers->{'values'};
+    my $query_result;
+    if ( $target_hostname ne "" ) { 
+      $query_result = $measurements_col->aggregate(
+          [  
+             { '$match' => { 'node' => "$target_hostname" } },
+             { '$group' => { '_id' => '$identifier' } } 
+          ] ) ;
+    }else {
+      $query_result = $measurements_col->aggregate(
+          [  
+             { '$group' => { '_id' => '$identifier' } } 
+          ] ) ;
+    }
+    my @tmp_uniq_ids;
+    my $unique_identifiers;
+
+    while( my $qr = $query_result->next ) {
+        push @tmp_uniq_ids, $qr->{'_id'};
+    }
+    next if ( ! @tmp_uniq_ids ); 
+    $unique_identifiers = \@tmp_uniq_ids;
 
     print "$db_name: sizeof unique identifiers = " . scalar(@$unique_identifiers) . "\n";
 
