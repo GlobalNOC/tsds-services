@@ -113,7 +113,6 @@ make pure_install
 %{__install} INSTALL.md %{buildroot}/usr/share/doc/grnoc/tsds/INSTALL.md
 
 %{__install} conf/config.xml.example %{buildroot}/etc/grnoc/tsds/services/config.xml
-%{__install} conf/meta_config.xml %{buildroot}/etc/grnoc/tsds/services/meta_config.xml
 %{__install} conf/mappings.xml.example %{buildroot}/etc/grnoc/tsds/services/mappings.xml
 %{__install} conf/constraints.xml.example %{buildroot}/etc/grnoc/tsds/services/constraints.xml
 %{__install} conf/logging.conf %{buildroot}/etc/grnoc/tsds/services/logging.conf
@@ -149,7 +148,6 @@ make pure_install
 %{__install} bin/tsds_install.pl %{buildroot}/usr/bin/tsds_install.pl
 %{__install} bin/tsds_upgrade.pl %{buildroot}/usr/bin/tsds_upgrade.pl
 %{__install} bin/tsds_writer %{buildroot}/usr/bin/tsds_writer
-%{__install} bin/tsds_meta.pl %{buildroot}/usr/bin/tsds_meta.pl
 %{__install} bin/tsds_fix_measurements.pl %{buildroot}/usr/bin/tsds_fix_measurements.pl
 %{__install} bin/tsds-decom.pl %{buildroot}/usr/bin/tsds-decom.pl
 %{__install} bin/tsds_setup.pl %{buildroot}/usr/bin/tsds_setup.pl
@@ -164,7 +162,6 @@ make pure_install
 %{__install} systemd/mongod-shard3.service %{buildroot}/usr/lib/systemd/system/mongod-shard3.service
 %{__install} systemd/mongos.service %{buildroot}/usr/lib/systemd/system/mongos.service
 %{__install} init.d/tsds_writer %{buildroot}/etc/init.d/tsds_writer
-%{__install} init.d/tsds_meta %{buildroot}/etc/init.d/tsds_meta
 
 %{__install} www/atlas.cgi %{buildroot}/usr/lib/grnoc/tsds/services/cgi-bin/atlas.cgi
 %{__install} www/forge.cgi %{buildroot}/usr/lib/grnoc/tsds/services/cgi-bin/forge.cgi
@@ -190,7 +187,6 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(644, root, root, 755)
 
 %config(noreplace) /etc/grnoc/tsds/services/config.xml
-%config(noreplace) /etc/grnoc/tsds/services/meta_config.xml
 %config(noreplace) /etc/grnoc/tsds/services/mappings.xml
 %config(noreplace) /etc/grnoc/tsds/services/constraints.xml
 %config(noreplace) /etc/grnoc/tsds/services/logging.conf
@@ -290,7 +286,6 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/tsds_expire.pl
 /usr/bin/tsds_firehose.pl
 /usr/bin/tsds_install.pl
-/usr/bin/tsds_meta.pl
 /usr/bin/tsds_fix_measurements.pl
 /usr/bin/tsds-decom.pl
 /usr/bin/tsds_upgrade.pl
@@ -299,7 +294,6 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/tsds-change-required-metadata.pl
 
 %config(noreplace) /etc/init.d/tsds_writer
-%config(noreplace) /etc/init.d/tsds_meta
 
 %defattr(444, root, root, -)
 

@@ -1,7 +1,6 @@
 bin/tsds_expire.pl
 bin/tsds_firehose.pl
 bin/tsds_install.pl
-bin/tsds_meta.pl
 bin/tsds_search_indexer.pl
 bin/tsds_upgrade.pl
 bin/tsds_writer
@@ -13,7 +12,6 @@ CHANGES.md
 conf/apache-tsds-services-temp.conf.example
 conf/apache-tsds-services.conf.example
 conf/config.xml.example
-conf/meta_config.xml
 conf/mappings.xml.example
 conf/constraints.xml.example
 conf/install/cpu.json
@@ -48,7 +46,6 @@ systemd/mongod-shard2.service
 systemd/mongod-shard3.service
 systemd/mongos.service
 init.d/tsds_writer
-init.d/tsds_meta
 INSTALL.md
 lib/GRNOC/TSDS.pm
 lib/GRNOC/TSDS/AggregateDocument.pm
