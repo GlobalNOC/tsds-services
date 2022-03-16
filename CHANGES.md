@@ -1,3 +1,17 @@
+## GRNOC TSDS Services 1.6.9 -- Wed Mar 16 2022
+
+### Features:
+
+* Writer processes will now automatically attempt to reconnect to Redis in
+the event of a failure instead of hanging.
+
+### Bug Fixes:
+
+* Fixed issue where mecached caching of metadata was inconsistent successful
+based on the order of the messages. This should improve and increase predictability 
+of overall system performance.
+
+
 ## GRNOC TSDS Services 1.6.8 -- Thu Jul 16 2020
 
 ### Features:
