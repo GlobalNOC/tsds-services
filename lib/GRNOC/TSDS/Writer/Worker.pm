@@ -687,7 +687,7 @@ sub _process_data_messages {
 
         my @measurement_identifiers = keys( %{$unique_measurements->{$data_type}} );
 
-        foreach my $measurement_identifier ( @measurement_identifiers ) {
+        foreach my $measurement_identifier ( sort @measurement_identifiers ) {
 
             my $cache_id = $self->redislock->get_cache_id( type       => $data_type,
 							   collection => 'measurements',
@@ -1531,7 +1531,11 @@ sub _create_measurement_document {
     # use longer cache duration for measurements not submitted often
     $cache_duration = $interval * 2 if ( $interval * 2 > $cache_duration );
 
-    $self->memcache->set( $cache_id, 1, $interval * 2 );
+    my $cached_result = $self->memcache->set( $cache_id, 1, $cache_duration );
+
+    if (! $cached_result ) {
+	$self->logger->warn( "Unable to set cache entry for $cache_id" );
+    }
 }
 
 sub _fetch_data_types {
