@@ -222,6 +222,8 @@ sub evaluate {
         $self->_clean_temp_table();
     }
 
+    log_info("[tsds_trace]: Response Time: " . tv_interval($token_start, [gettimeofday]) . " seconds | Objects Returned: " . $self->{'query_total'} . " | Original Query: $query");
+
     return $res;
 }
 
@@ -2194,43 +2196,41 @@ sub _apply_order {
     }
 
     my @sorted = sort {
-	my $res = 0;
-	foreach my $token (@$tokens){
-	    my ($token_name, $token_direction) = @$token;
+        my $res = 0;
+        foreach my $token (@$tokens){
+            my ($token_name, $token_direction) = @$token;
 
-	    my $val_a;
-	    my $val_b;
+            my $val_a;
+            my $val_b;
 
-	    if ($token_direction =~ /asc/i){
-		$val_a = $a->{$token_name};
-		$val_b = $b->{$token_name};
-	    }
-	    else {
-		$val_a = $b->{$token_name};
-		$val_b = $a->{$token_name};
-	    }
+            if ($token_direction =~ /asc/i){
+                $val_a = $a->{$token_name};
+                $val_b = $b->{$token_name};
+            } else {
+                $val_a = $b->{$token_name};
+                $val_b = $a->{$token_name};
+            }
 
-	    # undefined is always sorted differently than defined
-	    if (! defined $val_a && defined $val_b){
-		$res = $res || -1;
-		next;
-	    }
-	    if (defined $val_a && ! defined $val_b){
-		$res = $res || 1;
-		next;
-	    }
+            $val_a = defined $val_a ? $val_a : "";
+            $val_b = defined $val_b ? $val_b : "";
 
-	    # are we sorting numbers or text?
-	    # also don't complain about null values
-	    no warnings 'uninitialized';
-	    if ($val_a =~ /^-?\d+(\.\d+)?$/){
-		$res = $res || ($val_a <=> $val_b);
-	    }
-	    else {
-		$res = $res || ($val_a cmp $val_b);
-	    }
-	}
-	$res;
+            if ( $val_a eq "" || $val_b eq "" ){
+                $res = $res || ($val_a cmp $val_b);
+                next;
+            }
+
+            if ( $val_a =~ /^[+-]?(\d+)?(\.\d+)?([eE][+-]\d+)?$/
+                 && $val_b =~ /^[+-]?(\d+)?(\.\d+)?([eE][+-]\d+)?$/ ){
+
+                $res = $res || ($val_a <=> $val_b);
+                next;
+            }
+
+            $val_a = "\L$val_a";
+            $val_b = "\L$val_b";
+
+            $res = $res || ($val_a cmp $val_b);
+        } $res;
     } @$results;
 
     return \@sorted;
@@ -3086,7 +3086,7 @@ sub __process_bucket {
 	# if we had histogram data, ie low-res data we should use those
 	# to get a more accurate percentile calculation
 	if (@$hists){
-	    $value = $self->_calculate_percentile($hists, $extra);
+	    $value = $self->_calculate_percentile($bucket, $extra);
 	}
 	# otherwise it's based on hi-res data or no histogram available,
 	# just use what we have
@@ -3652,6 +3652,20 @@ sub _fix_document {
 
     my $leftmost_start = $data_start;
     my $rightmost_end  = $data_end;
+
+    if ( defined $earliest_meta ) {
+        $leftmost_start = $earliest_meta if ($earliest_meta > $data_start);
+    }
+
+    if ( defined $latest_meta ) {
+        $rightmost_end = $latest_meta if ($latest_meta < $data_end);
+    }
+
+    if ( !defined $leftmost_start || !defined $rightmost_end ) {
+        my @empty;
+        log_error( "Unable to find document(s) start-end for \$identifier: " . $meta_values->{$identifier} . " - \{ \$leftmost_start: $leftmost_start, \$rightmost_end: $rightmost_end \} - returning empty");
+        return \@empty;
+    }
 
     $leftmost_start = $earliest_meta if ($earliest_meta > $data_start);    
     $rightmost_end = $latest_meta if ($latest_meta < $data_end);
