@@ -97,7 +97,7 @@ sub _build_measurement_identifier {
             $hash->add( $self->meta->{$field} );
         } catch {
             die("Could not add field \"$field\" to SHA hash digest");
-        }
+        };
     }
 
     # return the final digest of the hash
