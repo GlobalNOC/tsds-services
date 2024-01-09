@@ -1,3 +1,10 @@
+## GRNOC TSDS Services 1.7.0 --
+
+### Features:
+
+* Adds in local changes made to code as 'hot fixes' that was never added to the Git repo.
+
+
 ## GRNOC TSDS Services 1.6.9 -- Wed Mar 16 2022
 
 ### Features:
