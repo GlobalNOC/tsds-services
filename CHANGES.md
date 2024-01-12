@@ -3,7 +3,7 @@
 ### Features:
 
 * Adds in local changes made to code as 'hot fixes' that were never added to the Git repo.
-
+* Adds in support for OL8 packaging
 
 ## GRNOC TSDS Services 1.6.9 -- Wed Mar 16 2022
 
