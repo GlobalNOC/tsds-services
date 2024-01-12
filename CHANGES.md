@@ -2,7 +2,7 @@
 
 ### Features:
 
-* Adds in local changes made to code as 'hot fixes' that was never added to the Git repo.
+* Adds in local changes made to code as 'hot fixes' that were never added to the Git repo.
 
 
 ## GRNOC TSDS Services 1.6.9 -- Wed Mar 16 2022
