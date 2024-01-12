@@ -14,6 +14,9 @@ package GRNOC::TSDS::GWS::Atlas;
 use strict;
 use warnings;
 
+use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
+use lib './venv/lib/perl5';
+
 use base 'GRNOC::TSDS::GWS';
 
 use GRNOC::TSDS::DataService::Atlas;

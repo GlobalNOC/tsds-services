@@ -15,6 +15,9 @@ package GRNOC::TSDS::DataService::Search;
 use strict;
 use warnings;
 
+use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
+use lib './venv/lib/perl5';
+
 use base 'GRNOC::TSDS::DataService';
 
 use constant MAX_SEARCH_RESULTS => 10_000;
