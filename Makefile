@@ -23,7 +23,7 @@ clean:
 
 dist: clean
 	rm -rf dist/$(NAME)-$(VERSION)/
-	mkdir -p dist/$(NAME)-$(VERSIwON)/
+	mkdir -p dist/$(NAME)-$(VERSION)/
 	cp -r bin conf init.d lib systemd www CHANGES.md INSTALL.md $(NAME).spec dist/$(NAME)-$(VERSION)/
 	cd dist; tar -czvf $(NAME)-$(VERSION).tar.gz $(NAME)-$(VERSION)/
 
