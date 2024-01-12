@@ -1,3 +1,5 @@
+%define specfile_deps %(cat cpanfile | sed -r 's/^requires ([^[:space:]]*)/Requires: perl(\\1)/' | sed 's/["'"'"';]//g')
+
 Summary: GRNOC TSDS Services
 Name: grnoc-tsds-services
 Version: 1.7.0
@@ -8,8 +10,6 @@ URL: http://globalnoc.iu.edu
 Source0: %{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 BuildArch: noarch
-BuildRequires: perl-Test-Simple
-BuildRequires: perl-Net-RabbitMQ-Management-API
 Requires: perl >= 5.8.8
 Requires: gcc
 Requires: mod_perl
@@ -18,52 +18,15 @@ Requires: perl-boolean
 Requires: perl-GRNOC-Config >= 1.0.7
 Requires: perl-GRNOC-WebService >= 1.2.8
 Requires: perl-GRNOC-WebService-Client >= 1.2.2
-Requires: perl-GRNOC-CLI >= 1.0.2-2
 Requires: perl-GRNOC-Log
 Requires: perl-GRNOC-LockFile >= 1.0.1
-Requires: ImageMagick-perl
-Requires: perl-JSON
-Requires: perl-JSON-XS
-Requires: perl-MongoDB >= 1.0
-Requires: perl-Data-Compare
-Requires: perl-Time-HiRes
-Requires: perl-DateTime
-Requires: perl-DateTime-Format-Strptime
-Requires: perl-Parallel-ForkManager
-Requires: perl-List-MoreUtils
-Requires: perl-Template-Toolkit
-Requires: perl-HTML-Parser
-Requires: perl-XML-Writer
-Requires: perl-WWW-Mechanize-PhantomJS >= 0.11-2
-Requires: perl-Math-Round
-Requires: perl-Test-Deep
-Requires: perl-Tie-IxHash
-Requires: perl-Clone
-Requires: perl-Statistics-LineFit
-Requires: perl-Marpa-R2
+Requires: perl-GRNOC-Counter
+Requires: perl-GRNOC-CLI
 Requires: perl-GDGraph
-Requires: perl-Number-Format
-Requires: perl-File-Slurp
-Requires: perl-Class-Accessor
-Requires: perl-Env-C
-Requires: perl-Moo
-Requires: perl-Net-AMQP-RabbitMQ
-Requires: perl-LockFile-Simple
-Requires: perl-Type-Tiny
-Requires: perl-Types-XSD-Lite
-Requires: perl-Redis
-Requires: perl-Redis-DistLock
-Requires: perl-Cache-Memcached-Fast
-Requires: perl-Hash-Merge
-Requires: perl-Proc-Daemon
-Requires: perl-Sort-Versions
-Requires: perl-List-Flatten-Recursive
-Requires: perl-GRNOC-TSDS-Aggregate-Histogram
+Requires: perl-Template-Toolkit
 Requires: perl-DBI
 Requires: perl-DBD-MySQL
-Requires: perl-GRNOC-Counter
-Requires: perl-Try-Tiny
-Requires: perl(List::Util)
+Requires: ImageMagick-perl
 Requires: phantomjs
 Requires: wget
 
