@@ -1,5 +1,8 @@
 package GRNOC::TSDS::SearchIndexer;
 
+use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
+use lib './venv/lib/perl5';
+
 # marpa complains unless we load this before everything else...
 use GRNOC::TSDS::Parser;
 
