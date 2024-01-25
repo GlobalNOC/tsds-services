@@ -2,9 +2,12 @@
 use strict;
 use warnings;
 
+use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
+use lib './venv/lib/perl5';
+
 use Data::Dumper;
 use Getopt::Long;
-use lib '../lib/';
+
 use GRNOC::TSDS::MetaStats;
 
 ### constants ###                                                                                                               

@@ -3,6 +3,9 @@
 use strict;
 use warnings;
 
+use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
+use lib './venv/lib/perl5';
+
 # One time fix to make field adjustments
 # Deletes fields from tsds, drops the corresponding indexes and unsets them in the db
 # Following fields will be removed by this script - pop.owner, pop.hands_and_eyes, pop.pop_id, pop.role, ...

@@ -3,6 +3,9 @@
 use strict;
 use warnings;
 
+use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
+use lib './venv/lib/perl5';
+
 use JSON::XS;
 use Net::AMQP::RabbitMQ;
 use Net::RabbitMQ::Management::API;
