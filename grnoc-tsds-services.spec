@@ -1,7 +1,6 @@
 %global debug_package %{nil} # Don't generate debug info
 %global _binaries_in_noarch_packages_terminate_build   0
 %define perl_lib /opt/grnoc/venv/
-%define specfile_deps %(cat cpanfile | sed -r 's/^requires ([^[:space:]]*)/Requires: perl(\\1)/' | sed 's/["'"'"';]//g')
 AutoReqProv: no # Keep rpmbuild from trying to figure out Perl on its own
 
 Summary: GRNOC TSDS Services
@@ -33,9 +32,6 @@ Requires: perl-DBD-MySQL
 Requires: ImageMagick-perl
 Requires: phantomjs
 Requires: wget
-%if 0%{?rhel} == 7
-%{specfile_deps}
-%endif
 
 %description
 GRNOC TSDS Services
@@ -210,10 +206,8 @@ rm -rf $RPM_BUILD_ROOT
 %{__install} lib/GRNOC/TSDS/Writer/DataMessage.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/Writer
 %{__install} lib/GRNOC/TSDS/Writer/Worker.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/Writer
 
-%if 0%{rhel} == 8
 %{__install} -d -p %{buildroot}%{perl_lib}%{name}/lib/perl5
 cp -r venv/lib/perl5/* -t %{buildroot}%{perl_lib}%{name}/lib/perl5
-%endif
 
 # clean up buildroot
 find %{buildroot} -name .packlist -exec %{__rm} {} \;
@@ -364,6 +358,4 @@ rm -rf $RPM_BUILD_ROOT
 
 %dir /usr/share/grnoc/tsds-services/temp
 
-%if %{rhel} == 8
 %{perl_lib}/%{name}/lib/perl5/*
-%endif
