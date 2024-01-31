@@ -1,7 +1,6 @@
 package GRNOC::TSDS::RedisLock;
 
 use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
-use lib './venv/lib/perl5';
 
 use Moo;
 use Types::Standard qw( Str Int HashRef Object Maybe );
