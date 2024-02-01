@@ -2,7 +2,6 @@
 package GRNOC::TSDS::MongoDB;
 
 use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
-use lib './venv/lib/perl5';
 
 use strict;
 use warnings;

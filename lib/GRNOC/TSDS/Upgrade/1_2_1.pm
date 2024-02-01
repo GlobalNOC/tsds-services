@@ -4,7 +4,6 @@ use strict;
 use warnings;
 
 use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
-use lib './venv/lib/perl5';
 
 use constant PREVIOUS_VERSION => '1.2.0';
 
