@@ -3,6 +3,8 @@ package GRNOC::TSDS::Constants;
 use strict;
 use warnings;
 
+use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
+
 use base 'Exporter';
 
 our @EXPORT = qw( HIGH_RESOLUTION_DOCUMENT_SIZE AGGREGATE_DOCUMENT_SIZE IGNORE_DATABASES );

@@ -50,6 +50,7 @@ INSTALL.md
 lib/GRNOC/TSDS.pm
 lib/GRNOC/TSDS/AggregateDocument.pm
 lib/GRNOC/TSDS/AggregatePoint.pm
+lib/GRNOC/TSDS/Aggregate/Histogram.pm
 lib/GRNOC/TSDS/Constants.pm
 lib/GRNOC/TSDS/Constraints.pm
 lib/GRNOC/TSDS/DataDocument.pm

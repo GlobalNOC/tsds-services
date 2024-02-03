@@ -1,3 +1,13 @@
+## GRNOC TSDS Services 1.7.0 --
+
+### Features:
+
+* Adds in local changes made to code as 'hot fixes' that were never added to the Git repo.
+* Adds in support for OL8 packaging
+* Allows writers to move failed writers to separate queue to keep pipeline clear and allow for
+examination later.
+* Adds default 2-day expiry for measurement decomissioning
+
 ## GRNOC TSDS Services 1.6.9 -- Wed Mar 16 2022
 
 ### Features:

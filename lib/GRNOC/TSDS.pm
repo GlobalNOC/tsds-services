@@ -16,7 +16,9 @@ package GRNOC::TSDS;
 use strict;
 use warnings;
 
-our $VERSION = '1.6.9';
+use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
+
+our $VERSION = '1.7.0';
 
 sub new {
     my $caller = shift;

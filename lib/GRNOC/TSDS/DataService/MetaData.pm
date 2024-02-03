@@ -15,6 +15,8 @@ package GRNOC::TSDS::DataService::MetaData;
 use strict;
 use warnings;
 
+use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
+
 use base 'GRNOC::TSDS::DataService';
 
 use GRNOC::Log;
@@ -733,9 +735,16 @@ sub add_measurement_type {
         $self->error("Search weight must be a positive integer, or blank.");
         return;
     }
-    if (defined $expire_after && $expire_after !~ /^\d+$/){
-	$self->error("expire_after must be a positive integer, or blank.");
-	return;
+
+    # Check if $expire_after is not defined
+    if (!defined $expire_after) {
+        $expire_after = 172800; # Default value: 86400 * 2
+    } else {
+        # Check if $expire_after is a positive digit
+        if ($expire_after !~ /^\d+$/ || $expire_after <= 0) {
+            $self->error("expire_after must be a positive integer.");
+            return;
+        }
     }
     $expire_after = $expire_after + 0 if (defined $expire_after); # cast to number
 

@@ -1,5 +1,7 @@
 package GRNOC::TSDS::MetaStats;
 
+use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
+
 use Moo;
 use Proc::Daemon;
 use GRNOC::Config;

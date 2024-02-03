@@ -1,5 +1,7 @@
 package GRNOC::TSDS::AggregatePoint;
 
+use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
+
 use Moo;
 use Types::Standard qw( Str Int StrictNum InstanceOf Maybe Dict Map Num);
 use Types::Common::Numeric qw( PositiveInt PositiveOrZeroInt PositiveNum );

@@ -3,6 +3,8 @@
 use strict;
 use warnings;
 
+use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
+
 package GRNOC::TSDS::Parser::Actions;
 
 use DateTime;

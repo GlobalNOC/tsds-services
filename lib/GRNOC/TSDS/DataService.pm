@@ -17,6 +17,8 @@ package GRNOC::TSDS::DataService;
 use strict;
 use warnings;
 
+use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
+
 use GRNOC::Log;
 use GRNOC::Config;
 use GRNOC::TSDS::MongoDB;

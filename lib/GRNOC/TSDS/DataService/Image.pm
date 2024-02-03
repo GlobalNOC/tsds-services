@@ -15,6 +15,8 @@ package GRNOC::TSDS::DataService::Image;
 use strict;
 use warnings;
 
+use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
+
 use base 'GRNOC::TSDS::DataService';
 
 use GRNOC::TSDS::DataService::Query;

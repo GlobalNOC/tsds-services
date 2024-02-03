@@ -13,6 +13,9 @@
 use strict;
 use warnings;
 
+use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
+use lib './venv/lib/perl5';
+
 use constant DEFAULT_CONFIG_FILE => '/etc/grnoc/tsds/services/config.xml';
 
 use GRNOC::TSDS::Install;

@@ -3,6 +3,9 @@
 use strict;
 use warnings;
 
+use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
+use lib './venv/lib/perl5';
+
 use Marpa::R2;
 use GRNOC::TSDS::Upgrade;
 use Getopt::Long;

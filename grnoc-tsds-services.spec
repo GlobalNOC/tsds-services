@@ -1,6 +1,11 @@
+%global debug_package %{nil} # Don't generate debug info
+%global _binaries_in_noarch_packages_terminate_build   0
+%define perl_lib /opt/grnoc/venv/
+AutoReqProv: no # Keep rpmbuild from trying to figure out Perl on its own
+
 Summary: GRNOC TSDS Services
 Name: grnoc-tsds-services
-Version: 1.6.9
+Version: 1.7.0
 Release: 1%{?dist}
 License: GRNOC
 Group: Measurement
@@ -8,8 +13,6 @@ URL: http://globalnoc.iu.edu
 Source0: %{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 BuildArch: noarch
-BuildRequires: perl-Test-Simple
-BuildRequires: perl-Net-RabbitMQ-Management-API
 Requires: perl >= 5.8.8
 Requires: gcc
 Requires: mod_perl
@@ -18,52 +21,15 @@ Requires: perl-boolean
 Requires: perl-GRNOC-Config >= 1.0.7
 Requires: perl-GRNOC-WebService >= 1.2.8
 Requires: perl-GRNOC-WebService-Client >= 1.2.2
-Requires: perl-GRNOC-CLI >= 1.0.2-2
 Requires: perl-GRNOC-Log
 Requires: perl-GRNOC-LockFile >= 1.0.1
-Requires: ImageMagick-perl
-Requires: perl-JSON
-Requires: perl-JSON-XS
-Requires: perl-MongoDB >= 1.0
-Requires: perl-Data-Compare
-Requires: perl-Time-HiRes
-Requires: perl-DateTime
-Requires: perl-DateTime-Format-Strptime
-Requires: perl-Parallel-ForkManager
-Requires: perl-List-MoreUtils
-Requires: perl-Template-Toolkit
-Requires: perl-HTML-Parser
-Requires: perl-XML-Writer
-Requires: perl-WWW-Mechanize-PhantomJS >= 0.11-2
-Requires: perl-Math-Round
-Requires: perl-Test-Deep
-Requires: perl-Tie-IxHash
-Requires: perl-Clone
-Requires: perl-Statistics-LineFit
-Requires: perl-Marpa-R2
+Requires: perl-GRNOC-Counter
+Requires: perl-GRNOC-CLI
 Requires: perl-GDGraph
-Requires: perl-Number-Format
-Requires: perl-File-Slurp
-Requires: perl-Class-Accessor
-Requires: perl-Env-C
-Requires: perl-Moo
-Requires: perl-Net-AMQP-RabbitMQ
-Requires: perl-LockFile-Simple
-Requires: perl-Type-Tiny
-Requires: perl-Types-XSD-Lite
-Requires: perl-Redis
-Requires: perl-Redis-DistLock
-Requires: perl-Cache-Memcached-Fast
-Requires: perl-Hash-Merge
-Requires: perl-Proc-Daemon
-Requires: perl-Sort-Versions
-Requires: perl-List-Flatten-Recursive
-Requires: perl-GRNOC-TSDS-Aggregate-Histogram
+Requires: perl-Template-Toolkit
 Requires: perl-DBI
 Requires: perl-DBD-MySQL
-Requires: perl-GRNOC-Counter
-Requires: perl-Try-Tiny
-Requires: perl(List::Util)
+Requires: ImageMagick-perl
 Requires: phantomjs
 Requires: wget
 
@@ -74,15 +40,12 @@ GRNOC TSDS Services
 %setup -q -n grnoc-tsds-services-%{version}
 
 %build
-%{__perl} Makefile.PL PREFIX="%{buildroot}%{_prefix}" INSTALLDIRS="vendor"
-make
 
 %post
 /usr/bin/systemctl daemon-reload
 
 %install
 rm -rf $RPM_BUILD_ROOT
-make pure_install
 
 %{__install} -d -p %{buildroot}/etc/grnoc/tsds/services/
 %{__install} -d -p %{buildroot}/etc/grnoc/tsds/services/report_templates
@@ -107,7 +70,12 @@ make pure_install
 %{__install} -d -p %{buildroot}/var/lib/mongo/shard2
 %{__install} -d -p %{buildroot}/var/lib/mongo/shard3
 %{__install} -d -p %{buildroot}/usr/share/grnoc/tsds-services/temp
-
+%{__install} -d -p %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/DataService
+%{__install} -d -p %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/GWS
+%{__install} -d -p %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/Parser
+%{__install} -d -p %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/Upgrade
+%{__install} -d -p %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/Util
+%{__install} -d -p %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/Writer
 
 %{__install} CHANGES.md %{buildroot}/usr/share/doc/grnoc/tsds/CHANGES.md
 %{__install} INSTALL.md %{buildroot}/usr/share/doc/grnoc/tsds/INSTALL.md
@@ -153,7 +121,6 @@ make pure_install
 %{__install} bin/tsds_setup.pl %{buildroot}/usr/bin/tsds_setup.pl
 %{__install} bin/tsds-change-required-metadata.pl %{buildroot}/usr/bin/tsds-change-required-metadata.pl
 
-
 %{__install} systemd/mongod-config1.service %{buildroot}/usr/lib/systemd/system/mongod-config1.service
 %{__install} systemd/mongod-config2.service %{buildroot}/usr/lib/systemd/system/mongod-config2.service
 %{__install} systemd/mongod-config3.service %{buildroot}/usr/lib/systemd/system/mongod-config3.service
@@ -173,6 +140,74 @@ make pure_install
 %{__install} www/aggregation.cgi %{buildroot}/usr/lib/grnoc/tsds/services/cgi-bin/aggregation.cgi
 %{__install} www/admin.cgi %{buildroot}/usr/lib/grnoc/tsds/services/cgi-bin/admin.cgi
 %{__install} www/search.cgi %{buildroot}/usr/lib/grnoc/tsds/services/cgi-bin/search.cgi
+
+%{__install} lib/GRNOC/TSDS.pm %{buildroot}%{perl_vendorlib}/GRNOC/
+
+%{__install} lib/GRNOC/TSDS/AggregateDocument.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
+%{__install} lib/GRNOC/TSDS/AggregatePoint.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
+%{__install} lib/GRNOC/TSDS/Constants.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
+%{__install} lib/GRNOC/TSDS/Constraints.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
+%{__install} lib/GRNOC/TSDS/DataDocument.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
+%{__install} lib/GRNOC/TSDS/DataPoint.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
+%{__install} lib/GRNOC/TSDS/DataService.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
+%{__install} lib/GRNOC/TSDS/DataType.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
+%{__install} lib/GRNOC/TSDS/Expire.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
+%{__install} lib/GRNOC/TSDS/GWS.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
+%{__install} lib/GRNOC/TSDS/Install.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
+%{__install} lib/GRNOC/TSDS/MeasurementDecommer.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
+%{__install} lib/GRNOC/TSDS/MetaStats.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
+%{__install} lib/GRNOC/TSDS/MongoDB.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
+%{__install} lib/GRNOC/TSDS/Parser.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
+%{__install} lib/GRNOC/TSDS/RedisLock.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
+%{__install} lib/GRNOC/TSDS/SearchIndexer.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
+%{__install} lib/GRNOC/TSDS/Setup.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
+%{__install} lib/GRNOC/TSDS/Upgrade.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
+%{__install} lib/GRNOC/TSDS/Writer.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
+
+%{__install} lib/GRNOC/TSDS/DataService/Aggregation.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/DataService
+%{__install} lib/GRNOC/TSDS/DataService/Atlas.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/DataService
+%{__install} lib/GRNOC/TSDS/DataService/Image.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/DataService
+%{__install} lib/GRNOC/TSDS/DataService/MetaData.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/DataService
+%{__install} lib/GRNOC/TSDS/DataService/Push.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/DataService
+%{__install} lib/GRNOC/TSDS/DataService/Query.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/DataService
+%{__install} lib/GRNOC/TSDS/DataService/Report.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/DataService
+%{__install} lib/GRNOC/TSDS/DataService/Search.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/DataService
+
+%{__install} lib/GRNOC/TSDS/GWS/Admin.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/GWS
+%{__install} lib/GRNOC/TSDS/GWS/Aggregation.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/GWS
+%{__install} lib/GRNOC/TSDS/GWS/Atlas.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/GWS
+%{__install} lib/GRNOC/TSDS/GWS/Forge.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/GWS
+%{__install} lib/GRNOC/TSDS/GWS/Image.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/GWS
+%{__install} lib/GRNOC/TSDS/GWS/MetaData.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/GWS
+%{__install} lib/GRNOC/TSDS/GWS/Push.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/GWS
+%{__install} lib/GRNOC/TSDS/GWS/Query.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/GWS
+%{__install} lib/GRNOC/TSDS/GWS/Report.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/GWS
+%{__install} lib/GRNOC/TSDS/GWS/Search.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/GWS
+
+%{__install} lib/GRNOC/TSDS/Parser/Actions.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/Parser
+
+%{__install} lib/GRNOC/TSDS/Upgrade/1_2_0.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/Upgrade
+%{__install} lib/GRNOC/TSDS/Upgrade/1_2_1.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/Upgrade
+%{__install} lib/GRNOC/TSDS/Upgrade/1_2_2.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/Upgrade
+%{__install} lib/GRNOC/TSDS/Upgrade/1_2_3.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/Upgrade
+%{__install} lib/GRNOC/TSDS/Upgrade/1_4_0.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/Upgrade
+%{__install} lib/GRNOC/TSDS/Upgrade/1_4_1.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/Upgrade
+%{__install} lib/GRNOC/TSDS/Upgrade/1_4_2.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/Upgrade
+%{__install} lib/GRNOC/TSDS/Upgrade/1_5_0.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/Upgrade
+%{__install} lib/GRNOC/TSDS/Upgrade/1_5_1.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/Upgrade
+%{__install} lib/GRNOC/TSDS/Upgrade/1_5_2.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/Upgrade
+%{__install} lib/GRNOC/TSDS/Upgrade/1_5_3.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/Upgrade
+%{__install} lib/GRNOC/TSDS/Upgrade/1_5_4.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/Upgrade
+%{__install} lib/GRNOC/TSDS/Upgrade/1_6_0.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/Upgrade
+
+%{__install} lib/GRNOC/TSDS/Util/ConfigChooser.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/Util
+
+%{__install} lib/GRNOC/TSDS/Writer/AggregateMessage.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/Writer
+%{__install} lib/GRNOC/TSDS/Writer/DataMessage.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/Writer
+%{__install} lib/GRNOC/TSDS/Writer/Worker.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/Writer
+
+%{__install} -d -p %{buildroot}%{perl_lib}%{name}/lib/perl5
+cp -r venv/lib/perl5/* -t %{buildroot}%{perl_lib}%{name}/lib/perl5
 
 # clean up buildroot
 find %{buildroot} -name .packlist -exec %{__rm} {} \;
@@ -322,3 +357,5 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-, apache, apache, 755)
 
 %dir /usr/share/grnoc/tsds-services/temp
+
+%{perl_lib}/%{name}/lib/perl5/*

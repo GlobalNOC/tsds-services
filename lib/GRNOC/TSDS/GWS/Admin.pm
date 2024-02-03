@@ -16,6 +16,8 @@ package GRNOC::TSDS::GWS::Admin;
 use strict;
 use warnings;
 
+use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
+
 use base 'GRNOC::TSDS::GWS';
 
 use GRNOC::TSDS::DataService::MetaData;
