@@ -1,3 +1,9 @@
+## GRNOC TSDS Services 1.7.1 --
+
+### Bug Fixes:
+
+* Removes deprecated "update" and "insert" MongoDB calls
+
 ## GRNOC TSDS Services 1.7.0 --
 
 ### Features:
