@@ -1382,15 +1382,29 @@ DISTRIBUTIONS
       Test::More 0.94
       perl 5.004
       utf8 0
-  List-MoreUtils-0.33
-    pathname: A/AD/ADAMK/List-MoreUtils-0.33.tar.gz
+  List-MoreUtils-0.428
+    pathname: R/RE/REHSACK/List-MoreUtils-0.428.tar.gz
     provides:
-      List::MoreUtils 0.33
+      List::MoreUtils 0.428
+      List::MoreUtils::PP 0.428
     requirements:
-      ExtUtils::CBuilder 0.27
-      ExtUtils::MakeMaker 6.52
-      Test::More 0.82
-      perl 5.005030
+      Exporter::Tiny 0.038
+      ExtUtils::MakeMaker 0
+      List::MoreUtils::XS 0.426
+  List-MoreUtils-XS-0.430
+    pathname: R/RE/REHSACK/List-MoreUtils-XS-0.430.tar.gz
+    provides:
+      List::MoreUtils::XS 0.430
+    requirements:
+      Carp 0
+      ExtUtils::MakeMaker 0
+      File::Basename 0
+      File::Copy 0
+      File::Path 0
+      File::Spec 0
+      IPC::Cmd 0
+      XSLoader 0.22
+      base 0
   LockFile-Simple-0.208
     pathname: S/SC/SCHWIGON/lockfile-simple/LockFile-Simple-0.208.tar.gz
     provides:

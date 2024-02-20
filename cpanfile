@@ -12,7 +12,7 @@ requires 'HTML::Parser', '== 3.71';
 requires 'JSON', '== 2.59';
 requires 'JSON::XS', '== 3.01';
 requires 'List::Flatten::Recursive', '== 0.103460';
-requires 'List::MoreUtils', '== 0.33';
+requires 'List::MoreUtils', '== 0.428';
 requires 'List::Util', '== 1.47';
 requires 'LockFile::Simple', '== 0.208';
 requires 'Marpa::R2', '== 3.000000';
