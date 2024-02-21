@@ -150,10 +150,10 @@ sleep( 10 );
 
 
 # Now that we have written the messages, let's make sure our metadata docs were updated accordingly
-my @active = $collection->find({"node" => "rtr.seat", "end" => undef})->all();
+@active = $collection->find({"node" => "rtr.seat", "end" => undef})->all();
 is(@active, 2, "currently 2 active records for rtr.seat");
 
-my $measurements = {};
+$measurements = {};
 foreach my $doc (@active){
     my $node = $doc->{'node'};
     my $intf = $doc->{'intf'};

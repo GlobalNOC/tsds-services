@@ -4,7 +4,7 @@
     <unit-test-database>tsdstest</unit-test-database>
 
     <!-- how many concurrent processes should read and process messages off of the rabbit queue -->
-    <num-processes>1</num-processes>
+    <num-processes>2</num-processes>
 
     <!-- how many concurrent processes should read and process aggregate messages off of the rabbit queue -->
     <num-aggregate-processes>1</num-aggregate-processes>

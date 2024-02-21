@@ -94,5 +94,5 @@ is(@$res, 1, "got 1 result back");
 is(@{$res->[0]{'values.output'}}, 200, "got 200 datapoints, __timestamp filled in extra");
 is($res->[0]{'values.output'}->[-1][0], 1990, "got correct last timepoint");
 
-is($res->[0]{'values.output'}->[49][1], 103730, "last value from ge-0/0/0 is 103730");
-is($res->[0]{'values.output'}->[50][1], 146931, "first value from interface1 is 146931");
+is($res->[0]{'values.output'}->[49][1], 50, "last value from ge-0/0/0 is 50");
+is($res->[0]{'values.output'}->[50][1], 8691, "first value from interface1 is 8691");

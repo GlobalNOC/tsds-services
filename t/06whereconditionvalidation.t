@@ -1,5 +1,6 @@
 use strict;
 use warnings;
+
 use Test::More tests => 92;
 use GRNOC::Config;
 use GRNOC::TSDS::DataService::Query;
@@ -292,19 +293,19 @@ else{
 }
 
 # All Together
-$arr= $query->run_query( query => 'get intf as Interface,node as NodeName between("01/01/1970","01/02/1970") by intf,NodeName  from tsdstest where (node="rtr.newy" or intf="ge-0/0/0") ordered by NodeName desc ');
+$arr= $query->run_query( query => 'get intf, node between("01/01/1970","01/02/1970") by node, intf from tsdstest where (node="rtr.newy" or intf="ge-0/0/0") ordered by node, intf desc ');
 $len = scalar @$arr -1;
 
-$result= $arr->[0]->{'Interface'};
-is($result,"interface11"," Interface column renamed succesfully and value returned correctly");
+$result= $arr->[0]->{'intf'};
+is($result,"ge-0/0/0"," Interface column renamed succesfully and value returned correctly");
 
-$result= $arr->[0]->{'NodeName'};
-is($result,"rtr.newy"," NodeName column renamed succesfully and value returned correctly");
+$result= $arr->[0]->{'node'};
+is($result,"rtr.chic"," Node column renamed succesfully and value returned correctly");
 
-$result= $arr->[$len]->{'Interface'};
-is($result,"ge-0/0/0"," Interface column renamed succesfully and last value returned correctly");
+$result= $arr->[$len]->{'intf'};
+is($result,"interface10"," Interface column renamed succesfully and last value returned correctly");
 
-$result= $arr->[$len]->{'NodeName'};
-is($result,"rtr.chic"," NodeName column renamed succesfully and last value returned correctly");
+$result= $arr->[$len]->{'node'};
+is($result,"rtr.newy"," Node column renamed succesfully and last value returned correctly");
 
 

@@ -56,7 +56,7 @@ $res = $query->run_query(query => 'get aggregate(values.output, 300, average) as
 
 ok(defined $res, "got query response");
 is($res->[0]->{'values.output'}[0][0], 0, "first timestamp of misaligned aggregate data query is correct");
-is($res->[0]->{'values.output'}[-1][0], 600, "last timestamp of midsaligned aggregate data quer is correcT");
+is($res->[0]->{'values.output'}[-1][0], 600, "last timestamp of midsaligned aggregate data query is correct");
 
 is($query->actual_start(), 0, "got floored start time of 0");
 is($query->actual_end(), 900, "got ceiled start time of 900");

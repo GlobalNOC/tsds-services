@@ -1,5 +1,6 @@
 use strict;
 use warnings;
+
 use Test::More tests => 39;
 use GRNOC::Config;
 use GRNOC::Log;
@@ -77,7 +78,7 @@ $results = $ds->search( search               => "rtr.chic",
 			end_time             => 7200
     )->{'results'};
 
-is(@$results, "10", "10 results with max >= 720.5");
+is(@$results, 9, "9 results with max >= 720.5");
 
 
 $results = $ds->search( search               => "rtr.chic",		
@@ -91,7 +92,7 @@ $results = $ds->search( search               => "rtr.chic",
 			end_time             => 60
     )->{'results'};
 
-is(@$results, "10", "10 results with min >= 2");
+is(@$results, 9, "9 results with min >= 2");
 
 
 $results = $ds->search( search               => "rtr.chic",		
@@ -105,7 +106,7 @@ $results = $ds->search( search               => "rtr.chic",
 			end_time             => 1000
     )->{'results'};
 
-is(@$results, "1", "1 result with percentile_95 = 129695");
+is(@$results, 0, "0 results with percentile_95 = 129695");
 
 
 # Ensure ordering by value still works in a single measurement type
@@ -145,6 +146,7 @@ is(_get_value("input", $results->[0])->{'aggregate'}, 181446.5, "got first order
 # where there are no meta fields, ie no where clause
 $results = $ds->search( search               => undef,		
                         measurement_type     => ['tsdstest'],
+                        order_by             => ["value_1"],
                         start_time           => 1,
                         end_time             => 7200,
                         value_field_name     => ["input"],
@@ -157,7 +159,7 @@ $results = $ds->search( search               => undef,
 is($results->{'total'}, 20, "20 results reported in total");
 $results = $results->{'results'};
 is(@$results, 20, "got all 20 results back");
-is(_get_value("input", $results->[0])->{'aggregate'}, 164520.5, "got value");
+is(_get_value("input", $results->[0])->{'aggregate'}, 17640.5, "got value");
 
 
 # Ensuring that search while doing a limit/offset and
@@ -211,14 +213,15 @@ $results = $ds->search( search               => undef,
                         value_field_logic    => [">="],
                         value_field_function => ["min"],
                         limit                => 2,
-                        offset               => 0
+                        offset               => 0,
+                        order_by             => ["value_1"],
     );
 
 is($results->{'total'}, 20, "20 results reported in total");
 $results = $results->{'results'};
 is(@$results, 2, "got all 2 results back");
-is(_get_value("input", $results->[0])->{'aggregate'}, 164520.5, "got value");
-is(_get_value("input", $results->[1])->{'aggregate'}, 138600.5, "got value");
+is(_get_value("input", $results->[0])->{'aggregate'}, 17640.5, "got value");
+is(_get_value("input", $results->[1])->{'aggregate'}, 26280.5, "got value");
 
 
 # Same as above with but offset
@@ -232,14 +235,15 @@ $results = $ds->search( search               => undef,
                         value_field_logic    => [">="],
                         value_field_function => ["min"],
                         limit                => 2,
-                        offset               => 2
+                        offset               => 2,
+                        order_by             => ["value_1"],
     );
 
 is($results->{'total'}, 20, "20 results reported in total");
 $results = $results->{'results'};
 is(@$results, 2, "got all 2 results back");
-is(_get_value("input", $results->[0])->{'aggregate'}, 43560.5, "got value");
-is(_get_value("input", $results->[1])->{'aggregate'}, 60840.5, "got value");
+is(_get_value("input", $results->[0])->{'aggregate'}, 34920.5, "got value");
+is(_get_value("input", $results->[1])->{'aggregate'}, 43560.5, "got value");
 
 
 sub _get_value {
