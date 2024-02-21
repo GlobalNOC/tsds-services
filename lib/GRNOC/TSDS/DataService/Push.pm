@@ -1,3 +1,4 @@
+#!/usr/bin/perl -I /opt/grnoc/venv/grnoc-tsds-services/lib/perl5
 #--------------------------------------------------------------------
 #----- GRNOC TSDS Push DataService Library
 #-----
@@ -13,8 +14,6 @@ package GRNOC::TSDS::DataService::Push;
 
 use strict;
 use warnings;
-
-use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
 
 use base 'GRNOC::TSDS::DataService';
 

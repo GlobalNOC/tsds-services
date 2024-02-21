@@ -1,3 +1,4 @@
+#!/usr/bin/perl -I /opt/grnoc/venv/grnoc-tsds-services/lib/perl5
 #--------------------------------------------------------------------
 #----- GRNOC TSDS Push GWS Library
 #-----
@@ -18,8 +19,6 @@ package GRNOC::TSDS::GWS::Push;
 
 use strict;
 use warnings;
-
-use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
 
 use base 'GRNOC::TSDS::GWS';
 

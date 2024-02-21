@@ -1,3 +1,4 @@
+#!/usr/bin/perl -I /opt/grnoc/venv/grnoc-tsds-services/lib/perl5
 #--------------------------------------------------------------------
 #----- GRNOC TSDS Search DataService Library
 #-----
@@ -14,8 +15,6 @@ package GRNOC::TSDS::DataService::Search;
 
 use strict;
 use warnings;
-
-use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
 
 use base 'GRNOC::TSDS::DataService';
 

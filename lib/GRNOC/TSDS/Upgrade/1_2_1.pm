@@ -1,9 +1,8 @@
+#!/usr/bin/perl -I /opt/grnoc/venv/grnoc-tsds-services/lib/perl5
 package GRNOC::TSDS::Upgrade::1_2_1;
 
 use strict;
 use warnings;
-
-use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
 
 use constant PREVIOUS_VERSION => '1.2.0';
 
