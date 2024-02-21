@@ -19,4 +19,4 @@ test:
 	/usr/bin/perl -I lib/ t/TEST 1
 
 venv:
-	carton install --path=venv
+	carton install --deployment --path=venv
