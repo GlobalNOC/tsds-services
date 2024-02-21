@@ -1,21 +1,12 @@
 <config>
-   <!-- set if this service needs global access view for report -->
+    <!-- measurement metadata constraints -->
 
-   <!--
-   <global-access uri="<host_name>/tsds/services" />
-   -->
+    <constraint database="tsdstest">
+      <metadata field="node" regex="^rtr" />
+      <metadata query='{"$or": [{"node": "rtr.chic"}, {"node": "rtr.newy"}]}' />
+    </constraint>
 
-   <!-- measurement metadata constraints -->
-
-   <!--
-   <constraint database="interface">
-      <metadata field="network" value="My Network" />
-      <metadata field="node" regex="network.net$" />
-      <metadata query='{"circuit.role": {"$in": ["role1", "role2"]}}' />
-   </constraint>
-
-   <constraint database="cpu">
-      <metadata field="network_id" value="100" />
-   </constraint>
-   -->
+    <constraint database="bogus">
+      <metadata field="lol" value="noob" />
+    </constraint>
 </config>
