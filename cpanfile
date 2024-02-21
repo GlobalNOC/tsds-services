@@ -20,6 +20,7 @@ requires 'Math::Round', '== 0.06';
 requires 'MongoDB', 'v1.8.1';
 requires 'Moo', '== 2.005005';
 requires 'Net::AMQP::RabbitMQ', '== 2.30000';
+requires 'Net::RabbitMQ::Management::API', '== 0.01';
 requires 'Number::Format', '== 1.73';
 requires 'Parallel::ForkManager', '== 1.18';
 requires 'Proc::Daemon', '== 0.19';
