@@ -5,7 +5,7 @@ use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
 use strict;
 use warnings;
 
-use feature 'switch';
+use experimental 'switch';
 
 use Carp;
 use Marpa::R2;
