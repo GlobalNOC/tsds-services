@@ -28,11 +28,11 @@ requires 'Redis::DistLock', '== 0.07';
 requires 'Sort::Versions', '== 1.5';
 requires 'Statistics::LineFit', '== 0.06';
 requires 'Test::Deep', '== 1.126';
-requires 'Time::HiRes', '== 1.9725';
+requires 'Time::HiRes', '== 1.9758';
 requires 'Tie::IxHash', '== 1.22';
 requires 'Try::Tiny', '== 0.30';
 requires 'Type::Tiny', '== 1.004002';
 requires 'Types::XSD::Lite', '== 0.005';
 requires 'WWW::Mechanize::PhantomJS', '== 0.14';
 requires 'XML::Writer', '== 0.623';
-requires 'XSLoader', '== 0.22';
+
