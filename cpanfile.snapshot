@@ -188,6 +188,59 @@ DISTRIBUTIONS
       strict 0
       utf8 0
       warnings 0
+  CPAN-Meta-2.150010
+    pathname: D/DA/DAGOLDEN/CPAN-Meta-2.150010.tar.gz
+    provides:
+      CPAN::Meta 2.150010
+      CPAN::Meta::Converter 2.150010
+      CPAN::Meta::Feature 2.150010
+      CPAN::Meta::History 2.150010
+      CPAN::Meta::Merge 2.150010
+      CPAN::Meta::Prereqs 2.150010
+      CPAN::Meta::Spec 2.150010
+      CPAN::Meta::Validator 2.150010
+      Parse::CPAN::Meta 2.150010
+    requirements:
+      CPAN::Meta::Requirements 2.121
+      CPAN::Meta::YAML 0.011
+      Carp 0
+      Encode 0
+      Exporter 0
+      ExtUtils::MakeMaker 6.17
+      File::Spec 0.80
+      JSON::PP 2.27300
+      Scalar::Util 0
+      perl 5.008001
+      strict 0
+      version 0.88
+      warnings 0
+  CPAN-Meta-Requirements-2.143
+    pathname: R/RJ/RJBS/CPAN-Meta-Requirements-2.143.tar.gz
+    provides:
+      CPAN::Meta::Requirements 2.143
+      CPAN::Meta::Requirements::Range 2.143
+    requirements:
+      B 0
+      Carp 0
+      ExtUtils::MakeMaker 6.17
+      perl 5.010000
+      strict 0
+      version 0.88
+      warnings 0
+  CPAN-Meta-YAML-0.018
+    pathname: D/DA/DAGOLDEN/CPAN-Meta-YAML-0.018.tar.gz
+    provides:
+      CPAN::Meta::YAML 0.018
+    requirements:
+      B 0
+      Carp 0
+      Exporter 0
+      ExtUtils::MakeMaker 6.17
+      Fcntl 0
+      Scalar::Util 0
+      perl 5.008001
+      strict 0
+      warnings 0
   Cache-Memcached-Fast-0.23
     pathname: K/KR/KROKI/Cache-Memcached-Fast-0.23.tar.gz
     provides:
@@ -274,6 +327,12 @@ DISTRIBUTIONS
       Clone 0.46
     requirements:
       ExtUtils::MakeMaker 0
+  Compress-Raw-Zlib-2.208
+    pathname: P/PM/PMQS/Compress-Raw-Zlib-2.208.tar.gz
+    provides:
+      Compress::Raw::Zlib 2.208
+    requirements:
+      ExtUtils::MakeMaker 0
   Config-AutoConf-0.320
     pathname: A/AM/AMBS/Config-AutoConf-0.320.tar.gz
     provides:
@@ -291,6 +350,22 @@ DISTRIBUTIONS
       Text::ParseWords 0
       base 0
       perl 5.006
+      strict 0
+      warnings 0
+  Cpanel-JSON-XS-4.37
+    pathname: R/RU/RURBAN/Cpanel-JSON-XS-4.37.tar.gz
+    provides:
+      Cpanel::JSON::XS 4.37
+      Cpanel::JSON::XS::Type undef
+    requirements:
+      Carp 0
+      Config 0
+      Encode 1.9801
+      Exporter 0
+      ExtUtils::MakeMaker 0
+      Pod::Text 2.08
+      XSLoader 0
+      overload 0
       strict 0
       warnings 0
   Crypt-URandom-0.39
@@ -918,6 +993,52 @@ DISTRIBUTIONS
       perl 5.006
       strict 0
       warnings 0
+  ExtUtils-MakeMaker-7.70
+    pathname: B/BI/BINGOS/ExtUtils-MakeMaker-7.70.tar.gz
+    provides:
+      ExtUtils::Command 7.70
+      ExtUtils::Command::MM 7.70
+      ExtUtils::Liblist 7.70
+      ExtUtils::Liblist::Kid 7.70
+      ExtUtils::MM 7.70
+      ExtUtils::MM_AIX 7.70
+      ExtUtils::MM_Any 7.70
+      ExtUtils::MM_BeOS 7.70
+      ExtUtils::MM_Cygwin 7.70
+      ExtUtils::MM_DOS 7.70
+      ExtUtils::MM_Darwin 7.70
+      ExtUtils::MM_MacOS 7.70
+      ExtUtils::MM_NW5 7.70
+      ExtUtils::MM_OS2 7.70
+      ExtUtils::MM_OS390 7.70
+      ExtUtils::MM_QNX 7.70
+      ExtUtils::MM_UWIN 7.70
+      ExtUtils::MM_Unix 7.70
+      ExtUtils::MM_VMS 7.70
+      ExtUtils::MM_VOS 7.70
+      ExtUtils::MM_Win32 7.70
+      ExtUtils::MM_Win95 7.70
+      ExtUtils::MY 7.70
+      ExtUtils::MakeMaker 7.70
+      ExtUtils::MakeMaker::Config 7.70
+      ExtUtils::MakeMaker::Locale 7.70
+      ExtUtils::MakeMaker::_version 7.70
+      ExtUtils::MakeMaker::charstar 7.70
+      ExtUtils::MakeMaker::version 7.70
+      ExtUtils::MakeMaker::version::regex 7.70
+      ExtUtils::MakeMaker::version::vpp 7.70
+      ExtUtils::Mkbootstrap 7.70
+      ExtUtils::Mksymlists 7.70
+      ExtUtils::testlib 7.70
+      MM 7.70
+      MY 7.70
+    requirements:
+      Data::Dumper 0
+      Encode 0
+      File::Basename 0
+      File::Spec 0.8
+      Pod::Man 0
+      perl 5.006
   File-Find-Rule-0.34
     pathname: R/RC/RCLAMP/File-Find-Rule-0.34.tar.gz
     provides:
@@ -989,6 +1110,14 @@ DISTRIBUTIONS
       ExtUtils::MakeMaker 0
       base 0
       perl 5.006
+  Getopt-Long-2.57
+    pathname: J/JV/JV/Getopt-Long-2.57.tar.gz
+    provides:
+      Getopt::Long 2.57
+      Getopt::Long::Parser 2.57
+    requirements:
+      ExtUtils::MakeMaker 0
+      Pod::Usage 1.14
   HTML-Form-6.11
     pathname: S/SI/SIMBABQUE/HTML-Form-6.11.tar.gz
     provides:
@@ -1175,6 +1304,15 @@ DISTRIBUTIONS
       Exporter 5.57
       ExtUtils::MakeMaker 0
       perl 5.008
+  IO-Socket-IP-0.42
+    pathname: P/PE/PEVANS/IO-Socket-IP-0.42.tar.gz
+    provides:
+      IO::Socket::IP 0.42
+    requirements:
+      IO::Socket 0
+      Module::Build 0.4004
+      Socket 1.97
+      perl 5.014
   IO-Socket-Timeout-0.32
     pathname: D/DA/DAMS/IO-Socket-Timeout-0.32.tar.gz
     provides:
@@ -1219,6 +1357,27 @@ DISTRIBUTIONS
       perl 5.008
       strict 0
       warnings 0
+  JSON-MaybeXS-1.004005
+    pathname: E/ET/ETHER/JSON-MaybeXS-1.004005.tar.gz
+    provides:
+      JSON::MaybeXS 1.004005
+    requirements:
+      Carp 0
+      Cpanel::JSON::XS 2.3310
+      ExtUtils::MakeMaker 0
+      JSON::PP 2.27300
+      Scalar::Util 0
+      perl 5.006
+  JSON-PP-4.16
+    pathname: I/IS/ISHIGAKI/JSON-PP-4.16.tar.gz
+    provides:
+      JSON::PP 4.16
+      JSON::PP::Boolean 4.16
+      JSON::PP::IncrParser 4.16
+    requirements:
+      ExtUtils::MakeMaker 0
+      Scalar::Util 1.08
+      Test::More 0
   JSON-XS-3.01
     pathname: M/ML/MLEHMANN/JSON-XS-3.01.tar.gz
     provides:
@@ -1453,113 +1612,112 @@ DISTRIBUTIONS
       perl 5.006
       strict 0
       warnings 0
-  MongoDB-v2.2.2
-    pathname: M/MO/MONGODB/MongoDB-v2.2.2.tar.gz
+  MongoDB-v1.8.1
+    pathname: M/MO/MONGODB/MongoDB-v1.8.1.tar.gz
     provides:
-      MongoDB v2.2.2
-      MongoDB::AuthError v2.2.2
-      MongoDB::BSON::Binary v2.2.2
-      MongoDB::BSON::Regexp v2.2.2
-      MongoDB::BulkWrite v2.2.2
-      MongoDB::BulkWriteResult v2.2.2
-      MongoDB::BulkWriteView v2.2.2
-      MongoDB::ChangeStream v2.2.2
-      MongoDB::ClientSession v2.2.2
-      MongoDB::Code v2.2.2
-      MongoDB::Collection v2.2.2
-      MongoDB::CommandResult v2.2.2
-      MongoDB::ConfigurationError v2.2.2
-      MongoDB::ConnectionError v2.2.2
-      MongoDB::Cursor v2.2.2
-      MongoDB::CursorNotFoundError v2.2.2
-      MongoDB::DBRef v2.2.2
-      MongoDB::Database v2.2.2
-      MongoDB::DatabaseError v2.2.2
-      MongoDB::DecodingError v2.2.2
-      MongoDB::DeleteResult v2.2.2
-      MongoDB::DocumentError v2.2.2
-      MongoDB::DuplicateKeyError v2.2.2
-      MongoDB::Error v2.2.2
-      MongoDB::ExecutionTimeout v2.2.2
-      MongoDB::GridFSBucket v2.2.2
-      MongoDB::GridFSBucket::DownloadStream v2.2.2
-      MongoDB::GridFSBucket::UploadStream v2.2.2
-      MongoDB::GridFSError v2.2.2
-      MongoDB::HandshakeError v2.2.2
-      MongoDB::IndexView v2.2.2
-      MongoDB::InsertManyResult v2.2.2
-      MongoDB::InsertOneResult v2.2.2
-      MongoDB::InternalError v2.2.2
-      MongoDB::InvalidOperationError v2.2.2
-      MongoDB::MongoClient v2.2.2
-      MongoDB::NetworkError v2.2.2
-      MongoDB::NetworkTimeout v2.2.2
-      MongoDB::NotMasterError v2.2.2
-      MongoDB::OID v2.2.2
-      MongoDB::ProtocolError v2.2.2
-      MongoDB::QueryResult v2.2.2
-      MongoDB::QueryResult::Filtered v2.2.2
-      MongoDB::ReadConcern v2.2.2
-      MongoDB::ReadPreference v2.2.2
-      MongoDB::SelectionError v2.2.2
-      MongoDB::TimeoutError v2.2.2
-      MongoDB::Timestamp v2.2.2
-      MongoDB::UnacknowledgedResult v2.2.2
-      MongoDB::UpdateResult v2.2.2
-      MongoDB::UsageError v2.2.2
-      MongoDB::WriteConcern v2.2.2
-      MongoDB::WriteConcernError v2.2.2
-      MongoDB::WriteError v2.2.2
+      MongoDB v1.8.1
+      MongoDB::AuthError v1.8.1
+      MongoDB::BSON v1.8.1
+      MongoDB::BSON::Binary v1.8.1
+      MongoDB::BSON::Regexp v1.8.1
+      MongoDB::BulkWrite v1.8.1
+      MongoDB::BulkWriteResult v1.8.1
+      MongoDB::BulkWriteView v1.8.1
+      MongoDB::Code v1.8.1
+      MongoDB::Collection v1.8.1
+      MongoDB::CommandResult v1.8.1
+      MongoDB::ConnectionError v1.8.1
+      MongoDB::Cursor v1.8.1
+      MongoDB::CursorNotFoundError v1.8.1
+      MongoDB::DBRef v1.8.1
+      MongoDB::Database v1.8.1
+      MongoDB::DatabaseError v1.8.1
+      MongoDB::DecodingError v1.8.1
+      MongoDB::DeleteResult v1.8.1
+      MongoDB::DocumentError v1.8.1
+      MongoDB::DuplicateKeyError v1.8.1
+      MongoDB::Error v1.8.1
+      MongoDB::ExecutionTimeout v1.8.1
+      MongoDB::GridFS v1.8.1
+      MongoDB::GridFS::File v1.8.1
+      MongoDB::GridFSBucket v1.8.1
+      MongoDB::GridFSBucket::DownloadStream v1.8.1
+      MongoDB::GridFSBucket::UploadStream v1.8.1
+      MongoDB::GridFSError v1.8.1
+      MongoDB::HandshakeError v1.8.1
+      MongoDB::IndexView v1.8.1
+      MongoDB::InsertManyResult v1.8.1
+      MongoDB::InsertOneResult v1.8.1
+      MongoDB::InternalError v1.8.1
+      MongoDB::MongoClient v1.8.1
+      MongoDB::NetworkError v1.8.1
+      MongoDB::NetworkTimeout v1.8.1
+      MongoDB::NotMasterError v1.8.1
+      MongoDB::OID v1.8.1
+      MongoDB::ProtocolError v1.8.1
+      MongoDB::QueryResult v1.8.1
+      MongoDB::QueryResult::Filtered v1.8.1
+      MongoDB::ReadConcern v1.8.1
+      MongoDB::ReadPreference v1.8.1
+      MongoDB::SelectionError v1.8.1
+      MongoDB::TimeoutError v1.8.1
+      MongoDB::Timestamp v1.8.1
+      MongoDB::UnacknowledgedResult v1.8.1
+      MongoDB::UpdateResult v1.8.1
+      MongoDB::UsageError v1.8.1
+      MongoDB::WriteConcern v1.8.1
+      MongoDB::WriteConcernError v1.8.1
+      MongoDB::WriteError v1.8.1
     requirements:
-      Authen::SASL::SASLprep 0
-      Authen::SCRAM::Client 0.011
-      BSON 1.012000
-      BSON::Bytes 0
-      BSON::Code 0
-      BSON::DBRef 0
-      BSON::OID 0
-      BSON::Raw 0
-      BSON::Regex 0
-      BSON::Time 0
-      BSON::Timestamp 0
-      BSON::Types 0
-      BSON::XS 0.008000
+      Authen::SCRAM::Client 0.003
+      BSON::Decimal128 1
       Carp 0
       Class::XSAccessor 0
-      Compress::Zlib 0
+      Data::Dumper 0
+      DateTime 0.78
+      Devel::Peek 0
       Digest::MD5 0
       Encode 0
       Exporter 5.57
-      ExtUtils::MakeMaker 6.17
+      ExtUtils::MakeMaker 6.59
+      File::Spec 0
+      File::Temp 0.17
+      FileHandle 0
+      IO::File 0
       IO::Socket 0
+      JSON::MaybeXS 1.002005
       List::Util 0
       MIME::Base64 0
       Math::BigInt 0
       Moo 2
       Moo::Role 0
-      Net::DNS 0
-      Safe::Isa 1.000007
+      Path::Tiny 0.054
+      Safe::Isa 0
       Scalar::Util 0
       Socket 0
-      Sub::Defer 0
-      Sub::Quote 0
-      Text::ParseWords 0
+      Test::Deep 0.111
+      Test::Fatal 0
+      Test::More 0.96
       Tie::IxHash 0
       Time::HiRes 0
+      Try::Tiny 0
       Type::Library 0
+      Type::Tiny 1
       Type::Tiny::XS 0
       Type::Utils 0
       Types::Standard 0
-      UUID::URandom 0
+      XSLoader 0
+      bigint 0
       boolean 0.25
-      bytes 0
       constant 0
       if 0
+      lib 0
       namespace::clean 0
       overload 0
-      perl 5.010001
+      perl 5.008004
       re 0
       strict 0
+      utf8 0
       version 0
       warnings 0
   Moo-2.005005
@@ -2430,6 +2588,60 @@ DISTRIBUTIONS
       Try::Tiny 0.07
       strict 0
       warnings 0
+  Test-Harness-3.48
+    pathname: L/LE/LEONT/Test-Harness-3.48.tar.gz
+    provides:
+      App::Prove 3.48
+      App::Prove::State 3.48
+      App::Prove::State::Result 3.48
+      App::Prove::State::Result::Test 3.48
+      Harness::Hook undef
+      TAP::Base 3.48
+      TAP::Formatter::Base 3.48
+      TAP::Formatter::Color 3.48
+      TAP::Formatter::Console 3.48
+      TAP::Formatter::Console::ParallelSession 3.48
+      TAP::Formatter::Console::Session 3.48
+      TAP::Formatter::File 3.48
+      TAP::Formatter::File::Session 3.48
+      TAP::Formatter::Session 3.48
+      TAP::Harness 3.48
+      TAP::Harness::Env 3.48
+      TAP::Object 3.48
+      TAP::Parser 3.48
+      TAP::Parser::Aggregator 3.48
+      TAP::Parser::Grammar 3.48
+      TAP::Parser::Iterator 3.48
+      TAP::Parser::Iterator::Array 3.48
+      TAP::Parser::Iterator::Process 3.48
+      TAP::Parser::Iterator::Stream 3.48
+      TAP::Parser::IteratorFactory 3.48
+      TAP::Parser::Multiplexer 3.48
+      TAP::Parser::Result 3.48
+      TAP::Parser::Result::Bailout 3.48
+      TAP::Parser::Result::Comment 3.48
+      TAP::Parser::Result::Plan 3.48
+      TAP::Parser::Result::Pragma 3.48
+      TAP::Parser::Result::Test 3.48
+      TAP::Parser::Result::Unknown 3.48
+      TAP::Parser::Result::Version 3.48
+      TAP::Parser::Result::YAML 3.48
+      TAP::Parser::ResultFactory 3.48
+      TAP::Parser::Scheduler 3.48
+      TAP::Parser::Scheduler::Job 3.48
+      TAP::Parser::Scheduler::Spinner 3.48
+      TAP::Parser::Source 3.48
+      TAP::Parser::SourceHandler 3.48
+      TAP::Parser::SourceHandler::Executable 3.48
+      TAP::Parser::SourceHandler::File 3.48
+      TAP::Parser::SourceHandler::Handle 3.48
+      TAP::Parser::SourceHandler::Perl 3.48
+      TAP::Parser::SourceHandler::RawTAP 3.48
+      TAP::Parser::YAMLish::Reader 3.48
+      TAP::Parser::YAMLish::Writer 3.48
+      Test::Harness 3.48
+    requirements:
+      ExtUtils::MakeMaker 0
   Test-LongString-0.17
     pathname: R/RG/RGARCIA/Test-LongString-0.17.tar.gz
     provides:
@@ -2475,6 +2687,89 @@ DISTRIBUTIONS
       Test::Builder::Module 0
       Test::More 0.88
       perl 5.008_001
+  Test-Simple-1.302198
+    pathname: E/EX/EXODIST/Test-Simple-1.302198.tar.gz
+    provides:
+      Test2 1.302198
+      Test2::API 1.302198
+      Test2::API::Breakage 1.302198
+      Test2::API::Context 1.302198
+      Test2::API::Instance 1.302198
+      Test2::API::InterceptResult 1.302198
+      Test2::API::InterceptResult::Event 1.302198
+      Test2::API::InterceptResult::Facet 1.302198
+      Test2::API::InterceptResult::Hub 1.302198
+      Test2::API::InterceptResult::Squasher 1.302198
+      Test2::API::Stack 1.302198
+      Test2::Event 1.302198
+      Test2::Event::Bail 1.302198
+      Test2::Event::Diag 1.302198
+      Test2::Event::Encoding 1.302198
+      Test2::Event::Exception 1.302198
+      Test2::Event::Fail 1.302198
+      Test2::Event::Generic 1.302198
+      Test2::Event::Note 1.302198
+      Test2::Event::Ok 1.302198
+      Test2::Event::Pass 1.302198
+      Test2::Event::Plan 1.302198
+      Test2::Event::Skip 1.302198
+      Test2::Event::Subtest 1.302198
+      Test2::Event::TAP::Version 1.302198
+      Test2::Event::V2 1.302198
+      Test2::Event::Waiting 1.302198
+      Test2::EventFacet 1.302198
+      Test2::EventFacet::About 1.302198
+      Test2::EventFacet::Amnesty 1.302198
+      Test2::EventFacet::Assert 1.302198
+      Test2::EventFacet::Control 1.302198
+      Test2::EventFacet::Error 1.302198
+      Test2::EventFacet::Hub 1.302198
+      Test2::EventFacet::Info 1.302198
+      Test2::EventFacet::Info::Table 1.302198
+      Test2::EventFacet::Meta 1.302198
+      Test2::EventFacet::Parent 1.302198
+      Test2::EventFacet::Plan 1.302198
+      Test2::EventFacet::Render 1.302198
+      Test2::EventFacet::Trace 1.302198
+      Test2::Formatter 1.302198
+      Test2::Formatter::TAP 1.302198
+      Test2::Hub 1.302198
+      Test2::Hub::Interceptor 1.302198
+      Test2::Hub::Interceptor::Terminator 1.302198
+      Test2::Hub::Subtest 1.302198
+      Test2::IPC 1.302198
+      Test2::IPC::Driver 1.302198
+      Test2::IPC::Driver::Files 1.302198
+      Test2::Tools::Tiny 1.302198
+      Test2::Util 1.302198
+      Test2::Util::ExternalMeta 1.302198
+      Test2::Util::Facets2Legacy 1.302198
+      Test2::Util::HashBase 1.302198
+      Test2::Util::Trace 1.302198
+      Test::Builder 1.302198
+      Test::Builder::Formatter 1.302198
+      Test::Builder::IO::Scalar 2.114
+      Test::Builder::Module 1.302198
+      Test::Builder::Tester 1.302198
+      Test::Builder::Tester::Color 1.302198
+      Test::Builder::Tester::Tie 1.302198
+      Test::Builder::TodoDiag 1.302198
+      Test::More 1.302198
+      Test::Simple 1.302198
+      Test::Tester 1.302198
+      Test::Tester::Capture 1.302198
+      Test::Tester::CaptureRunner 1.302198
+      Test::Tester::Delegate 1.302198
+      Test::use::ok 1.302198
+      ok 1.302198
+    requirements:
+      ExtUtils::MakeMaker 0
+      File::Spec 0
+      File::Temp 0
+      Scalar::Util 1.13
+      Storable 0
+      perl 5.006002
+      utf8 0
   Test-TCP-2.22
     pathname: M/MI/MIYAGAWA/Test-TCP-2.22.tar.gz
     provides:
@@ -2520,7 +2815,7 @@ DISTRIBUTIONS
       Exporter 0
       ExtUtils::MakeMaker 0
       constant 0
-      perl 5.00503
+      perl 5.005030
   Tie-IxHash-1.22
     pathname: C/CH/CHORNY/Tie-IxHash-1.22.tar.gz
     provides:
@@ -2877,7 +3172,7 @@ DISTRIBUTIONS
     requirements:
       ExtUtils::MakeMaker 0
       LWP::UserAgent 0
-      perl 5.00405
+      perl 5.004050
   XML-SAX-1.02
     pathname: G/GR/GRANTM/XML-SAX-1.02.tar.gz
     provides:
@@ -2934,6 +3229,13 @@ DISTRIBUTIONS
       XML::Writer::_String 0.623
     requirements:
       ExtUtils::MakeMaker 0
+  XSLoader-0.24
+    pathname: S/SA/SAPER/XSLoader-0.24.tar.gz
+    provides:
+      XSLoader 0.24
+    requirements:
+      ExtUtils::MakeMaker 0
+      Test::More 0.47
   XString-0.005
     pathname: A/AT/ATOOMIC/XString-0.005.tar.gz
     provides:
