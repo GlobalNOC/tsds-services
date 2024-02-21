@@ -223,7 +223,9 @@ sub evaluate {
         $self->_clean_temp_table();
     }
 
+    if (defined($token_start) && defined($self->{'query_total'}) && defined($query)) {
     log_info("[tsds_trace]: Response Time: " . tv_interval($token_start, [gettimeofday]) . " seconds | Objects Returned: " . $self->{'query_total'} . " | Original Query: $query");
+    }
 
     return $res;
 }
