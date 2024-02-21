@@ -1184,14 +1184,14 @@ sub _get_reports {
     }
 
 =head
-    my $count = $report_collection->find($find)->sort( { $order_by => $flag } )->skip($offset)->limit($limit)->count();
+    my $count = $report_collection->find($find)->sort( { $order_by => $flag } )->skip($offset)->limit($limit)->count_documents();
 
     if ($count <= 0) {
         return;
     }
 =cut
     my @reports = $report_collection->find($find)->sort( { $order_by => $flag } )->skip($offset)->limit($limit)->all;
-    my $count = $report_collection->count($find);
+    my $count = $report_collection->count_documents($find);
 
     @reports = map {{ name           => $_->{'name'}, 
                       type           => $_->{'type'},

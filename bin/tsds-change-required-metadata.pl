@@ -185,7 +185,7 @@ sub _migrate_data {
     my $database        = shift;
     
     my $old_data = $database->get_collection($collection_name)->find({"identifier" => $old_identifier});    
-    my $data_count = $database->get_collection($collection_name)->count({"identifier" => $old_identifier});    
+    my $data_count = $database->get_collection($collection_name)->count_documents({"identifier" => $old_identifier});    
 
     print "  Migrating $collection_name ($data_count docs)...\n";
 

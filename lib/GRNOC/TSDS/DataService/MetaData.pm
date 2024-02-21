@@ -112,7 +112,7 @@ sub get_measurement_types {
         };
         # add count if flag was passed in
         if($args{'show_measurement_count'}){
-            my $mt_count = $meas_collection->count();
+            my $mt_count = $meas_collection->count_documents();
             $measurement_type->{'measurement_count'} = $mt_count;
         }
         # add an array of the required fields if the flag was passed in
@@ -138,7 +138,7 @@ sub get_measurement_types {
                 # get count if flag was passed in
                 if($args{'show_measurement_count'}){
                     my $empty = ($classifier->{'array'}) ? [] : undef;
-                    my $c_count = $meas_collection->count( { $classifier->{'name'} => { '$ne' => $empty }, "end" => undef });
+                    my $c_count = $meas_collection->count_documents( { $classifier->{'name'} => { '$ne' => $empty }, "end" => undef });
                     $measurement_type->{'measurement_count'} = $c_count
                 }
                 # add an array of the required fields if the flag was passed in
@@ -1901,7 +1901,7 @@ sub _format_meta_field_name {
 
         # if its an add and theres only 1 field left make sure the field doesn't already exists
         if( $add && ( ($i + 1) == @meta_fields ) ){
-            if( $exists && $col->count({ "meta_fields.".$name => { '$exists' => 1 } } )){
+            if( $exists && $col->count_documents({ "meta_fields.".$name => { '$exists' => 1 } } )){
                 $self->error("Meta field, $name, already exists");
                return;
             }
@@ -1909,13 +1909,13 @@ sub _format_meta_field_name {
         }
 
         # check that field exists
-        if( $exists && !$col->count({ "meta_fields.".$name => { '$exists' => 1 }})){
+        if( $exists && !$col->count_documents({ "meta_fields.".$name => { '$exists' => 1 }})){
             $self->error("Meta field, $name, does not exist");
             return;
         }
 
         # make sure the field is not a required field
-        if($not_required && $col->count({ "meta_fields.$name.required" => 1 })){
+        if($not_required && $col->count_documents({ "meta_fields.$name.required" => 1 })){
             $self->error("Meta field, $name, is required and therefore can not be deleted or have the array flag modified");
             return;
         }

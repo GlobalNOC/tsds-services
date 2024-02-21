@@ -89,7 +89,7 @@ sleep( 10 );
 # make sure two documents were created
 my $collection = $database->get_collection( 'data' );
 my $query1 = {'identifier' => "d0ff413d4228455797d2a7087136ff1f202e1d737b4ad0f89d71d7c8702f46a3"};
-my $doc_count = $collection->count( $query1 );
+my $doc_count = $collection->count_documents( $query1 );
 is( $doc_count, 2, "2 docs created" );
 my $cursor = $collection->find( $query1 );
 
@@ -130,7 +130,7 @@ sleep( 10 );
 
 # make sure 31 documents now exist for this measurement
 my $query2 = {'identifier' => "d0ff413d4228455797d2a7087136ff1f202e1d737b4ad0f89d71d7c8702f46a3"};
-$doc_count = $collection->count( $query2 );
+$doc_count = $collection->count_documents( $query2 );
 is( $doc_count, 31, "31 docs exist" );
 $cursor = $collection->find( $query2 )->sort( {'start' => 1} );
 
@@ -189,7 +189,7 @@ sleep( 10 );
 
 # make sure only a single document exists again
 my $query3 = {'identifier' => "d0ff413d4228455797d2a7087136ff1f202e1d737b4ad0f89d71d7c8702f46a3"};
-$doc_count = $collection->count( $query3 );
+$doc_count = $collection->count_documents( $query3 );
 is( $doc_count, 1, "only one doc exists" );
 $cursor = $collection->find( $query3 );
 
