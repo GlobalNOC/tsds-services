@@ -1153,7 +1153,7 @@ sub _query_database {
 
         # we need to make sure that any fields in the where clause actually exist and are
         # properly indexed to help guide mongo away from doing any massive table scans
-        return if (! $self->_verify_where_fields($database, $where_names));
+        return if (! $self->_verify_where_fields($metadata, $where_names));
 
         # load the metadata about this collection so we can use it to figure out
         # things like needing to unwind later
@@ -2098,24 +2098,18 @@ sub _get_unwind_operations {
 
 sub _verify_where_fields {
     my $self         = shift;
-    my $database     = shift;
+    my $metadata     = shift;
     my $where_names  = shift;
 
-    my @indexes = $database->get_collection(MEASUREMENTS)->indexes->list->all;
+    my %indexes;
+    flatten_keys_hash($metadata->{'meta_fields'}, undef, \%indexes);
 
-    foreach my $where_name (keys %$where_names){
-	my $found = 0;
+    $indexes{'identifier'} = 1;
 
-	foreach my $index (@indexes){
-	    if (exists $index->{'key'}->{$where_name}){
-		$found = 1;
-		last;
-	    }
-	}
-	if (! $found){
-	    $self->error("Unable to execute query on unknown or unindexed field \"$where_name\"");
-	    return;
-	}
+    foreach my $where_name (keys %{$where_names}){
+        if(!defined($indexes{$where_name})){
+            return 0;
+        }
     }
 
     return 1;
@@ -4031,6 +4025,35 @@ sub update_constraints_file {
 
     $self->{'constraints_file'} = $constraints_file;
 
+}
+
+# Recursive method to flatten hash of metadata keys
+# Example Input: { 'pop': {'name': 'X', 'location': 'Y'} }
+# Example Output: { 'pop.name': 1, 'pop.location: 1 }
+sub flatten_keys_hash {
+    my ($hash, $prefix, $results) = @_;
+
+    for my $key (keys %$hash) {
+
+        if($key eq 'fields'){
+
+            flatten_keys_hash($hash->{$key}, $prefix, $results);
+        }else{
+
+            my $new_prefix;
+            if(defined($prefix)){
+                $new_prefix = "$prefix.$key";
+            }else{
+                $new_prefix = $key;
+            }
+
+            if (ref $hash->{$key} eq 'HASH') {
+                flatten_keys_hash( $hash->{$key}, $new_prefix, $results );
+            }
+
+            $results->{$new_prefix} = 1;
+        }
+    }
 }
 
 1;
