@@ -1,0 +1,66 @@
+<config>
+
+    <!-- how many concurrent processes should read and process high resolution messages off of the rabbit queue -->
+    <num-processes>4</num-processes>
+
+    <!-- how many concurrent processes should read and process aggregate messages off of the rabbit queue -->
+    <num-aggregate-processes>4</num-aggregate-processes>
+     
+    <!-- where should we write our pid file to -->
+    <pid-file>/var/run/tsds_writer.pid</pid-file>
+ 
+    <!-- where do the report templates live -->
+    <report-root>/etc/grnoc/tsds/services/report_templates/</report-root>    
+
+    <!-- rabbitmq connection info -->
+    <rabbit host="127.0.0.1" port="5672" queue="timeseries_data" aggregate-queue="timeseries_finished_aggregate" />
+
+    <!-- mongodb connection info -->
+    <mongo host="127.0.0.1" port="27017">
+        <root user="root" password="password"/>
+        <readonly  user="tsds_ro" password="password"/>
+        <readwrite user="tsds_rw" password="password"/>
+    </mongo>
+
+    <!-- redis connection info -->
+    <redis host="127.0.0.1" port="6379" />
+
+    <!-- memcache connection info -->
+    <memcache host="127.0.0.1" port="11211" />
+
+    <!-- users that are allowed to proxy requests to the webservices -->
+    <proxy-users>
+        <username>foo</username>
+        <username>bar</username>
+    </proxy-users>
+
+    <!-- sphinx mysql connection -->
+    <sphinx>
+        <mysql host="127.0.0.1" port="9306"/>
+    </sphinx>
+
+    <!-- how parallelized to be when checking to decomission measurement records -->
+    <decom max_procs="4" />
+
+    <!-- list of databases we should ignore and not consider as having tsds data -->
+    <ignore-databases>
+        <database>admin</database>
+        <database>test</database>
+        <database>config</database>
+        <database>tsds_reports</database>
+        <database>tsds_version</database>
+    </ignore-databases>
+
+    <!-- Add restrictions to specific users on what types of data they
+         are allowed to send, and to what metadata. Any user not specificed
+	 here that can reach the push services is assumed to have global
+	 writing permissions in TSDS -->
+    <push-users>
+         <user name="foo-user">
+	     <database name="interface">
+	         <metadata field="node" pattern="(foo.edu|bar.com)$" />
+	     </database>
+	 </user>
+    </push-users>
+
+</config>
