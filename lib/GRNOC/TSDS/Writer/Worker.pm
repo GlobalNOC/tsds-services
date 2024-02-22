@@ -1499,7 +1499,7 @@ sub _create_measurement_document {
     my $query = Tie::IxHash->new( identifier => $identifier,
                                   end => undef );
 
-    my $exists = $measurement_collection->count_documents( $query );
+    my $exists = $measurement_collection->count( $query );
 
     # doesn't exist yet
     if ( !$exists ) {

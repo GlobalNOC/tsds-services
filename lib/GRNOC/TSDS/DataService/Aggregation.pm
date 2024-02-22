@@ -407,7 +407,7 @@ sub _agg_exp_exists {
     my $name       = $args{'name'};
 
     # make sure a agg doesn't already exist with this name
-    my $count = $col->count_documents({ name => $name });
+    my $count = $col->count({ name => $name });
     return 1 if $count;    
     return 0;
 }
@@ -549,7 +549,7 @@ sub _delete_aggregation_data {
     }
 
     # if there's no data left in the agg data cursor drop it
-    if ($agg_data_col->count_documents({}) == 0) {
+    if ($agg_data_col->count({}) == 0) {
         $agg_data_col->drop();
     }
     
@@ -672,7 +672,7 @@ sub _has_null_eval_positions {
 
     my $query = { 'eval_position' => { '$exists' => 0 }, 'name' => { '$ne' => $name } };
 
-    if ($col->count_documents($query)) {
+    if ($col->count($query)) {
         return 1;
     }
     return 0;
@@ -775,7 +775,7 @@ sub _eval_position_in_use {
     my $query = { 'eval_position' => $eval_position, 'name' => {'$ne' => $name} };
 
     my $exp_res = $col->find($query);
-    my $in_use  = $col->count_documents();
+    my $in_use  = $col->count();
 
     return $in_use;
 

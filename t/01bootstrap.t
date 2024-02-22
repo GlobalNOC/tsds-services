@@ -209,7 +209,7 @@ my $database = $mongo->get_database( $unit_test_db );
 my $collection = $database->get_collection( 'data' );
 
 my $total_docs = $num_measurements * ceil( NUM_DATA_POINTS / HIGH_RESOLUTION_DOCUMENT_SIZE );
-my $num_docs = $collection->count_documents( {} );
+my $num_docs = $collection->count( {} );
 is( $num_docs, $total_docs, "$total_docs data documents created" );
 
 # re-index all alerts for search

@@ -1510,7 +1510,7 @@ sub _query_database {
         my $is_over_data_doc_limit = 0;
         eval {
             if($metadata->{'data_doc_limit'}){
-                $doc_count = $collection->count_documents($where_fields);
+                $doc_count = $collection->count($where_fields);
                 log_debug("got $doc_count results with a data_doc_limit of ".$metadata->{'data_doc_limit'});
                 if($doc_count > $metadata->{'data_doc_limit'}){
                     $is_over_data_doc_limit = 1;
@@ -1563,7 +1563,7 @@ sub _query_database {
 	log_debug("where fields = " . Dumper($where_fields));
 
 	# ISSUE=11635 no docs found in high res, fall back to using aggregate
-        if ( 0 && $data_source eq DATA && $database->name ne $self->temp_database() &&$collection->count_documents($where_fields) == 0 ) {
+        if ( 0 && $data_source eq DATA && $database->name ne $self->temp_database() &&$collection->count($where_fields) == 0 ) {
 
             # log_warn( "No documents found in high res data source $data_source, falling back to use aggregate data! Query was \"$text_query\"" );
 
@@ -1578,7 +1578,7 @@ sub _query_database {
 
 	    #     eval {
 
-	    #         $doc_count = $collection->count_documents($where_fields);
+	    #         $doc_count = $collection->count($where_fields);
 
 	    #         if($metadata->{'data_doc_limit'}){
 	    #     	log_debug("got $doc_count results with a data_doc_limit of ".$metadata->{'data_doc_limit'});
@@ -1610,7 +1610,7 @@ sub _query_database {
 	}
 
         # ISSUE=10430 no docs found using this aggregate data source
-        elsif ( $data_source ne DATA && $database->name ne $self->temp_database() && $collection->count_documents($where_fields) == 0 ) {
+        elsif ( $data_source ne DATA && $database->name ne $self->temp_database() && $collection->count($where_fields) == 0 ) {
 
             log_warn( "No documents found in aggregate data source $data_source, falling back to use high res data!" );
 
@@ -1620,7 +1620,7 @@ sub _query_database {
 
             eval {
 
-		$doc_count = $collection->count_documents($where_fields);
+		$doc_count = $collection->count($where_fields);
 
                 if($metadata->{'data_doc_limit'}){
                     log_debug("got $doc_count results with a data_doc_limit of ".$metadata->{'data_doc_limit'});

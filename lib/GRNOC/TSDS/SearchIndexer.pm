@@ -196,7 +196,7 @@ sub _index_metadata {
 
     my $start_time = time - ($self->last_updated_offset*60) if(defined($self->last_updated_offset) and 
                                                               ($self->last_updated_offset > 0));
-    my $total      = $msmt_col->count_documents();
+    my $total      = $msmt_col->count();
     my $limit      = $self->num_docs_per_fetch; 
     $limit = $total if($total < $limit); 
 
