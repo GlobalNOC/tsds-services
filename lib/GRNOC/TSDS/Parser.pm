@@ -1160,6 +1160,7 @@ sub _query_database {
         # properly indexed to help guide mongo away from doing any massive table scans
         return if (! $self->_verify_where_fields($metadata, $where_names));
 
+
         # we need start/end times to do some calculations on the values
         $queried_field_names->{'start'}      = 1;
         $queried_field_names->{'end'}        = 1;
@@ -2097,7 +2098,7 @@ sub _get_unwind_operations {
     return @unwind;
 }
 
-sub _verify_where_fields {
+sub _verify_where_fields{
     my $self         = shift;
     my $metadata     = shift;
     my $where_names  = shift;
@@ -2112,7 +2113,6 @@ sub _verify_where_fields {
             return 0;
         }
     }
-
     return 1;
 }
 
@@ -4028,9 +4028,9 @@ sub update_constraints_file {
 
 }
 
-# Recursive method to flatten hash of metadata keys
-# Example Input: { 'pop': {'name': 'X', 'location': 'Y'} }
-# Example Output: { 'pop.name': 1, 'pop.location: 1 }
+#Flatten the hash of keys of MetaData into what we need for our "where" clause
+#validation... essentially pop.location.state etc...
+#oh its recursive too!
 sub flatten_keys_hash {
     my ($hash, $prefix, $results) = @_;
 
