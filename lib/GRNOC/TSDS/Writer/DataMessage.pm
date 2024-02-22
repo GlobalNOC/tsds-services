@@ -1,3 +1,4 @@
+#!/usr/bin/perl -I /opt/grnoc/venv/grnoc-tsds-services/lib/perl5
 package GRNOC::TSDS::Writer::DataMessage;
 
 use Moo;
@@ -92,16 +93,13 @@ sub _build_measurement_identifier {
         # skip it if its not a required field
         next if ( !$metadata_fields->{$field}{'required'} );
 
-        try {
-            # include this field value in our hash
-            $hash->add( $self->meta->{$field} );
-        } catch {
-            die("Could not add field \"$field\" to SHA hash digest");
-        };
+        # include this field value in our hash
+        $hash->add( $self->meta->{$field} );
     }
 
     # return the final digest of the hash
     return $hash->hexdigest();
+    
 }
 
 ### private methods ###

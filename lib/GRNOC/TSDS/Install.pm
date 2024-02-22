@@ -1,3 +1,4 @@
+#!/usr/bin/perl -I /opt/grnoc/venv/grnoc-tsds-services/lib/perl5
 #--------------------------------------------------------------------
 #----- GRNOC TSDS Install/Bootstrap Library
 #-----
@@ -8,13 +9,10 @@
 #----- by the tsds_install script to initialize the necessary MongoDB
 #----- databases and collections.
 #--------------------------------------------------------------------
-
 package GRNOC::TSDS::Install;
 
 use strict;
 use warnings;
-
-use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
 
 use GRNOC::CLI;
 use GRNOC::Config;

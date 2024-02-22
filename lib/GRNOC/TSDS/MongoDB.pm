@@ -1,7 +1,5 @@
-
+#!/usr/bin/perl -I /opt/grnoc/venv/grnoc-tsds-services/lib/perl5
 package GRNOC::TSDS::MongoDB;
-
-use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
 
 use strict;
 use warnings;
@@ -82,7 +80,8 @@ sub new {
         $self->{'mongo'}   = MongoDB::MongoClient->new( 
             host     => "$host:$port", 
             username => $user->{'user'},
-            password => $self->{'password'}
+            password => $self->{'password'},
+            read_preference => 'secondaryPreferred'
         );
     };
     if($@){

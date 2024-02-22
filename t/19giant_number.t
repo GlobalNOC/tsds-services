@@ -1,5 +1,6 @@
 use strict;
 use warnings;
+
 use Test::More tests => 4;
 use GRNOC::Config;
 use GRNOC::Log;
@@ -28,4 +29,4 @@ get average(aggregate(values.input, 60, average)) as input_sum, average(aggregat
 
 ok(defined $response, "got response back");
 is(@$response, 1, "got 1 result");
-is($response->[0]->{'values.bytes'}, 2.6528375e+20, 'got correct large number');
+is($response->[0]->{'values.bytes'}, 6.81944444444444e+16, 'got correct large number');

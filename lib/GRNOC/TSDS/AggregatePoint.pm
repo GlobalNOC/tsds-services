@@ -1,6 +1,5 @@
+#!/usr/bin/perl -I /opt/grnoc/venv/grnoc-tsds-services/lib/perl5
 package GRNOC::TSDS::AggregatePoint;
-
-use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
 
 use Moo;
 use Types::Standard qw( Str Int StrictNum InstanceOf Maybe Dict Map Num);

@@ -5,14 +5,16 @@ AutoReqProv: no # Keep rpmbuild from trying to figure out Perl on its own
 
 Summary: GRNOC TSDS Services
 Name: grnoc-tsds-services
-Version: 1.7.0
-Release: 1%{?dist}
+Version: 1.7.1
+Release: 2%{?dist}
 License: GRNOC
 Group: Measurement
 URL: http://globalnoc.iu.edu
 Source0: %{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 BuildArch: noarch
+BuildRequires: expat-devel
+BuildRequires: openssl-devel
 Requires: perl >= 5.8.8
 Requires: gcc
 Requires: mod_perl

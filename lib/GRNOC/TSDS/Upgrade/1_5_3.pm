@@ -1,9 +1,8 @@
+#!/usr/bin/perl -I /opt/grnoc/venv/grnoc-tsds-services/lib/perl5
 package GRNOC::TSDS::Upgrade::1_5_3;
 
 use strict;
 use warnings;
-
-use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
 
 use GRNOC::TSDS::Install;
 use GRNOC::TSDS::MongoDB;

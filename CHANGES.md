@@ -1,3 +1,15 @@
+## GRNOC TSDS Services 1.7.1 -- Feb 21 2024
+
+### Features:
+* Update MongoDB perl driver to 'v2.2.2'
+
+### Bug Fixes:
+
+* Removes deprecated "update" and "insert" MongoDB calls
+* Moves venv library import to shebang to fix Authen bug
+* Fixes verification memory leak caused by MongoDB perl driver list indexes call
+* Fixes POST request memory leak caused by uploadinfo call inside GRNOC::WebService::Method
+
 ## GRNOC TSDS Services 1.7.0 --
 
 ### Features:

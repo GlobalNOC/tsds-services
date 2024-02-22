@@ -1,4 +1,4 @@
-VERSION = 1.7.0
+VERSION = 1.7.1
 NAME = grnoc-tsds-services
 
 rpm: dist
@@ -15,8 +15,8 @@ dist: clean venv
 	cp -rv bin conf lib systemd www init.d CHANGES.md INSTALL.md venv $(NAME).spec dist/$(NAME)-$(VERSION)/
 	cd dist; tar -czvf $(NAME)-$(VERSION).tar.gz $(NAME)-$(VERSION)/
 
-test:
-	/usr/bin/perl -I lib/ t/TEST 1
+test: venv
+	/usr/bin/perl -I lib/ -I venv/lib/perl5 t/TEST 1
 
 venv:
-	carton install --path=venv
+	carton install --deployment --path=venv
