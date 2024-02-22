@@ -4,7 +4,7 @@ package GRNOC::TSDS::Parser;
 use strict;
 use warnings;
 
-use experimental 'switch';
+use feature 'switch';
 
 use Carp;
 use Marpa::R2;
@@ -1152,13 +1152,13 @@ sub _query_database {
             return;
         }
 
-        # we need to make sure that any fields in the where clause actually exist and are
-        # properly indexed to help guide mongo away from doing any massive table scans
-        return if (! $self->_verify_where_fields($metadata, $where_names));
-
         # load the metadata about this collection so we can use it to figure out
         # things like needing to unwind later
         $metadata = $database->get_collection(METADATA)->find_one();
+
+        # we need to make sure that any fields in the where clause actually exist and are
+        # properly indexed to help guide mongo away from doing any massive table scans
+        return if (! $self->_verify_where_fields($metadata, $where_names));
 
         # we need start/end times to do some calculations on the values
         $queried_field_names->{'start'}      = 1;
