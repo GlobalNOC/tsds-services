@@ -80,7 +80,8 @@ sub new {
         $self->{'mongo'}   = MongoDB::MongoClient->new( 
             host     => "$host:$port", 
             username => $user->{'user'},
-            password => $self->{'password'}
+            password => $self->{'password'},
+            read_preference => 'secondaryPreferred'
         );
     };
     if($@){
