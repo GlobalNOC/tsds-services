@@ -2107,6 +2107,8 @@ sub _verify_where_fields{
     flatten_keys_hash($metadata->{'meta_fields'}, undef, \%indexes);
 
     $indexes{'identifier'} = 1;
+    $indexes{'start'} = 1;
+    $indexes{'end'} = 1;
 
     foreach my $where_name (keys %{$where_names}){
         if(!defined($indexes{$where_name})){
