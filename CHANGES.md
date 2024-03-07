@@ -1,3 +1,10 @@
+## GRNOC TSDS Services 1.7.2 -- Mar 7 2024
+
+### Bug Fixes:
+
+* Fixed a bug causing start and end parameters to sometimes not be parsed correctly.
+* Fixed an issue with the test harness preventing a custom list of tests from being run.
+
 ## GRNOC TSDS Services 1.7.1 -- Feb 21 2024
 
 ### Features:
