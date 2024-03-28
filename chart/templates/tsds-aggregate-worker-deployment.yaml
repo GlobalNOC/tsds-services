@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tsds-aggregate-worker
+  labels:
+    app: tsds-aggregate-worker
+    {{ include "tsds.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount.aggregateWorkers }}
+  selector:
+    matchLabels:
+      app: tsds-aggregate-worker
+  template:
+    metadata:
+      labels:
+        app: tsds-aggregate-worker
+    spec:
+      imagePullSecrets:
+        - name: 'julius-github'
+      containers:
+        - name: tsds-aggregate-worker
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag | default 'latest' }}
+          imagePullPolicy: Always
+          volumeMounts:
+            - mountPath: /etc/grnoc/tsds/aggregate/logging.conf
+              name: tsds-logging
+              subPath: logging.conf
+            - mountPath: /etc/grnoc/tsds/aggregate/config.xml
+              name: tsds-aggregate-config
+              subPath: config.xml
+          command: ["/bin/tsds_aggregate_worker.pl"]
+      volumes:
+        - name: tsds-logging
+          configMap:
+            items:
+              - key: logging.conf
+                path: logging.conf
+            name: tsds-logging
+        - name: tsds-aggregate-config
+          secret:
+            secretName: tsds-aggregate-config

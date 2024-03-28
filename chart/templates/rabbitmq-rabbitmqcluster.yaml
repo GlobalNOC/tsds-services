@@ -1,0 +1,23 @@
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: tsds-rabbitmq
+  labels:
+    app: tsds-rabbitmq
+spec:
+  rabbitmq:
+    additionalConfig: |
+      loopback_users = none
+    additionalPlugins:
+      - rabbitmq_management
+      - rabbitmq_shovel
+      - rabbitmq_shovel_management
+      - rabbitmq_top
+  replicas: {{ .Values.replicaCount.rabbitmq }}
+  resources:
+    requests:
+      cpu: '1'
+      memory: 2Gi
+    limits:
+      cpu: '1'
+      memory: 2Gi

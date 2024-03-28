@@ -1,0 +1,106 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tsds-apache-shib
+  labels:
+    {{ include "tsds.labels" . | nindent 4 }}
+data:
+  tsds.conf: |
+   RewriteEngine on
+   RewriteRule "^/rabbit$" "/rabbit/" [R]
+   ProxyPreserveHost On
+    <Location /yui/>
+      AuthType Shibboleth
+      ShibRequestSetting requireSession true
+      AuthLDAPURL "{{ .Values.global.ldapURL }}"
+      AuthLDAPBindDN {{ .Values.global.ldapBind }} 
+      AuthLDAPBindPassword {{ .Values.global.ldapPw }} 
+      Require ldap-group {{ .Values.ldapGroup }} 
+      ProxyPass        http://tsds-apache.{{ .Release.Namespace }}.svc.cluster.local/yui/
+      ProxyPassReverse http://tsds-apache.{{ .Release.Namespace }}.svc.cluster.local/yui/
+      RequestHeader set REMOTE_USER %{REMOTE_USER}s
+    </Location>
+
+    <Location /glue/>
+      AuthType Shibboleth
+      ShibRequestSetting requireSession true
+      AuthLDAPURL "{{ .Values.global.ldapURL }}"
+      AuthLDAPBindDN {{ .Values.global.ldapBind }} 
+      AuthLDAPBindPassword {{ .Values.global.ldapPw }} 
+      Require ldap-group {{ .Values.ldapGroup }} 
+      ProxyPass        http://tsds-apache.{{ .Release.Namespace }}.svc.cluster.local/glue/
+      ProxyPassReverse http://tsds-apache.{{ .Release.Namespace }}.svc.cluster.local/glue/
+      RequestHeader set REMOTE_USER %{REMOTE_USER}s
+    </Location>
+
+    <Location /proxy/>
+      AuthType Shibboleth
+      ShibRequestSetting requireSession true
+      AuthLDAPURL "{{ .Values.global.ldapURL }}"
+      AuthLDAPBindDN {{ .Values.global.ldapBind }} 
+      AuthLDAPBindPassword {{ .Values.global.ldapPw }} 
+      Require ldap-group {{ .Values.ldapGroup }} 
+      ProxyPass        http://tsds-apache.{{ .Release.Namespace }}.svc.cluster.local/proxy/
+      ProxyPassReverse http://tsds-apache.{{ .Release.Namespace }}.svc.cluster.local/proxy/
+      RequestHeader set REMOTE_USER %{REMOTE_USER}s
+    </Location>
+
+    <Location /rabbit/>
+      AuthType Shibboleth
+      ShibRequestSetting requireSession true
+      AuthLDAPURL "{{ .Values.global.ldapURL }}"
+      AuthLDAPBindDN {{ .Values.global.ldapBind }} 
+      AuthLDAPBindPassword {{ .Values.global.ldapPw }} 
+      Require ldap-group {{ .Values.ldapGroup }} 
+      ProxyPass        http://tsds-rabbitmq.{{ .Release.Namespace }}.svc.cluster.local:15672/
+      ProxyPassReverse http://tsds-rabbitmq.{{ .Release.Namespace }}.svc.cluster.local:15672/
+      RequestHeader set REMOTE_USER %{REMOTE_USER}s
+      RewriteEngine On
+      RewriteCond %{HTTPS} off
+      RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}
+    </Location>
+
+    <Location /tsds/>
+      AuthType Shibboleth
+      ShibRequestSetting requireSession true
+      AuthLDAPURL "{{ .Values.global.ldapURL }}"
+      AuthLDAPBindDN {{ .Values.global.ldapBind }} 
+      AuthLDAPBindPassword {{ .Values.global.ldapPw }} 
+      Require ldap-group {{ .Values.ldapGroup }} 
+      ProxyPass        http://tsds-apache.{{ .Release.Namespace }}.svc.cluster.local/tsds/
+      ProxyPassReverse http://tsds-apache.{{ .Release.Namespace }}.svc.cluster.local/tsds/
+      RequestHeader set REMOTE_USER %{REMOTE_USER}s
+    </Location>
+
+    <Location /tsds/services>
+      AuthType Shibboleth
+      ShibRequestSetting requireSession true
+      AuthLDAPURL "{{ .Values.global.ldapURL }}"
+      AuthLDAPBindDN {{ .Values.global.ldapBind }} 
+      AuthLDAPBindPassword {{ .Values.global.ldapPw }} 
+      Require ldap-group {{ .Values.ldapGroup }} 
+      ProxyPass        http://tsds-apache.{{ .Release.Namespace }}.svc.cluster.local/tsds/services/
+      ProxyPassReverse http://tsds-apache.{{ .Release.Namespace }}.svc.cluster.local/tsds/services/
+      RequestHeader set REMOTE_USER %{REMOTE_USER}s
+    </Location>
+
+    <Location /tsds-basic/services>
+      AuthType GSSAPI
+      AuthName "Network-Troubleshooter Login"
+      GssapiAllowedMech   krb5
+      GssapiBasicAuth     On
+      GssapiCredStore keytab:/etc/httpd.keytab
+      GssapiNegotiateOnce On
+      GssapiSSLOnly       On
+      GssapiUseSessions   On
+      GssapiLocalName     On
+      
+      AuthLDAPURL "{{ .Values.global.ldapURL }}"
+      AuthLDAPBindDN {{ .Values.global.ldapBind }} 
+      AuthLDAPBindPassword {{ .Values.global.ldapPw }} 
+      Require ldap-group {{ .Values.ldapGroup }}
+      ProxyPass        http://tsds-apache.{{ .Release.Namespace }}.svc.cluster.local/tsds/services/
+      ProxyPassReverse http://tsds-apache.{{ .Release.Namespace }}.svc.cluster.local/tsds/services/
+      RequestHeader set REMOTE_USER %{REMOTE_USER}s
+    </Location>

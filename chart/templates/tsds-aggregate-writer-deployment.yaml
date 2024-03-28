@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tsds-aggregate-writer
+  labels:
+    app: tsds-aggregate-writer
+    {{ include "tsds.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount.aggregateWriters }}
+  selector:
+    matchLabels:
+      app: tsds-aggregate-writer
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: tsds-aggregate-writer
+    spec:
+      imagePullSecrets:
+        - name: 'julius-github'
+      containers:
+        - name: tsds-aggregate-writer
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag | default 'latest' }}
+          imagePullPolicy: Always
+          volumeMounts:
+            - mountPath: /etc/grnoc/tsds/services/logging.conf
+              name: tsds-logging
+              subPath: logging.conf
+            - mountPath: /etc/grnoc/tsds/services/config.xml
+              name: tsds-config
+              subPath: config.xml
+          command: ["/bin/tsds_writer.pl", "--queue", "timeseries_finished_aggregate"]
+      volumes:
+        - name: tsds-logging
+          configMap:
+            items:
+              - key: logging.conf
+                path: logging.conf
+            name: tsds-logging
+        - name: tsds-config
+          secret:
+            secretName: tsds-config

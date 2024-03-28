@@ -1,0 +1,47 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: tsds-redis
+  labels:
+    app: tsds-redis
+    {{ include "tsds.labels" . | nindent 4 }}
+spec:
+  serviceName: tsds-redis
+  replicas: {{ .Values.replicaCount.redis }}
+  selector:
+    matchLabels:
+      app: tsds-redis
+  template:
+    metadata:
+      labels:
+        app: tsds-redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7.0.10-alpine
+          command: ["redis-server"]
+          args: ["/etc/redis/redis.conf"]
+          ports:
+            - containerPort: 6379
+              name: redis
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: redis-config
+              mountPath: /etc/redis/redis.conf
+      volumes:
+        - name: redis-data
+          emptyDir: {}
+        - name: redis-config
+          configMap:
+            name: tsds-redis-config
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: "local-path"
+        resources:
+          requests:
+            storage: 100Mi

@@ -1,0 +1,59 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tsds-apache-config
+  labels:
+    {{ include "tsds.labels" . | nindent 4 }}
+data:
+  tsds-frontend.conf: |
+    Alias /tsds/docs /usr/share/doc/grnoc/tsds/frontend/
+    Alias /tsds /usr/lib/grnoc/tsds/cgi-bin
+
+    <Location /tsds>
+      Require all granted
+      SetOutputFilter DEFLATE
+      AddHandler perl-script .cgi
+      PerlResponseHandler ModPerl::Registry
+      DirectoryIndex index.cgi
+      Options ExecCGI FollowSymlinks
+    </Location>
+  tsds-services.conf: |
+    Alias /tsds/services /usr/lib/grnoc/tsds/services/cgi-bin
+
+    <Directory /usr/lib/grnoc/tsds/services/cgi-bin>
+      SetOutputFilter DEFLATE
+      Options +ExecCGI
+      AddHandler perl-script .cgi
+      PerlResponseHandler ModPerl::Registry
+    </Directory>
+  glue.conf: |
+    Alias /glue /usr/lib/grnoc/glue/cgi/
+
+    <location /glue>
+      Require all granted
+      Options ExecCGI
+      AddHandler perl-script .cgi
+      PerlResponseHandler ModPerl::Registry
+    </location>
+  grnoc-proxy.conf: |
+    Alias /proxy /gnoc/proxy/www/
+
+    <Location /proxy/>
+      Require all granted
+      Options ExecCGI
+      SetHandler perl-script
+      PerlResponseHandler ModPerl::Registry
+      PerlOptions +ParseHeaders
+    </Location>
+  yui.conf: |
+    Alias /yui /gnoc/yui/
+
+    <Directory /gnoc/yui>
+      Require all granted
+      AddHandler perl-script .cgi
+      PerlResponseHandler ModPerl::Registry
+      Options ExecCGI FollowSymLinks
+      ExpiresActive On
+      ExpiresDefault A86400
+    </Directory>

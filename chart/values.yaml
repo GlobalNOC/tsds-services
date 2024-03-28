@@ -1,0 +1,34 @@
+# Image settings
+image:
+  repository: containers.github.grnoc.iu.edu/ndca/tsds-services
+  pullPolicy: IfNotPresent
+  tag: "1.7.2-dev" # Overrides the image tag whose default is the chart appVersion.
+  pullSecrets:
+    - name: julius-github
+
+# nameservice urls:
+cdsUrl: https://db2.grnoc.iu.edu
+tixUrl: https://sn-tools.grnoc.iu.edu
+
+# LDAP group to access tsds (frontend & backend)
+ldapGroup: cn=snapp-admin,ou=webapps,dc=grnoc,dc=iu,dc=edu
+
+# Deployment/Stateful Set Replica Counts
+replicaCount:
+  aggregateWorkers: 1
+  aggregateWriters: 1
+  apache: 1
+  memcached: 1
+  mongodb: 3
+  arbiters: 1
+  rabbitmq: 1
+  redis: 3
+  sphinx: 1
+  writers: 1
+
+globalnoc-shib:
+  globalnoc:
+    tool: "tsds"
+    hostname: "tsds"
+  nameOverride: "tsds-shib"
+  apacheConfigMap: tsds-apache-shib
