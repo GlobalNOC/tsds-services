@@ -28,7 +28,7 @@ spec:
             - mountPath: /etc/grnoc/tsds/aggregate/config.xml
               name: tsds-aggregate-config
               subPath: config.xml
-          command: ["/usr/bin/tsds_aggregate_worker.pl"]
+          command: ["/usr/bin/tsds-aggregate-worker.pl"]
       volumes:
         - name: tsds-logging
           configMap:
