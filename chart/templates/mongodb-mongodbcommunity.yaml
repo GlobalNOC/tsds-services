@@ -6,7 +6,7 @@ metadata:
   labels:
     app: tsds-mongodb
 spec:
-  members: {{ .Values.replicaCount.mongodb }}
+  members: {{ .Values.replicaCount.mongodb | default 1 }}
   arbiters: {{ .Values.replicaCount.arbiters | default 1 }}
   type: ReplicaSet
   version: "4.2.0"

@@ -24,7 +24,7 @@ spec:
         - name: 'julius-github'
       containers:
         - name: tsds-aggregate-writer
-          image: {{ .Values.image.repository }}:{{ .Values.image.tag | default 'latest' }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default 'latest' }}"
           imagePullPolicy: Always
           volumeMounts:
             - mountPath: /etc/grnoc/tsds/services/logging.conf
