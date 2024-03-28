@@ -5,7 +5,7 @@ AutoReqProv: no # Keep rpmbuild from trying to figure out Perl on its own
 
 Summary: GRNOC TSDS Services
 Name: grnoc-tsds-services
-Version: 1.7.0
+Version: 1.7.2
 Release: 1%{?dist}
 License: GRNOC
 Group: Measurement
@@ -29,8 +29,6 @@ Requires: perl-GDGraph
 Requires: perl-Template-Toolkit
 Requires: perl-DBI
 Requires: perl-DBD-MySQL
-Requires: ImageMagick-perl
-Requires: phantomjs
 Requires: wget
 
 %description
