@@ -20,8 +20,10 @@ spec:
       labels:
         app: tsds-writer
     spec:
+      {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
-        - name: 'julius-github'
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: tsds-writer
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default "latest" }}"

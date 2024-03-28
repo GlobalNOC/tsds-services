@@ -68,8 +68,8 @@ data:
       AuthLDAPBindDN {{ .Values.global.ldapBind }} 
       AuthLDAPBindPassword {{ .Values.global.ldapPw }} 
       Require ldap-group {{ .Values.ldapGroup }} 
-      ProxyPass        http://tsds-apache.{{ .Release.Namespace }}.svc.cluster.local/tsds/
-      ProxyPassReverse http://tsds-apache.{{ .Release.Namespace }}.svc.cluster.local/tsds/
+      ProxyPass        http://tsds-frontend.{{ .Release.Namespace }}.svc.cluster.local/tsds-gnui/
+      ProxyPassReverse http://tsds-frontend.{{ .Release.Namespace }}.svc.cluster.local/tsds-gnui/
       RequestHeader set REMOTE_USER %{REMOTE_USER}s
     </Location>
 

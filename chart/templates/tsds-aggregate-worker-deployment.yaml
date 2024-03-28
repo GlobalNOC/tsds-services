@@ -15,11 +15,13 @@ spec:
       labels:
         app: tsds-aggregate-worker
     spec:
+      {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
-        - name: 'julius-github'
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: tsds-aggregate-worker
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default "latest" }}"
+          image: "{{ .Values.aggregate.image.repository }}:{{ .Values.aggregate.image.tag | default "latest" }}"
           imagePullPolicy: Always
           volumeMounts:
             - mountPath: /etc/grnoc/tsds/aggregate/logging.conf

@@ -10,8 +10,10 @@ spec:
     spec:
       template:
         spec:
+          {{- with .Values.imagePullSecrets }}
           imagePullSecrets:
-            - name: 'julius-github'
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           containers:
             - name: tsds-decom
               image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default "latest" }}"
