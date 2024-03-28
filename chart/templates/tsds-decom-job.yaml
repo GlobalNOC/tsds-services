@@ -14,7 +14,7 @@ spec:
             - name: 'julius-github'
           containers:
             - name: tsds-decom
-              image: "containers.github.grnoc.iu.edu/ndca/tsds-services:latest"
+              image: {{ .Values.image.repository }}:{{ .Values.image.tag | default 'latest' }}
               imagePullPolicy: Always
               command: ["/bin/tsds_decom.pl"]
               volumeMounts:
