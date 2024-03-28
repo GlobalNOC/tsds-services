@@ -1,0 +1,6 @@
+dependencies:
+- name: globalnoc-shib
+  repository: http://aj-dev8.grnoc.iu.edu/helm
+  version: 0.1.1
+digest: sha256:af54aecb89bea366b573d3c642f1e6d37ce789c34b5af3119db33390584668ef
+generated: "2024-01-31T05:13:25.127293294Z"
