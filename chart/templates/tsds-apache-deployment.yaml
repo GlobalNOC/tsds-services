@@ -25,7 +25,7 @@ spec:
         - name: 'julius-github'
       containers:
         - name: tsds-apache
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default 'latest' }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default "latest" }}"
           imagePullPolicy: Always
           volumeMounts:
           

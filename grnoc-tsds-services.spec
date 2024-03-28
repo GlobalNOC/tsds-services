@@ -18,7 +18,7 @@ Requires: gcc
 Requires: mod_perl
 Requires: perl-rrdtool
 Requires: perl-boolean
-Requires: perl-GRNOC-Config >= 1.0.7
+Requires: perl-GRNOC-Config == 1.0.9
 Requires: perl-GRNOC-WebService >= 1.2.8
 Requires: perl-GRNOC-WebService-Client >= 1.2.2
 Requires: perl-GRNOC-Log
@@ -29,6 +29,7 @@ Requires: perl-GDGraph
 Requires: perl-Template-Toolkit
 Requires: perl-DBI
 Requires: perl-DBD-MySQL
+Requires: perl-GRNOC-TSDS-Aggregate-Histogram
 Requires: wget
 
 %description
@@ -114,6 +115,7 @@ rm -rf $RPM_BUILD_ROOT
 %{__install} bin/tsds_install.pl %{buildroot}/usr/bin/tsds_install.pl
 %{__install} bin/tsds_upgrade.pl %{buildroot}/usr/bin/tsds_upgrade.pl
 %{__install} bin/tsds_writer %{buildroot}/usr/bin/tsds_writer
+%{__install} bin/tsds_writer.pl %{buildroot}/usr/bin/tsds_writer.pl
 %{__install} bin/tsds_fix_measurements.pl %{buildroot}/usr/bin/tsds_fix_measurements.pl
 %{__install} bin/tsds-decom.pl %{buildroot}/usr/bin/tsds-decom.pl
 %{__install} bin/tsds_setup.pl %{buildroot}/usr/bin/tsds_setup.pl
@@ -323,6 +325,7 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/tsds-decom.pl
 /usr/bin/tsds_upgrade.pl
 /usr/bin/tsds_writer
+/usr/bin/tsds_writer.pl
 /usr/bin/tsds_setup.pl
 /usr/bin/tsds-change-required-metadata.pl
 

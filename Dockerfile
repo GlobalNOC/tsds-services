@@ -39,17 +39,32 @@ COPY . /app
 
 # build & install rpm
 RUN make rpm
-RUN dnf localinstall -y \
-    /root/rpmbuild/RPMS/noarch/grnoc-tsds-services*noarch.rpm
+
+FROM oraclelinux:8
+
+COPY --from=0 /root/rpmbuild/RPMS/noarch/grnoc-tsds-services*noarch.rpm /root/
+
+RUN dnf install -y \
+    https://build.grnoc.iu.edu/repo/rhel/8/x86_64/globalnoc-release-8-1.el8.noarch.rpm \
+    oracle-epel-release-el8
+
+# enable additional ol8 repos
+RUN yum-config-manager --enable \
+    ol8_appstream ol8_baseos_latest ol8_codeready_builder \
+    ol8_developer_EPEL  ol8_developer_EPEL_modular
+
+# run makecache
+RUN dnf makecache
+
+RUN dnf install -y /root/grnoc-tsds-services*noarch.rpm
+RUN dnf install httpd mod_perl mod_perl-devel
+
 
 # setup apache config
 RUN rm /etc/httpd/conf.d/welcome.conf
 RUN echo 'IncludeOptional "/etc/httpd/conf.d/grnoc/*.conf"' >> /etc/httpd/conf.d/grnoc_include.conf
 RUN sed -i 's/ErrorLog "logs\/error_log"/ErrorLog \/dev\/stderr/g' /etc/httpd/conf/httpd.conf
 RUN sed -i 's/CustomLog "logs\/access_log"/CustomLog \/dev\/stdout/g' /etc/httpd/conf/httpd.conf
-
-# remove apache ssl config
-#RUN rm /etc/httpd/conf.d/ssl.conf
 
 # set entrypoint
 ENTRYPOINT ["/bin/echo", "'Welcome to TSDS!'"]

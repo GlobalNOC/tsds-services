@@ -24,7 +24,7 @@ spec:
         - name: 'julius-github'
       containers:
         - name: tsds-writer
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default 'latest' }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default "latest" }}"
           imagePullPolicy: Always
           volumeMounts:
             - mountPath: /etc/grnoc/tsds/services/logging.conf
@@ -33,7 +33,7 @@ spec:
             - mountPath: /etc/grnoc/tsds/services/config.xml
               name: tsds-config
               subPath: config.xml
-          command: ["/bin/tsds_writer.pl", "--queue", "timeseries_data"]
+          command: ["/usr/bin/tsds_writer", "--queue", "timeseries_data"]
       volumes:
         - name: tsds-logging
           configMap:

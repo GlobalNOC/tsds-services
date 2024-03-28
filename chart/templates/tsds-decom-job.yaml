@@ -14,9 +14,9 @@ spec:
             - name: 'julius-github'
           containers:
             - name: tsds-decom
-              image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default 'latest' }}"
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default "latest" }}"
               imagePullPolicy: Always
-              command: ["/bin/tsds_decom.pl"]
+              command: ["/usr/bin/tsds_decom.pl"]
               volumeMounts:
                 - mountPath: /etc/grnoc/tsds/services/logging.conf
                   name: tsds-logging
