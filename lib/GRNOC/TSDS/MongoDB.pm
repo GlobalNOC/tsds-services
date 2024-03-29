@@ -80,10 +80,10 @@ sub new {
 
     eval {
         $self->{'mongo'}   = MongoDB::MongoClient->new( 
-            host     => "$host:$port", 
-            username => $user->{'user'},
-            password => $self->{'password'}
-        );
+            host     => "$host");#:$port", 
+            #username => $user->{'user'},
+            #password => $self->{'password'}
+        #);
     };
     if($@){
         $self->error("Couldn't establish $privilege database connections: $@");

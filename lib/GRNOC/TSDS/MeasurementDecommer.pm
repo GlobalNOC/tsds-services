@@ -319,12 +319,12 @@ sub _mongo_connect {
     my $mongo;
     eval {
         $mongo = MongoDB::MongoClient->new(
-            host => "$mongo_host:$mongo_port",     
-            username => $rw_user->{'user'},
-            password => $rw_user->{'password'},
-	    socket_timeout_ms => 120 * 1000,
-	    max_time_ms => 60 * 1000,
-        );
+            host => "$mongo_host");#:$mongo_port",     
+            #username => $rw_user->{'user'},
+            #password => $rw_user->{'password'},
+	    #socket_timeout_ms => 120 * 1000,
+	    #max_time_ms => 60 * 1000,
+        #);
 
     };
     if($@){

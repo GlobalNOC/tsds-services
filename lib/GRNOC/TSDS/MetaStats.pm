@@ -223,9 +223,9 @@ sub _mongodb_connect {
 	$self->logger->debug( "Connecting to MongoDB as readwrite on $mongo_host:$mongo_port." );          
 	my $connected = 0;
         try {
-    	    $mongo = MongoDB::MongoClient->new( host => "$mongo_host:$mongo_port",                                                            
-						username => $rw_user->{'user'},                                                           
-                      			        password => $rw_user->{'password'} );     
+    	    $mongo = MongoDB::MongoClient->new( host => "$mongo_host");#:$mongo_port",                                                            
+						#username => $rw_user->{'user'},                                                           
+                      	#		        password => $rw_user->{'password'} );     
             $self->_set_mongo_rw( $mongo );
             $connected = 1;
         }
