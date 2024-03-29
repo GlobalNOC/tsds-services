@@ -3,8 +3,19 @@ image:
   repository: containers.github.grnoc.iu.edu/ndca/tsds-services
   pullPolicy: IfNotPresent
   tag: "1.7.2-dev" # Overrides the image tag whose default is the chart appVersion.
-  pullSecrets:
-    - name: julius-github
+  
+imagePullSecrets: 
+ - name: julius-github
+
+aggregate:
+  image:
+    repository: containers.github.grnoc.iu.edu/ndca/tsds-aggregate
+    tag: "1.2.2-dev"
+    
+frontend:
+  image:
+    repository: containers.github.grnoc.iu.edu/ndca/tsds-frontend
+    tag: "1.0.0-dev"
 
 # nameservice urls:
 cdsUrl: https://db2.grnoc.iu.edu
@@ -32,3 +43,6 @@ globalnoc-shib:
     hostname: "tsds"
   nameOverride: "tsds-shib"
   apacheConfigMap: tsds-apache-shib
+
+global:
+  ldapURL: "foobar"

@@ -605,9 +605,13 @@ sub _process_data_messages {
 
     # handle every message sent, ordered by their timestamp in ascending order
     foreach my $message ( sort { $a->time <=> $b->time } @$messages ) {
-
+        $self->logger->error("Procesing Message");
         my $data_type = $message->data_type;
+        $self->logger->error("Procesing Message of Type: " . $data_type);
+        $self->logger->error("MetaFields: " . Dumper($message->meta));
+        $self->logger->error("Message Values: " . Dumper($message->values));
         my $measurement_identifier = $message->measurement_identifier;
+        $self->logger->error("Message Identifier: " . $measurement_identifier);
         my $interval = $message->interval;
 	my $data_points;
 

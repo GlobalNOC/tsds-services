@@ -7,4 +7,4 @@ dependencies:
 description: A TSDS Helm Chart for Kubernetes
 name: tsds
 type: application
-version: "0.1.15"
+version: "0.1.17"

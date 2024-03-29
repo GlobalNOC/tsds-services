@@ -35,7 +35,7 @@ spec:
             - mountPath: /etc/grnoc/tsds/services/config.xml
               name: tsds-config
               subPath: config.xml
-          command: ["/usr/bin/tsds_writer", "--queue", "timeseries_data"]
+          command: ["/usr/bin/tsds_writer.pl", "--queue", "timeseries_data"]
       volumes:
         - name: tsds-logging
           configMap:

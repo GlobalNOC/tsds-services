@@ -760,6 +760,13 @@ DISTRIBUTIONS
       perl 5.006
       strict 0
       warnings 0
+  Digest-SHA-5.89
+    pathname: M/MS/MSHELOR/Digest-SHA-5.89.tar.gz
+    provides:
+      Digest::SHA 5.89
+    requirements:
+      ExtUtils::MakeMaker 0
+      perl 5.003
   Dist-CheckConflicts-0.11
     pathname: D/DO/DOY/Dist-CheckConflicts-0.11.tar.gz
     provides:

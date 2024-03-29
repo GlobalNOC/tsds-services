@@ -37,3 +37,4 @@ requires 'Type::Tiny', '== 1.004002';
 requires 'Types::XSD::Lite', '== 0.005';
 requires 'WWW::Mechanize::PhantomJS', '== 0.14';
 requires 'XML::Writer', '== 0.623';
+requires 'Digest::SHA', '== 5.89';
