@@ -51,6 +51,14 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
+Selector labels
+*/}}
+{{- define "mongodb.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "tsds.name" . }}-mongodb
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{/*
 Create the name of the service account to use
 */}}
 {{- define "tsds.serviceAccountName" -}}

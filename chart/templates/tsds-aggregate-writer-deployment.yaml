@@ -24,6 +24,21 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+            {{- with .Values.agg-writers.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+          
+      {{- with .Values.agg-writers.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+          
+      {{- with .Values.agg-writers.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
       containers:
         - name: tsds-aggregate-writer
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default "latest" }}"

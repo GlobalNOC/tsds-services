@@ -25,6 +25,20 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- with .Values.services.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+          
+      {{- with .Values.services.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+          
+      {{- with .Values.services.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: tsds-apache
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default "latest" }}"
