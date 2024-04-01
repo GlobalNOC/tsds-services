@@ -10,7 +10,7 @@ spec:
     spec:
       selector:
           matchLabels:
-            {{- include "mongodb.selectorLabels" . | nindent 6 }}
+            {{- include "mongodb.selectorLabels" . | nindent 12 }}
       template:
         metadata:
           # label the pod which is used by the "labelSelector" in podAntiAffinty
