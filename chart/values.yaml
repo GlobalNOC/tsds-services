@@ -16,7 +16,8 @@ frontend:
   image:
     repository: containers.github.grnoc.iu.edu/ndca/tsds-frontend
     tag: "1.0.0-dev"
-
+  replicaCount: 1
+  resources: {}
 # nameservice urls:
 cdsUrl: https://db2.grnoc.iu.edu
 tixUrl: https://sn-tools.grnoc.iu.edu
@@ -24,17 +25,6 @@ tixUrl: https://sn-tools.grnoc.iu.edu
 # LDAP group to access tsds (frontend & backend)
 ldapGroup: cn=snapp-admin,ou=webapps,dc=grnoc,dc=iu,dc=edu
 
-# Deployment/Stateful Set Replica Counts
-replicaCount:
-  aggregateWorkers: 1
-  aggregateWriters: 1
-  apache: 1
-  memcached: 1
-  mongodb: 3
-  arbiters: 1
-  rabbitmq: 1
-  redis: 3
-  writers: 1
 
 globalnoc-shib:
   globalnoc:
@@ -46,35 +36,95 @@ globalnoc-shib:
 global:
   ldapURL: "foobar"
 
+
 writers:
   affinity: {}
+  resources:
+    limits:
+      cpu: 200m
+    requests:
+      cpu: 100m
+  #if autoscaling... don't bother with replicaCount
+  replicaCount: 4
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
 
 services:
   affinity: {}
+  resources:
+    limits:
+      cpu: 300m
+    requests:
+      cpu: 100m
+  replicaCount: 2
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
 
 agg_workers:
   affinity: {}
+  replicaCount: 1
+  resources:
+    limits:
+      cpu: 200m
+    requests:
+      cpu: 100m
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
 
 agg_writers:
+  replicaCount: 1
   affinity: {}
+  resources:
+    limits:
+      cpu: 200m
+    requests:
+      cpu: 100m
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
 
 redis:
   affinity: {}
+  replicaCount: 3
 
 rabbitmq:
   affinity: {}
-  requests: 
-    cpu: '1'
-    memory: 2Gi
-  limits: 
-    cpu: '1'
-    memory: 2Gi
+  replicaCount: 1
+  resources:
+    requests: 
+      cpu: '1'
+      memory: 2Gi
+    limits: 
+      cpu: '1'
+      memory: 2Gi
 
 mongodb:
+  members: 3
+  arbiters: 1
   affinity: {}
-  requests: 
-    cpu: '2'
-    memory: 1G
-  limits: 
-    cpu: '5'
-    memory: 5G
+  resources:
+    requests: 
+      cpu: '2'
+      memory: 1G
+    limits: 
+      cpu: '5'
+      memory: 5G
+
+
+memcached:
+  replicaCount: 1

@@ -7,7 +7,9 @@ metadata:
     app: tsds-apache
     {{ include "tsds.labels" . | nindent 4 }}
 spec:
-  replicas: {{ .Values.replicaCount.apache }}
+  {{- if not .Values.services.autoscaling.enabled }}
+  replicas: {{ .Values.services.replicaCount | default "1" }}
+  {{- end }}
   selector:
     matchLabels:
       app: tsds-apache
@@ -43,6 +45,10 @@ spec:
         - name: tsds-apache
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default "latest" }}"
           imagePullPolicy: Always
+          {{- with .Values.services.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           volumeMounts:
           
             ####### TSDS Services #######

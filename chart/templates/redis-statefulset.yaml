@@ -8,7 +8,7 @@ metadata:
     {{ include "tsds.labels" . | nindent 4 }}
 spec:
   serviceName: tsds-redis
-  replicas: {{ .Values.replicaCount.redis }}
+  replicas: {{ .Values.redis.replicaCount }}
   selector:
     matchLabels:
       app: tsds-redis

@@ -6,7 +6,9 @@ metadata:
     app: tsds-aggregate-writer
     {{ include "tsds.labels" . | nindent 4 }}
 spec:
-  replicas: {{ .Values.replicaCount.aggregateWriters }}
+  {{- if not .Values.agg_writers.autoscaling.enabled }}
+  replicas: {{ .Values.agg_writers.replicaCount }}
+  {{- end }}
   selector:
     matchLabels:
       app: tsds-aggregate-writer
@@ -43,6 +45,10 @@ spec:
         - name: tsds-aggregate-writer
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default "latest" }}"
           imagePullPolicy: Always
+          {{- with .Values.agg_writers.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           volumeMounts:
             - mountPath: /etc/grnoc/tsds/services/logging.conf
               name: tsds-logging

@@ -35,15 +35,13 @@ spec:
           {{- end }}
           containers:
             - name: mongod
+              {{- with .Values.mongodb.resources }}
               resources:
-                limits:
-                  cpu: {{ .Values.mongodb.limits.cpu | default "'5'" }}
-                  memory: {{ .Values.mongodb.limits.memory | default "5000M" }}
-                requests:
-                  cpu: {{ .Values.mongodb.requests.cpu | default "'2'" }}
-                  memory: {{ .Values.mongodb.requests.memory | default "1000M" }}
-  members: {{ .Values.replicaCount.mongodb | default 1 }}
-  arbiters: {{ .Values.replicaCount.arbiters | default 1 }}
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
+
+  members: {{ .Values.mongodb.members | default 1 }}
+  arbiters: {{ .Values.mongodb.arbiters | default 1 }}
   type: ReplicaSet
   version: "4.2.0"
   security:

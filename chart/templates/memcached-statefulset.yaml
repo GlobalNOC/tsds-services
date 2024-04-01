@@ -8,7 +8,7 @@ metadata:
     {{ include "tsds.labels" . | nindent 4 }}
 spec:
   serviceName: tsds-memcached
-  replicas: {{ .Values.replicaCount.memcached }}
+  replicas: {{ .Values.memcached.replicaCount }}
   selector:
     matchLabels:
       app: tsds-memcached
