@@ -14,11 +14,11 @@ spec:
             - name: mongod
               resources:
                 limits:
-                  cpu: '5'
-                  memory: 2000M
+                  cpu: {{ .Values.mongo.limit.cpu | default "'5'" }}
+                  memory: {{ .Values.mongo.limit.mem | default "5000M" }}
                 requests:
-                  cpu: '2'
-                  memory: 1000M
+                  cpu: {{ .Values.mongo.requests.cpu | default "'2'" }}
+                  memory: {{ .Values.mongo.requests.mem | default "1000M" }}
   members: {{ .Values.replicaCount.mongodb | default 1 }}
   arbiters: {{ .Values.replicaCount.arbiters | default 1 }}
   type: ReplicaSet

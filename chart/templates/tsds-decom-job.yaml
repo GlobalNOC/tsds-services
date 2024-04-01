@@ -18,7 +18,7 @@ spec:
             - name: tsds-decom
               image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default "latest" }}"
               imagePullPolicy: Always
-              command: ["/usr/bin/tsds_decom.pl"]
+              command: ["/usr/bin/tsds-decom.pl"]
               volumeMounts:
                 - mountPath: /etc/grnoc/tsds/services/logging.conf
                   name: tsds-logging
