@@ -24,7 +24,7 @@ tixUrl: https://sn-tools.grnoc.iu.edu
 
 # LDAP group to access tsds (frontend & backend)
 ldapGroup: cn=snapp-admin,ou=webapps,dc=grnoc,dc=iu,dc=edu
-
+pushLdapGroup: cn=tsds-push,ou=webapps,dc=grnoc,dc=iu,dc=edu
 
 globalnoc-shib:
   globalnoc:
@@ -57,9 +57,9 @@ services:
   affinity: {}
   resources:
     limits:
-      cpu: 300m
+      cpu: 2
     requests:
-      cpu: 100m
+      cpu: 1
   replicaCount: 2
   autoscaling:
     enabled: true
