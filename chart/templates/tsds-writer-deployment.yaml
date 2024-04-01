@@ -24,6 +24,7 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+
       {{- with .Values.writers.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}

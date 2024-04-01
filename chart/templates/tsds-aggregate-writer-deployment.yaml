@@ -24,17 +24,17 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-            {{- with .Values.agg-writers.affinity }}
+      {{- with .Values.agg_writers.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
           
-      {{- with .Values.agg-writers.topologySpreadConstraints }}
+      {{- with .Values.agg_writers.topologySpreadConstraints }}
       topologySpreadConstraints:
         {{- toYaml . | nindent 8 }}
       {{- end }}
           
-      {{- with .Values.agg-writers.tolerations }}
+      {{- with .Values.agg_writers.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}

@@ -19,17 +19,17 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.agg-worker.affinity }}
+      {{- with .Values.agg_workers.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
           
-      {{- with .Values.agg-worker.topologySpreadConstraints }}
+      {{- with .Values.agg_workers.topologySpreadConstraints }}
       topologySpreadConstraints:
         {{- toYaml . | nindent 8 }}
       {{- end }}
           
-      {{- with .Values.agg-worker.tolerations }}
+      {{- with .Values.agg_workers.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}

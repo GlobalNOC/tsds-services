@@ -17,31 +17,31 @@ spec:
           # you can label it witch some other labels as well -- make sure it change the podAntiAffinity labelselector accordingly
           labels:
           app.kubernetes.io/name: 
-            {{- include "mongodb.selectorLabels" . | nindent 6 }}
+            {{- include "mongodb.selectorLabels" . | nindent 12 }}
         spec:
           {{- with .Values.mongodb.affinity }}
           affinity:
-            {{- toYaml . | nindent 8 }}
+            {{- toYaml . | nindent 12 }}
           {{- end }}
           
           {{- with .Values.mongodb.topologySpreadConstraints }}
           topologySpreadConstraints:
-            {{- toYaml . | nindent 8 }}
+            {{- toYaml . | nindent 12 }}
           {{- end }}
           
           {{- with .Values.mongodb.tolerations }}
           tolerations:
-            {{- toYaml . | nindent 8 }}
+            {{- toYaml . | nindent 12 }}
           {{- end }}
           containers:
             - name: mongod
               resources:
                 limits:
-                  cpu: {{ .Values.mongo.limit.cpu | default "'5'" }}
-                  memory: {{ .Values.mongo.limit.mem | default "5000M" }}
+                  cpu: {{ .Values.mongodb.limits.cpu | default "'5'" }}
+                  memory: {{ .Values.mongodb.limits.memory | default "5000M" }}
                 requests:
-                  cpu: {{ .Values.mongo.requests.cpu | default "'2'" }}
-                  memory: {{ .Values.mongo.requests.mem | default "1000M" }}
+                  cpu: {{ .Values.mongodb.requests.cpu | default "'2'" }}
+                  memory: {{ .Values.mongodb.requests.memory | default "1000M" }}
   members: {{ .Values.replicaCount.mongodb | default 1 }}
   arbiters: {{ .Values.replicaCount.arbiters | default 1 }}
   type: ReplicaSet

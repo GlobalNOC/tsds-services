@@ -16,8 +16,8 @@ spec:
   replicas: {{ .Values.replicaCount.rabbitmq }}
   resources:
     requests:
-      cpu: '1'
-      memory: 2Gi
+      cpu: {{ .Values.rabbitmq.requests.cpu | default "'1'" }}
+      memory: {{ .Values.rabbitmq.requests.memory | default "2Gi" }}
     limits:
-      cpu: '1'
-      memory: 2Gi
+      cpu: {{ .Values.rabbitmq.limits.cpu | default "'1'" }}
+      memory: {{ .Values.rabbitmq.limits.memory | default "2Gi" }}

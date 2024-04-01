@@ -34,7 +34,6 @@ replicaCount:
   arbiters: 1
   rabbitmq: 1
   redis: 3
-  sphinx: 1
   writers: 1
 
 globalnoc-shib:
@@ -46,3 +45,36 @@ globalnoc-shib:
 
 global:
   ldapURL: "foobar"
+
+writers:
+  affinity: {}
+
+services:
+  affinity: {}
+
+agg_workers:
+  affinity: {}
+
+agg_writers:
+  affinity: {}
+
+redis:
+  affinity: {}
+
+rabbitmq:
+  affinity: {}
+  requests: 
+    cpu: '1'
+    memory: 2Gi
+  limits: 
+    cpu: '1'
+    memory: 2Gi
+
+mongodb:
+  affinity: {}
+  requests: 
+    cpu: '2'
+    memory: 1G
+  limits: 
+    cpu: '5'
+    memory: 5G
