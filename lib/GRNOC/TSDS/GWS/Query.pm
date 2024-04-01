@@ -34,7 +34,7 @@ use JSON::XS;
 #use XSLoader;
 #XSLoader::load("MongoDB");
 
-use MongoDB::BSON;
+#use MongoDB::BSON;
 
 use Data::Dumper;
 

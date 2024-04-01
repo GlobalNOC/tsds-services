@@ -112,7 +112,7 @@ sub start {
 
     try {
 
-        $mongo = MongoDB::MongoClient->new( host => "$mongo_host" );#,
+        $mongo = MongoDB::MongoClient->new( host => $mongo_host );#,
 #                                            username => $rw_user->{'user'},
  #                                           password => $rw_user->{'password'} );
     }

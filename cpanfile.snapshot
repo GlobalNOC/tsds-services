@@ -87,6 +87,21 @@ DISTRIBUTIONS
       perl 5.006001
       strict 0
       warnings 0
+  BSON-XS-v0.8.4
+    pathname: M/MO/MONGODB/BSON-XS-v0.8.4.tar.gz
+    provides:
+      BSON::XS v0.8.4
+    requirements:
+      BSON 1.012000
+      Config::AutoConf 0.22
+      ExtUtils::MakeMaker 0
+      Path::Tiny 0.052
+      XSLoader 0
+      boolean 0
+      perl 5.010001
+      strict 0
+      version 0
+      warnings 0
   BSON-v1.12.2
     pathname: M/MO/MONGODB/BSON-v1.12.2.tar.gz
     provides:
@@ -276,22 +291,6 @@ DISTRIBUTIONS
       Text::ParseWords 0
       base 0
       perl 5.006
-      strict 0
-      warnings 0
-  Cpanel-JSON-XS-4.37
-    pathname: R/RU/RURBAN/Cpanel-JSON-XS-4.37.tar.gz
-    provides:
-      Cpanel::JSON::XS 4.37
-      Cpanel::JSON::XS::Type undef
-    requirements:
-      Carp 0
-      Config 0
-      Encode 1.9801
-      Exporter 0
-      ExtUtils::MakeMaker 0
-      Pod::Text 2.08
-      XSLoader 0
-      overload 0
       strict 0
       warnings 0
   Crypt-URandom-0.40
@@ -760,13 +759,17 @@ DISTRIBUTIONS
       perl 5.006
       strict 0
       warnings 0
-  Digest-SHA-5.89
-    pathname: M/MS/MSHELOR/Digest-SHA-5.89.tar.gz
+  Digest-HMAC-1.04
+    pathname: A/AR/ARODLAND/Digest-HMAC-1.04.tar.gz
     provides:
-      Digest::SHA 5.89
+      Digest::HMAC 1.04
+      Digest::HMAC_MD5 1.04
+      Digest::HMAC_SHA1 1.04
     requirements:
+      Digest::MD5 2
+      Digest::SHA 1
       ExtUtils::MakeMaker 0
-      perl 5.003
+      perl 5.004
   Dist-CheckConflicts-0.11
     pathname: D/DO/DOY/Dist-CheckConflicts-0.11.tar.gz
     provides:
@@ -1218,17 +1221,6 @@ DISTRIBUTIONS
       perl 5.008
       strict 0
       warnings 0
-  JSON-MaybeXS-1.004005
-    pathname: E/ET/ETHER/JSON-MaybeXS-1.004005.tar.gz
-    provides:
-      JSON::MaybeXS 1.004005
-    requirements:
-      Carp 0
-      Cpanel::JSON::XS 2.3310
-      ExtUtils::MakeMaker 0
-      JSON::PP 2.27300
-      Scalar::Util 0
-      perl 5.006
   JSON-XS-3.01
     pathname: M/ML/MLEHMANN/JSON-XS-3.01.tar.gz
     provides:
@@ -1463,112 +1455,113 @@ DISTRIBUTIONS
       perl 5.006
       strict 0
       warnings 0
-  MongoDB-v1.8.1
-    pathname: M/MO/MONGODB/MongoDB-v1.8.1.tar.gz
+  MongoDB-v2.2.2
+    pathname: M/MO/MONGODB/MongoDB-v2.2.2.tar.gz
     provides:
-      MongoDB v1.8.1
-      MongoDB::AuthError v1.8.1
-      MongoDB::BSON v1.8.1
-      MongoDB::BSON::Binary v1.8.1
-      MongoDB::BSON::Regexp v1.8.1
-      MongoDB::BulkWrite v1.8.1
-      MongoDB::BulkWriteResult v1.8.1
-      MongoDB::BulkWriteView v1.8.1
-      MongoDB::Code v1.8.1
-      MongoDB::Collection v1.8.1
-      MongoDB::CommandResult v1.8.1
-      MongoDB::ConnectionError v1.8.1
-      MongoDB::Cursor v1.8.1
-      MongoDB::CursorNotFoundError v1.8.1
-      MongoDB::DBRef v1.8.1
-      MongoDB::Database v1.8.1
-      MongoDB::DatabaseError v1.8.1
-      MongoDB::DecodingError v1.8.1
-      MongoDB::DeleteResult v1.8.1
-      MongoDB::DocumentError v1.8.1
-      MongoDB::DuplicateKeyError v1.8.1
-      MongoDB::Error v1.8.1
-      MongoDB::ExecutionTimeout v1.8.1
-      MongoDB::GridFS v1.8.1
-      MongoDB::GridFS::File v1.8.1
-      MongoDB::GridFSBucket v1.8.1
-      MongoDB::GridFSBucket::DownloadStream v1.8.1
-      MongoDB::GridFSBucket::UploadStream v1.8.1
-      MongoDB::GridFSError v1.8.1
-      MongoDB::HandshakeError v1.8.1
-      MongoDB::IndexView v1.8.1
-      MongoDB::InsertManyResult v1.8.1
-      MongoDB::InsertOneResult v1.8.1
-      MongoDB::InternalError v1.8.1
-      MongoDB::MongoClient v1.8.1
-      MongoDB::NetworkError v1.8.1
-      MongoDB::NetworkTimeout v1.8.1
-      MongoDB::NotMasterError v1.8.1
-      MongoDB::OID v1.8.1
-      MongoDB::ProtocolError v1.8.1
-      MongoDB::QueryResult v1.8.1
-      MongoDB::QueryResult::Filtered v1.8.1
-      MongoDB::ReadConcern v1.8.1
-      MongoDB::ReadPreference v1.8.1
-      MongoDB::SelectionError v1.8.1
-      MongoDB::TimeoutError v1.8.1
-      MongoDB::Timestamp v1.8.1
-      MongoDB::UnacknowledgedResult v1.8.1
-      MongoDB::UpdateResult v1.8.1
-      MongoDB::UsageError v1.8.1
-      MongoDB::WriteConcern v1.8.1
-      MongoDB::WriteConcernError v1.8.1
-      MongoDB::WriteError v1.8.1
+      MongoDB v2.2.2
+      MongoDB::AuthError v2.2.2
+      MongoDB::BSON::Binary v2.2.2
+      MongoDB::BSON::Regexp v2.2.2
+      MongoDB::BulkWrite v2.2.2
+      MongoDB::BulkWriteResult v2.2.2
+      MongoDB::BulkWriteView v2.2.2
+      MongoDB::ChangeStream v2.2.2
+      MongoDB::ClientSession v2.2.2
+      MongoDB::Code v2.2.2
+      MongoDB::Collection v2.2.2
+      MongoDB::CommandResult v2.2.2
+      MongoDB::ConfigurationError v2.2.2
+      MongoDB::ConnectionError v2.2.2
+      MongoDB::Cursor v2.2.2
+      MongoDB::CursorNotFoundError v2.2.2
+      MongoDB::DBRef v2.2.2
+      MongoDB::Database v2.2.2
+      MongoDB::DatabaseError v2.2.2
+      MongoDB::DecodingError v2.2.2
+      MongoDB::DeleteResult v2.2.2
+      MongoDB::DocumentError v2.2.2
+      MongoDB::DuplicateKeyError v2.2.2
+      MongoDB::Error v2.2.2
+      MongoDB::ExecutionTimeout v2.2.2
+      MongoDB::GridFSBucket v2.2.2
+      MongoDB::GridFSBucket::DownloadStream v2.2.2
+      MongoDB::GridFSBucket::UploadStream v2.2.2
+      MongoDB::GridFSError v2.2.2
+      MongoDB::HandshakeError v2.2.2
+      MongoDB::IndexView v2.2.2
+      MongoDB::InsertManyResult v2.2.2
+      MongoDB::InsertOneResult v2.2.2
+      MongoDB::InternalError v2.2.2
+      MongoDB::InvalidOperationError v2.2.2
+      MongoDB::MongoClient v2.2.2
+      MongoDB::NetworkError v2.2.2
+      MongoDB::NetworkTimeout v2.2.2
+      MongoDB::NotMasterError v2.2.2
+      MongoDB::OID v2.2.2
+      MongoDB::ProtocolError v2.2.2
+      MongoDB::QueryResult v2.2.2
+      MongoDB::QueryResult::Filtered v2.2.2
+      MongoDB::ReadConcern v2.2.2
+      MongoDB::ReadPreference v2.2.2
+      MongoDB::SelectionError v2.2.2
+      MongoDB::TimeoutError v2.2.2
+      MongoDB::Timestamp v2.2.2
+      MongoDB::UnacknowledgedResult v2.2.2
+      MongoDB::UpdateResult v2.2.2
+      MongoDB::UsageError v2.2.2
+      MongoDB::WriteConcern v2.2.2
+      MongoDB::WriteConcernError v2.2.2
+      MongoDB::WriteError v2.2.2
     requirements:
-      Authen::SCRAM::Client 0.003
-      BSON::Decimal128 1
+      Authen::SASL::SASLprep 0
+      Authen::SCRAM::Client 0.011
+      BSON 1.012000
+      BSON::Bytes 0
+      BSON::Code 0
+      BSON::DBRef 0
+      BSON::OID 0
+      BSON::Raw 0
+      BSON::Regex 0
+      BSON::Time 0
+      BSON::Timestamp 0
+      BSON::Types 0
+      BSON::XS 0.008000
       Carp 0
       Class::XSAccessor 0
-      Data::Dumper 0
-      DateTime 0.78
-      Devel::Peek 0
+      Compress::Zlib 0
       Digest::MD5 0
       Encode 0
       Exporter 5.57
-      ExtUtils::MakeMaker 6.59
-      File::Spec 0
-      File::Temp 0.17
-      FileHandle 0
-      IO::File 0
+      ExtUtils::MakeMaker 6.17
       IO::Socket 0
-      JSON::MaybeXS 1.002005
       List::Util 0
       MIME::Base64 0
       Math::BigInt 0
       Moo 2
       Moo::Role 0
-      Path::Tiny 0.054
-      Safe::Isa 0
+      Net::DNS 0
+      Safe::Isa 1.000007
       Scalar::Util 0
       Socket 0
-      Test::Deep 0.111
-      Test::Fatal 0
-      Test::More 0.96
+      Sub::Defer 0
+      Sub::Quote 0
+      Text::ParseWords 0
       Tie::IxHash 0
       Time::HiRes 0
-      Try::Tiny 0
       Type::Library 0
-      Type::Tiny 1
       Type::Tiny::XS 0
       Type::Utils 0
       Types::Standard 0
-      XSLoader 0
-      bigint 0
+      UUID::URandom 0
       boolean 0.25
+      bytes 0
       constant 0
       if 0
-      lib 0
       namespace::clean 0
       overload 0
-      perl 5.008004
+      perl 5.010001
       re 0
       strict 0
-      utf8 0
       version 0
       warnings 0
   Moo-2.005005
@@ -1607,6 +1600,141 @@ DISTRIBUTIONS
       Math::Int64 0.34
       Scalar::Util 0
       XSLoader 0
+  Net-DNS-1.44
+    pathname: N/NL/NLNETLABS/Net-DNS-1.44.tar.gz
+    provides:
+      Net::DNS 1.44
+      Net::DNS::Domain 1913
+      Net::DNS::DomainName 1898
+      Net::DNS::DomainName1035 1898
+      Net::DNS::DomainName2535 1898
+      Net::DNS::Header 1953
+      Net::DNS::Mailbox 1910
+      Net::DNS::Mailbox1035 1910
+      Net::DNS::Mailbox2535 1910
+      Net::DNS::Nameserver 1963
+      Net::DNS::Packet 1959
+      Net::DNS::Parameters 1945
+      Net::DNS::Question 1895
+      Net::DNS::RR 1965
+      Net::DNS::RR::A 1896
+      Net::DNS::RR::AAAA 1896
+      Net::DNS::RR::AFSDB 1945
+      Net::DNS::RR::AMTRELAY 1896
+      Net::DNS::RR::APL 1896
+      Net::DNS::RR::APL::Item 1896
+      Net::DNS::RR::CAA 1910
+      Net::DNS::RR::CDNSKEY 1909
+      Net::DNS::RR::CDS 1909
+      Net::DNS::RR::CERT 1896
+      Net::DNS::RR::CNAME 1896
+      Net::DNS::RR::CSYNC 1910
+      Net::DNS::RR::DELEG 1965
+      Net::DNS::RR::DHCID 1896
+      Net::DNS::RR::DNAME 1896
+      Net::DNS::RR::DNSKEY 1910
+      Net::DNS::RR::DS 1957
+      Net::DNS::RR::EUI48 1896
+      Net::DNS::RR::EUI64 1896
+      Net::DNS::RR::GPOS 1910
+      Net::DNS::RR::HINFO 1896
+      Net::DNS::RR::HIP 1896
+      Net::DNS::RR::HTTPS 1945
+      Net::DNS::RR::IPSECKEY 1957
+      Net::DNS::RR::ISDN 1896
+      Net::DNS::RR::KEY 1896
+      Net::DNS::RR::KX 1945
+      Net::DNS::RR::L32 1896
+      Net::DNS::RR::L64 1896
+      Net::DNS::RR::LOC 1896
+      Net::DNS::RR::LP 1896
+      Net::DNS::RR::MB 1910
+      Net::DNS::RR::MG 1910
+      Net::DNS::RR::MINFO 1896
+      Net::DNS::RR::MR 1910
+      Net::DNS::RR::MX 1945
+      Net::DNS::RR::NAPTR 1898
+      Net::DNS::RR::NID 1896
+      Net::DNS::RR::NS 1896
+      Net::DNS::RR::NSEC 1945
+      Net::DNS::RR::NSEC3 1910
+      Net::DNS::RR::NSEC3PARAM 1896
+      Net::DNS::RR::NULL 1896
+      Net::DNS::RR::OPENPGPKEY 1896
+      Net::DNS::RR::OPT 1934
+      Net::DNS::RR::OPT::CHAIN 1934
+      Net::DNS::RR::OPT::CLIENT_SUBNET 1934
+      Net::DNS::RR::OPT::COOKIE 1934
+      Net::DNS::RR::OPT::DAU 1934
+      Net::DNS::RR::OPT::DHU 1934
+      Net::DNS::RR::OPT::EXPIRE 1934
+      Net::DNS::RR::OPT::EXTENDED_ERROR 1934
+      Net::DNS::RR::OPT::KEY_TAG 1934
+      Net::DNS::RR::OPT::N3U 1934
+      Net::DNS::RR::OPT::NSID 1934
+      Net::DNS::RR::OPT::PADDING 1934
+      Net::DNS::RR::OPT::REPORT_CHANNEL 1934
+      Net::DNS::RR::OPT::TCP_KEEPALIVE 1934
+      Net::DNS::RR::PTR 1896
+      Net::DNS::RR::PX 1945
+      Net::DNS::RR::RP 1945
+      Net::DNS::RR::RRSIG 1957
+      Net::DNS::RR::RT 1945
+      Net::DNS::RR::SIG 1957
+      Net::DNS::RR::SMIMEA 1896
+      Net::DNS::RR::SOA 1945
+      Net::DNS::RR::SPF 1896
+      Net::DNS::RR::SRV 1945
+      Net::DNS::RR::SSHFP 1896
+      Net::DNS::RR::SVCB 1967
+      Net::DNS::RR::TKEY 1908
+      Net::DNS::RR::TLSA 1896
+      Net::DNS::RR::TSIG 1909
+      Net::DNS::RR::TXT 1911
+      Net::DNS::RR::URI 1896
+      Net::DNS::RR::X25 1896
+      Net::DNS::RR::ZONEMD 1896
+      Net::DNS::Resolver 1895
+      Net::DNS::Resolver::Base 1965
+      Net::DNS::Resolver::MSWin32 1961
+      Net::DNS::Resolver::Recurse 1965
+      Net::DNS::Resolver::UNIX 1856
+      Net::DNS::Resolver::android 1856
+      Net::DNS::Resolver::cygwin 1856
+      Net::DNS::Resolver::os2 1856
+      Net::DNS::Resolver::os390 1856
+      Net::DNS::Text 1894
+      Net::DNS::Update 1895
+      Net::DNS::ZoneFile 1957
+      Net::DNS::ZoneFile::Generator 1957
+      Net::DNS::ZoneFile::Text 1957
+    requirements:
+      Carp 1.1
+      Config 0
+      Digest::HMAC 1.03
+      Digest::MD5 2.37
+      Digest::SHA 5.23
+      Encode 2.26
+      Exporter 5.63
+      ExtUtils::MakeMaker 6.48
+      File::Spec 3.29
+      Getopt::Long 2.43
+      IO::File 1.14
+      IO::Select 1.17
+      IO::Socket 1.3
+      IO::Socket::IP 0.38
+      MIME::Base64 3.07
+      PerlIO 1.05
+      Scalar::Util 1.19
+      Socket 1.81
+      Time::Local 1.19
+      base 2.13
+      constant 1.17
+      integer 1
+      overload 1.06
+      perl 5.008009
+      strict 1.03
+      warnings 1.0501
   Net-HTTP-6.23
     pathname: O/OA/OALDERS/Net-HTTP-6.23.tar.gz
     provides:
@@ -2619,6 +2747,17 @@ DISTRIBUTIONS
       perl 5.008001
       strict 0
       utf8 0
+      warnings 0
+  UUID-URandom-0.001
+    pathname: D/DA/DAGOLDEN/UUID-URandom-0.001.tar.gz
+    provides:
+      UUID::URandom 0.001
+    requirements:
+      Crypt::URandom 0.36
+      Exporter 5.57
+      ExtUtils::MakeMaker 6.17
+      perl 5.008
+      strict 0
       warnings 0
   Unicode-Stringprep-1.105
     pathname: C/CF/CFAERBER/Unicode-Stringprep-1.105.tar.gz

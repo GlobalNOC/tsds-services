@@ -7,44 +7,10 @@ metadata:
     {{ include "tsds.labels" . | nindent 4 }}
 data:
   tsds.conf: |
+   AllowEncodedSlashes NoDecode
    RewriteEngine on
    RewriteRule "^/rabbit$" "/rabbit/" [R]
    ProxyPreserveHost On
-    <Location /yui/>
-      AuthType Shibboleth
-      ShibRequestSetting requireSession true
-      AuthLDAPURL "{{ .Values.global.ldapURL }}"
-      AuthLDAPBindDN {{ .Values.global.ldapBind }} 
-      AuthLDAPBindPassword {{ .Values.global.ldapPw }} 
-      Require ldap-group {{ .Values.ldapGroup }} 
-      ProxyPass        http://tsds-apache.{{ .Release.Namespace }}.svc.cluster.local/yui/
-      ProxyPassReverse http://tsds-apache.{{ .Release.Namespace }}.svc.cluster.local/yui/
-      RequestHeader set REMOTE_USER %{REMOTE_USER}s
-    </Location>
-
-    <Location /glue/>
-      AuthType Shibboleth
-      ShibRequestSetting requireSession true
-      AuthLDAPURL "{{ .Values.global.ldapURL }}"
-      AuthLDAPBindDN {{ .Values.global.ldapBind }} 
-      AuthLDAPBindPassword {{ .Values.global.ldapPw }} 
-      Require ldap-group {{ .Values.ldapGroup }} 
-      ProxyPass        http://tsds-apache.{{ .Release.Namespace }}.svc.cluster.local/glue/
-      ProxyPassReverse http://tsds-apache.{{ .Release.Namespace }}.svc.cluster.local/glue/
-      RequestHeader set REMOTE_USER %{REMOTE_USER}s
-    </Location>
-
-    <Location /proxy/>
-      AuthType Shibboleth
-      ShibRequestSetting requireSession true
-      AuthLDAPURL "{{ .Values.global.ldapURL }}"
-      AuthLDAPBindDN {{ .Values.global.ldapBind }} 
-      AuthLDAPBindPassword {{ .Values.global.ldapPw }} 
-      Require ldap-group {{ .Values.ldapGroup }} 
-      ProxyPass        http://tsds-apache.{{ .Release.Namespace }}.svc.cluster.local/proxy/
-      ProxyPassReverse http://tsds-apache.{{ .Release.Namespace }}.svc.cluster.local/proxy/
-      RequestHeader set REMOTE_USER %{REMOTE_USER}s
-    </Location>
 
     <Location /rabbit/>
       AuthType Shibboleth
@@ -53,7 +19,7 @@ data:
       AuthLDAPBindDN {{ .Values.global.ldapBind }} 
       AuthLDAPBindPassword {{ .Values.global.ldapPw }} 
       Require ldap-group {{ .Values.ldapGroup }} 
-      ProxyPass        http://tsds-rabbitmq.{{ .Release.Namespace }}.svc.cluster.local:15672/
+      ProxyPass        http://tsds-rabbitmq.{{ .Release.Namespace }}.svc.cluster.local:15672/ nocanon
       ProxyPassReverse http://tsds-rabbitmq.{{ .Release.Namespace }}.svc.cluster.local:15672/
       RequestHeader set REMOTE_USER %{REMOTE_USER}s
       RewriteEngine On
@@ -61,7 +27,7 @@ data:
       RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}
     </Location>
 
-    <Location /tsds/>
+    <Location /tsds-gnui/>
       AuthType Shibboleth
       ShibRequestSetting requireSession true
       AuthLDAPURL "{{ .Values.global.ldapURL }}"

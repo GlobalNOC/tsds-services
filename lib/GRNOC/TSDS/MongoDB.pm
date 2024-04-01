@@ -79,8 +79,8 @@ sub new {
     log_debug( "Connecting to MongoDB as $privilege user on $host:$port." );
 
     eval {
-        $self->{'mongo'}   = MongoDB::MongoClient->new( 
-            host     => "$host");#:$port", 
+        $self->{'mongo'}   = MongoDB::MongoClient->new( host => $host);
+        #:$port", 
             #username => $user->{'user'},
             #password => $self->{'password'}
         #);
