@@ -69,12 +69,12 @@ DISTRIBUTIONS
       perl 5.008001
       strict 0
       warnings 0
-  B-Hooks-EndOfScope-0.26
-    pathname: E/ET/ETHER/B-Hooks-EndOfScope-0.26.tar.gz
+  B-Hooks-EndOfScope-0.28
+    pathname: E/ET/ETHER/B-Hooks-EndOfScope-0.28.tar.gz
     provides:
-      B::Hooks::EndOfScope 0.26
-      B::Hooks::EndOfScope::PP 0.26
-      B::Hooks::EndOfScope::XS 0.26
+      B::Hooks::EndOfScope 0.28
+      B::Hooks::EndOfScope::PP 0.28
+      B::Hooks::EndOfScope::XS 0.28
     requirements:
       ExtUtils::MakeMaker 0
       Hash::Util::FieldHash 0
@@ -86,21 +86,6 @@ DISTRIBUTIONS
       Variable::Magic 0.48
       perl 5.006001
       strict 0
-      warnings 0
-  BSON-XS-v0.8.4
-    pathname: M/MO/MONGODB/BSON-XS-v0.8.4.tar.gz
-    provides:
-      BSON::XS v0.8.4
-    requirements:
-      BSON 1.012000
-      Config::AutoConf 0.22
-      ExtUtils::MakeMaker 0
-      Path::Tiny 0.052
-      XSLoader 0
-      boolean 0
-      perl 5.010001
-      strict 0
-      version 0
       warnings 0
   BSON-v1.12.2
     pathname: M/MO/MONGODB/BSON-v1.12.2.tar.gz
@@ -327,10 +312,10 @@ DISTRIBUTIONS
       Clone 0.46
     requirements:
       ExtUtils::MakeMaker 0
-  Compress-Raw-Zlib-2.208
-    pathname: P/PM/PMQS/Compress-Raw-Zlib-2.208.tar.gz
+  Compress-Raw-Zlib-2.209
+    pathname: P/PM/PMQS/Compress-Raw-Zlib-2.209.tar.gz
     provides:
-      Compress::Raw::Zlib 2.208
+      Compress::Raw::Zlib 2.209
     requirements:
       ExtUtils::MakeMaker 0
   Config-AutoConf-0.320
@@ -368,16 +353,17 @@ DISTRIBUTIONS
       overload 0
       strict 0
       warnings 0
-  Crypt-URandom-0.39
-    pathname: D/DD/DDICK/Crypt-URandom-0.39.tar.gz
+  Crypt-URandom-0.40
+    pathname: D/DD/DDICK/Crypt-URandom-0.40.tar.gz
     provides:
-      Crypt::URandom 0.39
+      Crypt::URandom 0.40
     requirements:
       Carp 0
       English 0
       Exporter 0
       ExtUtils::MakeMaker 0
       FileHandle 0
+      constant 0
       perl 5.006
   Data-Compare-1.29
     pathname: D/DC/DCANTRELL/Data-Compare-1.29.tar.gz
@@ -833,17 +819,6 @@ DISTRIBUTIONS
       perl 5.006
       strict 0
       warnings 0
-  Digest-HMAC-1.04
-    pathname: A/AR/ARODLAND/Digest-HMAC-1.04.tar.gz
-    provides:
-      Digest::HMAC 1.04
-      Digest::HMAC_MD5 1.04
-      Digest::HMAC_SHA1 1.04
-    requirements:
-      Digest::MD5 2
-      Digest::SHA 1
-      ExtUtils::MakeMaker 0
-      perl 5.004
   Dist-CheckConflicts-0.11
     pathname: D/DO/DOY/Dist-CheckConflicts-0.11.tar.gz
     provides:
@@ -856,10 +831,10 @@ DISTRIBUTIONS
       base 0
       strict 0
       warnings 0
-  Encode-3.20
-    pathname: D/DA/DANKOGAI/Encode-3.20.tar.gz
+  Encode-3.21
+    pathname: D/DA/DANKOGAI/Encode-3.21.tar.gz
     provides:
-      Encode 3.20
+      Encode 3.21
       Encode::Alias 2.25
       Encode::Byte 2.04
       Encode::CJKConstants 2.02
@@ -881,11 +856,11 @@ DISTRIBUTIONS
       Encode::MIME::Name 1.03
       Encode::Symbol 2.02
       Encode::TW 2.03
-      Encode::UTF_EBCDIC 3.20
+      Encode::UTF_EBCDIC 3.21
       Encode::Unicode 2.20
       Encode::Unicode::UTF7 2.10
-      Encode::XS 3.20
-      Encode::utf8 3.20
+      Encode::XS 3.21
+      Encode::utf8 3.21
       encoding 3.00
     requirements:
       Exporter 5.57
@@ -954,6 +929,33 @@ DISTRIBUTIONS
     requirements:
       ExtUtils::MakeMaker 6.17
       perl 5.006001
+  ExtUtils-CBuilder-0.280236
+    pathname: A/AM/AMBS/ExtUtils-CBuilder-0.280236.tar.gz
+    provides:
+      ExtUtils::CBuilder 0.280236
+      ExtUtils::CBuilder::Base 0.280236
+      ExtUtils::CBuilder::Platform::Unix 0.280236
+      ExtUtils::CBuilder::Platform::VMS 0.280236
+      ExtUtils::CBuilder::Platform::Windows 0.280236
+      ExtUtils::CBuilder::Platform::Windows::BCC 0.280236
+      ExtUtils::CBuilder::Platform::Windows::GCC 0.280236
+      ExtUtils::CBuilder::Platform::Windows::MSVC 0.280236
+      ExtUtils::CBuilder::Platform::aix 0.280236
+      ExtUtils::CBuilder::Platform::android 0.280236
+      ExtUtils::CBuilder::Platform::cygwin 0.280236
+      ExtUtils::CBuilder::Platform::darwin 0.280236
+      ExtUtils::CBuilder::Platform::dec_osf 0.280236
+      ExtUtils::CBuilder::Platform::os2 0.280236
+    requirements:
+      Cwd 0
+      ExtUtils::MakeMaker 6.30
+      File::Basename 0
+      File::Spec 3.13
+      File::Temp 0
+      IO::File 0
+      IPC::Cmd 0
+      Perl::OSType 1
+      Text::ParseWords 0
   ExtUtils-Config-0.008
     pathname: L/LE/LEONT/ExtUtils-Config-0.008.tar.gz
     provides:
@@ -1110,14 +1112,6 @@ DISTRIBUTIONS
       ExtUtils::MakeMaker 0
       base 0
       perl 5.006
-  Getopt-Long-2.57
-    pathname: J/JV/JV/Getopt-Long-2.57.tar.gz
-    provides:
-      Getopt::Long 2.57
-      Getopt::Long::Parser 2.57
-    requirements:
-      ExtUtils::MakeMaker 0
-      Pod::Usage 1.14
   HTML-Form-6.11
     pathname: S/SI/SIMBABQUE/HTML-Form-6.11.tar.gz
     provides:
@@ -1167,12 +1161,13 @@ DISTRIBUTIONS
       ExtUtils::MakeMaker 0
       perl 5.008001
       strict 0
-  HTML-Tagset-3.20
-    pathname: P/PE/PETDANCE/HTML-Tagset-3.20.tar.gz
+  HTML-Tagset-3.24
+    pathname: P/PE/PETDANCE/HTML-Tagset-3.24.tar.gz
     provides:
-      HTML::Tagset 3.20
+      HTML::Tagset 3.24
     requirements:
-      ExtUtils::MakeMaker 0
+      ExtUtils::MakeMaker 6.46
+      perl 5.010001
   HTML-Tree-5.07
     pathname: K/KE/KENTNL/HTML-Tree-5.07.tar.gz
     provides:
@@ -1334,6 +1329,26 @@ DISTRIBUTIONS
       IO::String 1.08
     requirements:
       ExtUtils::MakeMaker 0
+  IPC-Cmd-1.04
+    pathname: B/BI/BINGOS/IPC-Cmd-1.04.tar.gz
+    provides:
+      IPC::Cmd 1.04
+    requirements:
+      ExtUtils::MakeMaker 0
+      File::Spec 0
+      File::Temp 0
+      Locale::Maketext::Simple 0
+      Module::Load::Conditional 0.66
+      Params::Check 0.20
+      Test::More 0
+  InfluxDB-LineProtocol-1.015
+    pathname: D/DO/DOMM/InfluxDB-LineProtocol-1.015.tar.gz
+    provides:
+      InfluxDB::LineProtocol 1.015
+    requirements:
+      Carp 0
+      Module::Build 0.28
+      Time::HiRes 0
   JSON-2.59
     pathname: M/MA/MAKAMAKA/JSON-2.59.tar.gz
     provides:
@@ -1438,6 +1453,12 @@ DISTRIBUTIONS
       IPC::Cmd 0
       XSLoader 0.22
       base 0
+  Locale-Maketext-Simple-0.21
+    pathname: J/JE/JESSE/Locale-Maketext-Simple-0.21.tar.gz
+    provides:
+      Locale::Maketext::Simple 0.21
+    requirements:
+      ExtUtils::MakeMaker 0
   LockFile-Simple-0.208
     pathname: S/SC/SCHWIGON/lockfile-simple/LockFile-Simple-0.208.tar.gz
     provides:
@@ -1591,6 +1612,16 @@ DISTRIBUTIONS
       perl 5.006
       strict 0
       warnings 0
+  Module-CoreList-5.20240223
+    pathname: B/BI/BINGOS/Module-CoreList-5.20240223.tar.gz
+    provides:
+      Module::CoreList 5.20240223
+      Module::CoreList::Utils 5.20240223
+    requirements:
+      ExtUtils::MakeMaker 0
+      List::Util 0
+      Test::More 0
+      version 0.88
   Module-Implementation-0.09
     pathname: D/DR/DROLSKY/Module-Implementation-0.09.tar.gz
     provides:
@@ -1601,6 +1632,41 @@ DISTRIBUTIONS
       Module::Runtime 0.012
       Try::Tiny 0
       strict 0
+      warnings 0
+  Module-Load-0.36
+    pathname: B/BI/BINGOS/Module-Load-0.36.tar.gz
+    provides:
+      Module::Load 0.36
+    requirements:
+      ExtUtils::MakeMaker 0
+      Test::More 0.94
+  Module-Load-Conditional-0.74
+    pathname: B/BI/BINGOS/Module-Load-Conditional-0.74.tar.gz
+    provides:
+      Module::Load::Conditional 0.74
+    requirements:
+      ExtUtils::MakeMaker 0
+      Locale::Maketext::Simple 0
+      Module::CoreList 2.22
+      Module::Load 0.28
+      Module::Metadata 1.000005
+      Params::Check 0
+      Test::More 0
+      version 0.69
+  Module-Metadata-1.000038
+    pathname: E/ET/ETHER/Module-Metadata-1.000038.tar.gz
+    provides:
+      Module::Metadata 1.000038
+    requirements:
+      Carp 0
+      Encode 0
+      ExtUtils::MakeMaker 0
+      Fcntl 0
+      File::Find 0
+      File::Spec 0
+      perl 5.006
+      strict 0
+      version 0.87
       warnings 0
   Module-Runtime-0.016
     pathname: Z/ZE/ZEFRAM/Module-Runtime-0.016.tar.gz
@@ -1756,141 +1822,6 @@ DISTRIBUTIONS
       Math::Int64 0.34
       Scalar::Util 0
       XSLoader 0
-  Net-DNS-1.44
-    pathname: N/NL/NLNETLABS/Net-DNS-1.44.tar.gz
-    provides:
-      Net::DNS 1.44
-      Net::DNS::Domain 1913
-      Net::DNS::DomainName 1898
-      Net::DNS::DomainName1035 1898
-      Net::DNS::DomainName2535 1898
-      Net::DNS::Header 1953
-      Net::DNS::Mailbox 1910
-      Net::DNS::Mailbox1035 1910
-      Net::DNS::Mailbox2535 1910
-      Net::DNS::Nameserver 1963
-      Net::DNS::Packet 1959
-      Net::DNS::Parameters 1945
-      Net::DNS::Question 1895
-      Net::DNS::RR 1965
-      Net::DNS::RR::A 1896
-      Net::DNS::RR::AAAA 1896
-      Net::DNS::RR::AFSDB 1945
-      Net::DNS::RR::AMTRELAY 1896
-      Net::DNS::RR::APL 1896
-      Net::DNS::RR::APL::Item 1896
-      Net::DNS::RR::CAA 1910
-      Net::DNS::RR::CDNSKEY 1909
-      Net::DNS::RR::CDS 1909
-      Net::DNS::RR::CERT 1896
-      Net::DNS::RR::CNAME 1896
-      Net::DNS::RR::CSYNC 1910
-      Net::DNS::RR::DELEG 1965
-      Net::DNS::RR::DHCID 1896
-      Net::DNS::RR::DNAME 1896
-      Net::DNS::RR::DNSKEY 1910
-      Net::DNS::RR::DS 1957
-      Net::DNS::RR::EUI48 1896
-      Net::DNS::RR::EUI64 1896
-      Net::DNS::RR::GPOS 1910
-      Net::DNS::RR::HINFO 1896
-      Net::DNS::RR::HIP 1896
-      Net::DNS::RR::HTTPS 1945
-      Net::DNS::RR::IPSECKEY 1957
-      Net::DNS::RR::ISDN 1896
-      Net::DNS::RR::KEY 1896
-      Net::DNS::RR::KX 1945
-      Net::DNS::RR::L32 1896
-      Net::DNS::RR::L64 1896
-      Net::DNS::RR::LOC 1896
-      Net::DNS::RR::LP 1896
-      Net::DNS::RR::MB 1910
-      Net::DNS::RR::MG 1910
-      Net::DNS::RR::MINFO 1896
-      Net::DNS::RR::MR 1910
-      Net::DNS::RR::MX 1945
-      Net::DNS::RR::NAPTR 1898
-      Net::DNS::RR::NID 1896
-      Net::DNS::RR::NS 1896
-      Net::DNS::RR::NSEC 1945
-      Net::DNS::RR::NSEC3 1910
-      Net::DNS::RR::NSEC3PARAM 1896
-      Net::DNS::RR::NULL 1896
-      Net::DNS::RR::OPENPGPKEY 1896
-      Net::DNS::RR::OPT 1934
-      Net::DNS::RR::OPT::CHAIN 1934
-      Net::DNS::RR::OPT::CLIENT_SUBNET 1934
-      Net::DNS::RR::OPT::COOKIE 1934
-      Net::DNS::RR::OPT::DAU 1934
-      Net::DNS::RR::OPT::DHU 1934
-      Net::DNS::RR::OPT::EXPIRE 1934
-      Net::DNS::RR::OPT::EXTENDED_ERROR 1934
-      Net::DNS::RR::OPT::KEY_TAG 1934
-      Net::DNS::RR::OPT::N3U 1934
-      Net::DNS::RR::OPT::NSID 1934
-      Net::DNS::RR::OPT::PADDING 1934
-      Net::DNS::RR::OPT::REPORT_CHANNEL 1934
-      Net::DNS::RR::OPT::TCP_KEEPALIVE 1934
-      Net::DNS::RR::PTR 1896
-      Net::DNS::RR::PX 1945
-      Net::DNS::RR::RP 1945
-      Net::DNS::RR::RRSIG 1957
-      Net::DNS::RR::RT 1945
-      Net::DNS::RR::SIG 1957
-      Net::DNS::RR::SMIMEA 1896
-      Net::DNS::RR::SOA 1945
-      Net::DNS::RR::SPF 1896
-      Net::DNS::RR::SRV 1945
-      Net::DNS::RR::SSHFP 1896
-      Net::DNS::RR::SVCB 1967
-      Net::DNS::RR::TKEY 1908
-      Net::DNS::RR::TLSA 1896
-      Net::DNS::RR::TSIG 1909
-      Net::DNS::RR::TXT 1911
-      Net::DNS::RR::URI 1896
-      Net::DNS::RR::X25 1896
-      Net::DNS::RR::ZONEMD 1896
-      Net::DNS::Resolver 1895
-      Net::DNS::Resolver::Base 1965
-      Net::DNS::Resolver::MSWin32 1961
-      Net::DNS::Resolver::Recurse 1965
-      Net::DNS::Resolver::UNIX 1856
-      Net::DNS::Resolver::android 1856
-      Net::DNS::Resolver::cygwin 1856
-      Net::DNS::Resolver::os2 1856
-      Net::DNS::Resolver::os390 1856
-      Net::DNS::Text 1894
-      Net::DNS::Update 1895
-      Net::DNS::ZoneFile 1957
-      Net::DNS::ZoneFile::Generator 1957
-      Net::DNS::ZoneFile::Text 1957
-    requirements:
-      Carp 1.1
-      Config 0
-      Digest::HMAC 1.03
-      Digest::MD5 2.37
-      Digest::SHA 5.23
-      Encode 2.26
-      Exporter 5.63
-      ExtUtils::MakeMaker 6.48
-      File::Spec 3.29
-      Getopt::Long 2.43
-      IO::File 1.14
-      IO::Select 1.17
-      IO::Socket 1.3
-      IO::Socket::IP 0.38
-      MIME::Base64 3.07
-      PerlIO 1.05
-      Scalar::Util 1.19
-      Socket 1.81
-      Time::Local 1.19
-      base 2.13
-      constant 1.17
-      integer 1
-      overload 1.06
-      perl 5.008009
-      strict 1.03
-      warnings 1.0501
   Net-HTTP-6.23
     pathname: O/OA/OALDERS/Net-HTTP-6.23.tar.gz
     provides:
@@ -1968,100 +1899,100 @@ DISTRIBUTIONS
       Text::ParseWords 0
       strict 0
       warnings 0
-  PPI-1.277
-    pathname: M/MI/MITHALDU/PPI-1.277.tar.gz
+  PPI-1.278
+    pathname: O/OA/OALDERS/PPI-1.278.tar.gz
     provides:
-      PPI 1.277
-      PPI::Cache 1.277
-      PPI::Document 1.277
-      PPI::Document::File 1.277
-      PPI::Document::Fragment 1.277
-      PPI::Document::Normalized 1.277
-      PPI::Dumper 1.277
-      PPI::Element 1.277
-      PPI::Exception 1.277
-      PPI::Exception::ParserRejection 1.277
-      PPI::Find 1.277
-      PPI::Lexer 1.277
-      PPI::Node 1.277
-      PPI::Normal 1.277
-      PPI::Normal::Standard 1.277
-      PPI::Singletons 1.277
-      PPI::Statement 1.277
-      PPI::Statement::Break 1.277
-      PPI::Statement::Compound 1.277
-      PPI::Statement::Data 1.277
-      PPI::Statement::End 1.277
-      PPI::Statement::Expression 1.277
-      PPI::Statement::Given 1.277
-      PPI::Statement::Include 1.277
-      PPI::Statement::Include::Perl6 1.277
-      PPI::Statement::Null 1.277
-      PPI::Statement::Package 1.277
-      PPI::Statement::Scheduled 1.277
-      PPI::Statement::Sub 1.277
-      PPI::Statement::Unknown 1.277
-      PPI::Statement::UnmatchedBrace 1.277
-      PPI::Statement::Variable 1.277
-      PPI::Statement::When 1.277
-      PPI::Structure 1.277
-      PPI::Structure::Block 1.277
-      PPI::Structure::Condition 1.277
-      PPI::Structure::Constructor 1.277
-      PPI::Structure::For 1.277
-      PPI::Structure::Given 1.277
-      PPI::Structure::List 1.277
-      PPI::Structure::Subscript 1.277
-      PPI::Structure::Unknown 1.277
-      PPI::Structure::When 1.277
-      PPI::Token 1.277
-      PPI::Token::ArrayIndex 1.277
-      PPI::Token::Attribute 1.277
-      PPI::Token::BOM 1.277
-      PPI::Token::Cast 1.277
-      PPI::Token::Comment 1.277
-      PPI::Token::DashedWord 1.277
-      PPI::Token::Data 1.277
-      PPI::Token::End 1.277
-      PPI::Token::HereDoc 1.277
-      PPI::Token::Label 1.277
-      PPI::Token::Magic 1.277
-      PPI::Token::Number 1.277
-      PPI::Token::Number::Binary 1.277
-      PPI::Token::Number::Exp 1.277
-      PPI::Token::Number::Float 1.277
-      PPI::Token::Number::Hex 1.277
-      PPI::Token::Number::Octal 1.277
-      PPI::Token::Number::Version 1.277
-      PPI::Token::Operator 1.277
-      PPI::Token::Pod 1.277
-      PPI::Token::Prototype 1.277
-      PPI::Token::Quote 1.277
-      PPI::Token::Quote::Double 1.277
-      PPI::Token::Quote::Interpolate 1.277
-      PPI::Token::Quote::Literal 1.277
-      PPI::Token::Quote::Single 1.277
-      PPI::Token::QuoteLike 1.277
-      PPI::Token::QuoteLike::Backtick 1.277
-      PPI::Token::QuoteLike::Command 1.277
-      PPI::Token::QuoteLike::Readline 1.277
-      PPI::Token::QuoteLike::Regexp 1.277
-      PPI::Token::QuoteLike::Words 1.277
-      PPI::Token::Regexp 1.277
-      PPI::Token::Regexp::Match 1.277
-      PPI::Token::Regexp::Substitute 1.277
-      PPI::Token::Regexp::Transliterate 1.277
-      PPI::Token::Separator 1.277
-      PPI::Token::Structure 1.277
-      PPI::Token::Symbol 1.277
-      PPI::Token::Unknown 1.277
-      PPI::Token::Whitespace 1.277
-      PPI::Token::Word 1.277
-      PPI::Tokenizer 1.277
-      PPI::Transform 1.277
-      PPI::Transform::UpdateCopyright 1.277
-      PPI::Util 1.277
-      PPI::XSAccessor 1.277
+      PPI 1.278
+      PPI::Cache 1.278
+      PPI::Document 1.278
+      PPI::Document::File 1.278
+      PPI::Document::Fragment 1.278
+      PPI::Document::Normalized 1.278
+      PPI::Dumper 1.278
+      PPI::Element 1.278
+      PPI::Exception 1.278
+      PPI::Exception::ParserRejection 1.278
+      PPI::Find 1.278
+      PPI::Lexer 1.278
+      PPI::Node 1.278
+      PPI::Normal 1.278
+      PPI::Normal::Standard 1.278
+      PPI::Singletons 1.278
+      PPI::Statement 1.278
+      PPI::Statement::Break 1.278
+      PPI::Statement::Compound 1.278
+      PPI::Statement::Data 1.278
+      PPI::Statement::End 1.278
+      PPI::Statement::Expression 1.278
+      PPI::Statement::Given 1.278
+      PPI::Statement::Include 1.278
+      PPI::Statement::Include::Perl6 1.278
+      PPI::Statement::Null 1.278
+      PPI::Statement::Package 1.278
+      PPI::Statement::Scheduled 1.278
+      PPI::Statement::Sub 1.278
+      PPI::Statement::Unknown 1.278
+      PPI::Statement::UnmatchedBrace 1.278
+      PPI::Statement::Variable 1.278
+      PPI::Statement::When 1.278
+      PPI::Structure 1.278
+      PPI::Structure::Block 1.278
+      PPI::Structure::Condition 1.278
+      PPI::Structure::Constructor 1.278
+      PPI::Structure::For 1.278
+      PPI::Structure::Given 1.278
+      PPI::Structure::List 1.278
+      PPI::Structure::Subscript 1.278
+      PPI::Structure::Unknown 1.278
+      PPI::Structure::When 1.278
+      PPI::Token 1.278
+      PPI::Token::ArrayIndex 1.278
+      PPI::Token::Attribute 1.278
+      PPI::Token::BOM 1.278
+      PPI::Token::Cast 1.278
+      PPI::Token::Comment 1.278
+      PPI::Token::DashedWord 1.278
+      PPI::Token::Data 1.278
+      PPI::Token::End 1.278
+      PPI::Token::HereDoc 1.278
+      PPI::Token::Label 1.278
+      PPI::Token::Magic 1.278
+      PPI::Token::Number 1.278
+      PPI::Token::Number::Binary 1.278
+      PPI::Token::Number::Exp 1.278
+      PPI::Token::Number::Float 1.278
+      PPI::Token::Number::Hex 1.278
+      PPI::Token::Number::Octal 1.278
+      PPI::Token::Number::Version 1.278
+      PPI::Token::Operator 1.278
+      PPI::Token::Pod 1.278
+      PPI::Token::Prototype 1.278
+      PPI::Token::Quote 1.278
+      PPI::Token::Quote::Double 1.278
+      PPI::Token::Quote::Interpolate 1.278
+      PPI::Token::Quote::Literal 1.278
+      PPI::Token::Quote::Single 1.278
+      PPI::Token::QuoteLike 1.278
+      PPI::Token::QuoteLike::Backtick 1.278
+      PPI::Token::QuoteLike::Command 1.278
+      PPI::Token::QuoteLike::Readline 1.278
+      PPI::Token::QuoteLike::Regexp 1.278
+      PPI::Token::QuoteLike::Words 1.278
+      PPI::Token::Regexp 1.278
+      PPI::Token::Regexp::Match 1.278
+      PPI::Token::Regexp::Substitute 1.278
+      PPI::Token::Regexp::Transliterate 1.278
+      PPI::Token::Separator 1.278
+      PPI::Token::Structure 1.278
+      PPI::Token::Symbol 1.278
+      PPI::Token::Unknown 1.278
+      PPI::Token::Whitespace 1.278
+      PPI::Token::Word 1.278
+      PPI::Tokenizer 1.278
+      PPI::Transform 1.278
+      PPI::Transform::UpdateCopyright 1.278
+      PPI::Util 1.278
+      PPI::XSAccessor 1.278
     requirements:
       Carp 0
       Clone 0.30
@@ -2124,6 +2055,14 @@ DISTRIBUTIONS
       Storable 0
       perl 5.006
       strict 0
+  Params-Check-0.38
+    pathname: B/BI/BINGOS/Params-Check-0.38.tar.gz
+    provides:
+      Params::Check 0.38
+    requirements:
+      ExtUtils::MakeMaker 0
+      Locale::Maketext::Simple 0
+      Test::More 0
   Params-Util-1.102
     pathname: R/RE/REHSACK/Params-Util-1.102.tar.gz
     provides:
@@ -2204,6 +2143,16 @@ DISTRIBUTIONS
       strict 0
       warnings 0
       warnings::register 0
+  Perl-OSType-1.010
+    pathname: D/DA/DAGOLDEN/Perl-OSType-1.010.tar.gz
+    provides:
+      Perl::OSType 1.010
+    requirements:
+      Exporter 0
+      ExtUtils::MakeMaker 6.17
+      perl 5.006
+      strict 0
+      warnings 0
   PerlIO-via-Timeout-0.32
     pathname: D/DA/DAMS/PerlIO-via-Timeout-0.32.tar.gz
     provides:
@@ -2846,6 +2795,15 @@ DISTRIBUTIONS
       constant 0
       parent 0
       strict 0
+  Time-Piece-1.3401
+    pathname: E/ES/ESAYM/Time-Piece-1.3401.tar.gz
+    provides:
+      Time::Piece 1.3401
+      Time::Seconds 1.3401
+    requirements:
+      Exporter 5.57
+      ExtUtils::MakeMaker 0
+      Scalar::Util 0
   TimeDate-2.33
     pathname: A/AT/ATOOMIC/TimeDate-2.33.tar.gz
     provides:
@@ -3040,17 +2998,6 @@ DISTRIBUTIONS
       perl 5.008001
       strict 0
       utf8 0
-      warnings 0
-  UUID-URandom-0.001
-    pathname: D/DA/DAGOLDEN/UUID-URandom-0.001.tar.gz
-    provides:
-      UUID::URandom 0.001
-    requirements:
-      Crypt::URandom 0.36
-      Exporter 5.57
-      ExtUtils::MakeMaker 6.17
-      perl 5.008
-      strict 0
       warnings 0
   Unicode-Stringprep-1.105
     pathname: C/CF/CFAERBER/Unicode-Stringprep-1.105.tar.gz
@@ -3256,32 +3203,32 @@ DISTRIBUTIONS
       common::sense 3.75
     requirements:
       ExtUtils::MakeMaker 0
-  libwww-perl-6.76
-    pathname: O/OA/OALDERS/libwww-perl-6.76.tar.gz
+  libwww-perl-6.77
+    pathname: O/OA/OALDERS/libwww-perl-6.77.tar.gz
     provides:
-      LWP 6.76
-      LWP::Authen::Basic 6.76
-      LWP::Authen::Digest 6.76
-      LWP::Authen::Ntlm 6.76
-      LWP::ConnCache 6.76
-      LWP::Debug 6.76
-      LWP::Debug::TraceHTTP 6.76
-      LWP::DebugFile 6.76
-      LWP::MemberMixin 6.76
-      LWP::Protocol 6.76
-      LWP::Protocol::cpan 6.76
-      LWP::Protocol::data 6.76
-      LWP::Protocol::file 6.76
-      LWP::Protocol::ftp 6.76
-      LWP::Protocol::gopher 6.76
-      LWP::Protocol::http 6.76
-      LWP::Protocol::loopback 6.76
-      LWP::Protocol::mailto 6.76
-      LWP::Protocol::nntp 6.76
-      LWP::Protocol::nogo 6.76
-      LWP::RobotUA 6.76
-      LWP::Simple 6.76
-      LWP::UserAgent 6.76
+      LWP 6.77
+      LWP::Authen::Basic 6.77
+      LWP::Authen::Digest 6.77
+      LWP::Authen::Ntlm 6.77
+      LWP::ConnCache 6.77
+      LWP::Debug 6.77
+      LWP::Debug::TraceHTTP 6.77
+      LWP::DebugFile 6.77
+      LWP::MemberMixin 6.77
+      LWP::Protocol 6.77
+      LWP::Protocol::cpan 6.77
+      LWP::Protocol::data 6.77
+      LWP::Protocol::file 6.77
+      LWP::Protocol::ftp 6.77
+      LWP::Protocol::gopher 6.77
+      LWP::Protocol::http 6.77
+      LWP::Protocol::loopback 6.77
+      LWP::Protocol::mailto 6.77
+      LWP::Protocol::nntp 6.77
+      LWP::Protocol::nogo 6.77
+      LWP::RobotUA 6.77
+      LWP::Simple 6.77
+      LWP::UserAgent 6.77
     requirements:
       Digest::MD5 0
       Encode 2.12
@@ -3338,3 +3285,13 @@ DISTRIBUTIONS
       ExtUtils::MakeMaker 0
       Package::Stash 0.23
       perl 5.008001
+  version-0.9930
+    pathname: L/LE/LEONT/version-0.9930.tar.gz
+    provides:
+      version 0.9930
+      version::regex 0.9930
+      version::vpp 0.9930
+      version::vxs 0.9930
+    requirements:
+      ExtUtils::MakeMaker 0
+      perl 5.006002
