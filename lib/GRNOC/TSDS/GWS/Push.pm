@@ -142,11 +142,9 @@ sub _add_influx_data {
 
 
     foreach my $measurement (@$data) {
-        my $measurement_id = $self->cache->measurement_id($measurement);
-
         my $prev_measurement = $self->cache->get_prev_measurement_values($measurement);
         if (!defined $prev_measurement) {
-            warn "Couldn't find previous values for $measurement_id.";
+            warn "Couldn't find previous values for $measurement->{type}.";
             # Because we enable to find previous values for this
             # measurement, cacluating rates for counters is impossible.
             # We instead set $prev_measurement to an empty hash and
