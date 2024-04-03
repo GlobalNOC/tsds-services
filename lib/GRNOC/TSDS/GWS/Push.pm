@@ -153,8 +153,12 @@ sub _add_influx_data {
         }
         $self->cache->set_measurement_values($measurement);
 
+        my $counters = $self->cache->get_data_type_counter_values($measurement->{type});
         foreach my $key (keys %{$measurement->{values}}) {
-            # TODO Ignore this block's logic if value is not a counter
+            # Ignore this block's logic if value is not a counter
+            if (!$counters->{$key}) {
+                next;
+            }
 
             if (defined $prev_measurement->{$key}) {
                 $measurement->{values}->{$key} = $measurement->{values}->{$key} - $prev_measurement->{$key};

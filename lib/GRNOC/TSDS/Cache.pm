@@ -37,7 +37,10 @@ has locker => (
     is => 'rw',
     isa => Object
 );
-
+has cache_timeout => (
+    is => 'ro',
+    default => 360*4
+);
 
 sub BUILD {
     my ($self, $args) = @_;
@@ -210,6 +213,47 @@ sub get_indexes {
 }
 
 
+=head2 get_data_type_counter_values
+
+=cut
+sub get_data_type_counter_values {
+    my $self = shift;
+    my $data_type_str = shift;
+
+    my $counters_cache_id = "measurement_type_counter_values:$data_type_str";
+
+    my %cached_counters = $self->redis->hgetall($counters_cache_id);
+    if (%cached_counters) {
+        return \%cached_counters;
+    }
+
+    my $data_type = GRNOC::TSDS::DataType->new(
+        name => $data_type_str,
+        database => $self->mongo->get_database($data_type_str)
+    );
+
+    my $value_types = $data_type->value_types;
+    my $counters = {};
+    foreach my $key (keys %{$value_types}) {
+        if ($value_types->{$key}->{is_counter}) {
+            $counters->{$key} = 1;
+        } else {
+            $counters->{$key} = 0;
+        }
+    }
+    my $result = $self->redis->hmset($counters_cache_id, %{$counters});
+    if (!$result) {
+        warn "Couldn't set measurement values for $counters_cache_id.";
+        return;
+    }
+    my $ok = $self->redis->expire(
+        $counters_cache_id,
+        $self->cache_timeout
+    );
+
+    return $counters;
+}
+
 =head2 get_data_type_required_metadata
 
 =cut
@@ -249,7 +293,7 @@ sub get_data_type_required_metadata {
     }
     my $ok = $self->redis->expire(
         $cache_id,
-        360*24
+        $self->cache_timeout
     );
     if (!$ok) {
         warn "Couldn't set TTL on $cache_id";
