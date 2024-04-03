@@ -76,8 +76,6 @@ sub parse_line {
 
     # $values and $tags are hashrefs and undef if empty
     my ($measurement, $values, $tags, $timestamp) = line2data($line);
-    warn 'values:' . Dumper($values);
-    warn 'tags:' . Dumper($tags);
 
     # Because Line Protocol has no concept of an interval, it's
     # required that `interval` is passed as a `tag` with each
