@@ -38,7 +38,7 @@ has locker => (
     isa => Object
 );
 has cache_timeout => (
-    is => 'ro',
+    is => 'rw',
     default => 360*4
 );
 
@@ -268,57 +268,44 @@ sub get_data_type_required_metadata {
     if (@result > 0) {
         return \@result;
     }
-    warn Dumper("Metadata for $data_type_str not found in cache. Fetching from db.");
+    log_debug("Metadata for $data_type_str not found in cache. Fetching from db.");
 
     # Try to load required metadata fields from db
-    my $data_type = GRNOC::TSDS::DataType->new(
-        name => $data_type_str,
-        database => $self->mongo->get_database($data_type_str)
-    );
+    my @sorted_fields;
+    eval {
+        my $data_type = GRNOC::TSDS::DataType->new(
+            name => $data_type_str,
+            database => $self->mongo->get_database($data_type_str)
+        );
 
-    my $metadata = $data_type->metadata_fields;
-    my @req_fields;
-    foreach my $field (keys %{$metadata}) {
-        if ($metadata->{$field}{required}) {
-            push @req_fields, $field;
+        my $metadata = $data_type->metadata_fields;
+        my @req_fields;
+        foreach my $field (keys %{$metadata}) {
+            if ($metadata->{$field}{required}) {
+                push @req_fields, $field;
+            }
         }
-    }
-    my @sorted_fields = sort(@req_fields);
+        @sorted_fields = sort(@req_fields);
+    };
+    if ($@) {
+        log_error($@);
+        return;
+    };
 
     # Cache required metadata fields
     my $count = $self->redis->rpush($cache_id, @sorted_fields);
     if (!$count) {
-        warn "Couldn't cache required metadata fields for $data_type_str.";
-        return;
+        log_warn("Couldn't cache required metadata fields for $data_type_str.");
     }
     my $ok = $self->redis->expire(
         $cache_id,
         $self->cache_timeout
     );
     if (!$ok) {
-        warn "Couldn't set TTL on $cache_id";
+        log_warn("Couldn't set TTL on $cache_id");
     }
 
     return \@sorted_fields;
-}
-
-
-=head2 get_data_type
-
-- get data type
-- get measurement-type's requried metadata as a sorted list
-- generate hash from measurement's required metadata values
-
-=cut
-sub get_data_type {
-    my $self = shift;
-    my $data_type_str = shift;
-
-    my $data_type = GRNOC::TSDS::DataType->new(
-        name => $data_type_str,
-        database => $self->mongo->get_database($data_type_str)
-    );
-    return $data_type;
 }
 
 
@@ -340,6 +327,10 @@ sub measurement_id {
 
     my $hash = Digest::SHA->new(256);
     foreach my $field (@$req_fields) {
+        if (!defined $measurement->{meta}->{$field}) {
+            log_error("Measurement of type '$measurement->{type}' missing required metadata '$field'");
+            return;
+        }
         $hash->add($measurement->{meta}->{$field});
     }
     return $hash->hexdigest();
