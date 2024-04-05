@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 4;
+use Test::More tests => 11;
 
 use GRNOC::Config;
 use GRNOC::TSDS::Writer;
@@ -10,6 +10,7 @@ use GRNOC::TSDS::DataDocument;
 use GRNOC::TSDS::DataType;
 
 use Net::AMQP::RabbitMQ;
+use Test::Deep;
 use JSON::XS;
 
 use FindBin;
@@ -82,9 +83,13 @@ ok(!defined $bad_measurement_id, "Got undef measurement_id when missing req fiel
 #
 
 
+$cache->cache_timeout(3);
 my $metadata = $cache->get_data_type_required_metadata("tsdstest");
 ok(@$metadata == 2 && $metadata->[0] eq "intf" && $metadata->[1] eq "node" , "Got expected metadata");
 
+# Second call to ensure cached metadata also returned correctly
+$metadata = $cache->get_data_type_required_metadata("tsdstest");
+ok(@$metadata == 2 && $metadata->[0] eq "intf" && $metadata->[1] eq "node" , "Got expected metadata");
 
 # Bad measurement type queried
 my $bad_metadata = $cache->get_data_type_required_metadata("tsdstestbad");
@@ -96,9 +101,45 @@ ok(!defined $bad_metadata, "Got expected metadata (undef)");
 #
 
 
+$cache->cache_timeout(3);
+my $expected_counters = {
+    'input' => 0,
+    'outerror' => 0,
+    'outUcast' => 0,
+    'status' => 0,
+    'output' => 0,
+    'inerror' => 0,
+    'inUcast' => 0,
+    'newtypelol1' => 0,
+    'newtypelol2' => 0,
+    'indiscard' => 0,
+    'outdiscard' => 0
+};
+my $counters = $cache->get_data_type_counter_values("tsdstest");
+cmp_deeply($counters, $expected_counters, "Got expected counters");
+
+# Second call to ensure cached values are also returned correctly
+$counters = $cache->get_data_type_counter_values("tsdstest");
+cmp_deeply($counters, $expected_counters, "Got expected counters");
+
+
 #
 # $cache->get_indexes
 #
+
+
+my $i = $cache->get_indexes(timestamp => 1422000000, start => 1422000000, end => 1425600000, interval => 3600);
+ok($i->[0] == 0 && $i->[1] == 0 && $i->[2] == 0, "Got expected indexes");
+
+$i = $cache->get_indexes(timestamp => 1422000000 + 3600, start => 1422000000, end => 1425600000, interval => 3600);
+ok($i->[0] == 0 && $i->[1] == 0 && $i->[2] == 1, "Got expected indexes");
+
+$i = $cache->get_indexes(timestamp => 1422000000 + (3600*10), start => 1422000000, end => 1425600000, interval => 3600);
+ok($i->[0] == 0 && $i->[1] == 1 && $i->[2] == 0, "Got expected indexes");
+
+$i = $cache->get_indexes(timestamp => 1422000000 + (3600*100), start => 1422000000, end => 1425600000, interval => 3600);
+ok($i->[0] == 1 && $i->[1] == 0 && $i->[2] == 0, "Got expected indexes");
+
 
 #
 # $cache->get_prev_measurement_values
