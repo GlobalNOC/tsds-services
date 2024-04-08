@@ -127,21 +127,7 @@ sub _add_influx_data {
         return;
     }
 
-    # 1. Handle unsorted measurements (skipped)
-    # - [ ] sort measurements by time
-
-    # 2. Lookup the previous values of value types which are counters
-    # - [x] generate measurement identifier
-    # - [x] Cache::get_prev_measurement_values($measurement);
-    #   - [x] check cache
-    #   - [x] check database
-    # - [x] Cache::set_measurement_values($measurement);
-    #   - [x] Cache counter values
-    #   - [x] Set TTL on cached values to 3x $interval
-    # - [x] Set values of value types which are counters, to new_value - prev_value
-
-
-    foreach my $measurement (@$data) {
+    foreach my $measurement (sort { $a->{'time'} <=> $b->{'time'} } @$data) {
         my $prev_measurement = $self->cache->get_prev_measurement_values($measurement);
         if (!defined $prev_measurement) {
             warn "Couldn't find previous values for $measurement->{type}.";
