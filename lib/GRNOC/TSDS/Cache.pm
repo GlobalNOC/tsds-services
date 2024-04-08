@@ -54,7 +54,6 @@ sub BUILD {
     my $mongo_port = $self->config->get('/config/mongo/@port');
     my $rw_user    = $self->config->get('/config/mongo/readwrite');
     log_debug("Connecting to MongoDB as readwrite on $mongo_host:$mongo_port.");
-    warn "Connecting to MongoDB as readwrite on $mongo_host:$mongo_port.";
 
     try {
         $self->mongo(new MongoDB::MongoClient(
@@ -113,13 +112,13 @@ sub set_measurement_values {
     my $cache_id = "measurement:$measurement_id:$measurement->{time}";
     my $result = $self->redis->hmset($cache_id, %{$measurement->{values}});
     if (!$result) {
-        warn "Couldn't set measurement values for $cache_id.";
+        log_error("Couldn't set measurement values for $cache_id.");
         return;
     }
 
     my $ok = $self->redis->expire($cache_id, $measurement->{interval} * 3);
     if (!$ok) {
-        warn "Couldn't set TTL on $cache_id";
+        log_warn("Couldn't set TTL on $cache_id");
     }
     return $result;
 }
@@ -148,7 +147,7 @@ sub get_prev_measurement_values {
     if (%prev_measurement) {
         return \%prev_measurement;
     }
-    warn "Previous values for $cache_id not cached. Checking database.";
+    log_debug("Previous values for $cache_id not cached. Checking database.");
 
     my $collection = $self->mongo->get_database(
         $measurement->{type}
@@ -226,6 +225,7 @@ sub get_data_type_counter_values {
     if (%cached_counters) {
         return \%cached_counters;
     }
+    log_debug("Counters for $data_type_str not found in cache. Fetching from db.");
 
     my $data_type = GRNOC::TSDS::DataType->new(
         name => $data_type_str,
@@ -243,13 +243,15 @@ sub get_data_type_counter_values {
     }
     my $result = $self->redis->hmset($counters_cache_id, %{$counters});
     if (!$result) {
-        warn "Couldn't set measurement values for $counters_cache_id.";
-        return;
+        log_warn("Couldn't cache counters for $data_type_str.");
     }
     my $ok = $self->redis->expire(
         $counters_cache_id,
         $self->cache_timeout
     );
+    if (!$ok) {
+        log_warn("Couldn't set TTL on $counters_cache_id");
+    }
 
     return $counters;
 }
@@ -321,7 +323,7 @@ sub measurement_id {
         $measurement->{type}
     );
     if (!defined $req_fields) {
-        warn "This is bad.";
+        log_error("Couldn't fetch required metadata fields for $measurement->{type}.");
         return;
     }
 

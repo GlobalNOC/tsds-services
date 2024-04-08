@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 11;
+use Test::More tests => 13;
 
 use GRNOC::Config;
 use GRNOC::TSDS::Writer;
@@ -104,16 +104,7 @@ ok(!defined $bad_metadata, "Got expected metadata (undef)");
 $cache->cache_timeout(3);
 my $expected_counters = {
     'input' => 0,
-    'outerror' => 0,
-    'outUcast' => 0,
-    'status' => 0,
     'output' => 0,
-    'inerror' => 0,
-    'inUcast' => 0,
-    'newtypelol1' => 0,
-    'newtypelol2' => 0,
-    'indiscard' => 0,
-    'outdiscard' => 0
 };
 my $counters = $cache->get_data_type_counter_values("tsdstest");
 cmp_deeply($counters, $expected_counters, "Got expected counters");
@@ -145,6 +136,50 @@ ok($i->[0] == 1 && $i->[1] == 0 && $i->[2] == 0, "Got expected indexes");
 # $cache->get_prev_measurement_values
 #
 
+
+$cache->cache_timeout(3);
+my $new_measurement = {
+    interval => 10,
+    meta => {
+        node => "rtr.chic",
+        intf => "interface5",
+    },
+    time => 10,
+    type => "tsdstest",
+    values => {
+        value => 42
+    }
+};
+my $expected_values = {
+    'input' => 43201,
+    'output' => 43201,
+};
+my $prev_values = $cache->get_prev_measurement_values($new_measurement);
+cmp_deeply($prev_values, $expected_values, "Got expected values");
+
+
 #
 # $cache->set_measurement_values
 #
+
+
+$cache->cache_timeout(3);
+my $new_measurement2 = {
+    interval => 10,
+    meta => {
+        node => "rtr.chic",
+        intf => "interface5",
+    },
+    time => 10,
+    type => "tsdstest",
+    values => {
+        value => 42
+    }
+};
+my $result = $cache->set_measurement_values($new_measurement2);
+
+my $measurement_id2 = $cache->measurement_id($new_measurement2);
+my $cache_id = "measurement:$measurement_id2:10";
+
+my %cached_values = $cache->redis->hgetall($cache_id);
+cmp_deeply(\%cached_values, $new_measurement2->{values}, "Cached expected values at expected key");
