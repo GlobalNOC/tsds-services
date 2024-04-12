@@ -55,7 +55,7 @@ spec:
         name: data
       spec:
         accessModes: [ "ReadWriteOnce" ]
-        storageClassName: "local-path"
+        storageClassName: {{ .Values.storageClass }}
         resources:
           requests:
             storage: 100Mi

@@ -7,6 +7,8 @@ image:
 imagePullSecrets: 
  - name: julius-github
 
+storageClass: longhorn
+
 aggregate:
   image:
     repository: containers.github.grnoc.iu.edu/ndca/tsds-aggregate
@@ -128,3 +130,4 @@ mongodb:
 
 memcached:
   replicaCount: 1
+

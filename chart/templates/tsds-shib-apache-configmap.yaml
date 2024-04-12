@@ -15,6 +15,7 @@ data:
     <Location /rabbit/>
       AuthType Shibboleth
       ShibRequestSetting requireSession true
+      AuthLDAPGroupAttribute member
       AuthLDAPURL "{{ .Values.global.ldapURL }}"
       AuthLDAPBindDN {{ .Values.global.ldapBind }} 
       AuthLDAPBindPassword {{ .Values.global.ldapPw }} 
@@ -30,6 +31,7 @@ data:
     <Location /tsds-gnui/>
       AuthType Shibboleth
       ShibRequestSetting requireSession true
+      AuthLDAPGroupAttribute member
       AuthLDAPURL "{{ .Values.global.ldapURL }}"
       AuthLDAPBindDN {{ .Values.global.ldapBind }} 
       AuthLDAPBindPassword {{ .Values.global.ldapPw }} 
@@ -42,6 +44,7 @@ data:
     <Location /tsds/services>
       AuthType Shibboleth
       ShibRequestSetting requireSession true
+      AuthLDAPGroupAttribute member
       AuthLDAPURL "{{ .Values.global.ldapURL }}"
       AuthLDAPBindDN {{ .Values.global.ldapBind }} 
       AuthLDAPBindPassword {{ .Values.global.ldapPw }} 
@@ -61,7 +64,7 @@ data:
       GssapiSSLOnly       On
       GssapiUseSessions   On
       GssapiLocalName     On
-      
+      AuthLDAPGroupAttribute member
       AuthLDAPURL "{{ .Values.global.ldapURL }}"
       AuthLDAPBindDN {{ .Values.global.ldapBind }} 
       AuthLDAPBindPassword {{ .Values.global.ldapPw }} 
