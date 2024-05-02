@@ -15,10 +15,9 @@ data:
     <Location /rabbit/>
       AuthType Shibboleth
       ShibRequestSetting requireSession true
-      AuthLDAPGroupAttribute member
-      AuthLDAPURL "{{ .Values.global.ldapURL }}"
-      AuthLDAPBindDN {{ .Values.global.ldapBind }} 
-      AuthLDAPBindPassword {{ .Values.global.ldapPw }} 
+
+      Use LDAP
+
       Require ldap-group {{ .Values.ldapGroup }} 
       ProxyPass        http://tsds-rabbitmq.{{ .Release.Namespace }}.svc.cluster.local:15672/ nocanon
       ProxyPassReverse http://tsds-rabbitmq.{{ .Release.Namespace }}.svc.cluster.local:15672/
@@ -31,10 +30,9 @@ data:
     <Location /tsds-gnui/>
       AuthType Shibboleth
       ShibRequestSetting requireSession true
-      AuthLDAPGroupAttribute member
-      AuthLDAPURL "{{ .Values.global.ldapURL }}"
-      AuthLDAPBindDN {{ .Values.global.ldapBind }} 
-      AuthLDAPBindPassword {{ .Values.global.ldapPw }} 
+
+      Use LDAP
+
       Require ldap-group {{ .Values.ldapGroup }} 
       ProxyPass        http://tsds-frontend.{{ .Release.Namespace }}.svc.cluster.local/tsds-gnui/
       ProxyPassReverse http://tsds-frontend.{{ .Release.Namespace }}.svc.cluster.local/tsds-gnui/
@@ -44,10 +42,9 @@ data:
     <Location /tsds/services>
       AuthType Shibboleth
       ShibRequestSetting requireSession true
-      AuthLDAPGroupAttribute member
-      AuthLDAPURL "{{ .Values.global.ldapURL }}"
-      AuthLDAPBindDN {{ .Values.global.ldapBind }} 
-      AuthLDAPBindPassword {{ .Values.global.ldapPw }} 
+
+      Use LDAP
+
       Require ldap-group {{ .Values.ldapGroup }} 
       ProxyPass        http://tsds-apache.{{ .Release.Namespace }}.svc.cluster.local/tsds/services/
       ProxyPassReverse http://tsds-apache.{{ .Release.Namespace }}.svc.cluster.local/tsds/services/
@@ -64,10 +61,9 @@ data:
       GssapiSSLOnly       On
       GssapiUseSessions   On
       GssapiLocalName     On
-      AuthLDAPGroupAttribute member
-      AuthLDAPURL "{{ .Values.global.ldapURL }}"
-      AuthLDAPBindDN {{ .Values.global.ldapBind }} 
-      AuthLDAPBindPassword {{ .Values.global.ldapPw }} 
+
+      Use LDAP
+
       Require ldap-group {{ .Values.pushLdapGroup }}
       ProxyPass        http://tsds-apache.{{ .Release.Namespace }}.svc.cluster.local/tsds/services/
       ProxyPassReverse http://tsds-apache.{{ .Release.Namespace }}.svc.cluster.local/tsds/services/

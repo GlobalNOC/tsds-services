@@ -2,9 +2,9 @@ apiVersion: v2
 appVersion: "1.7.2"
 dependencies:
 - name: globalnoc-shib
-  repository: http://aj-dev8.grnoc.iu.edu/helm
-  version: 0.1.1
+  repository: https://charts.k8s.grnoc.iu.edu
+  version: 0.1.13
 description: A TSDS Helm Chart for Kubernetes
 name: tsds
 type: application
-version: "0.1.20"
+version: "0.1.26"
