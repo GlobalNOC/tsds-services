@@ -1,5 +1,6 @@
 use strict;
 use warnings;
+
 use Test::More tests => 17;
 use GRNOC::Config;
 use GRNOC::Log;
@@ -25,7 +26,7 @@ my $arr = $query->run_query( query =>'get values.output, average(values.output) 
 ok($arr, "got initial result");
 is($arr->[0]{'values.output'}[0][0], 0, "first timestamp");
 is($arr->[0]{'values.output'}[-1][0], 3590, "last timestamp");
-is($arr->[0]{'avg'}, 103860.5, "average");
+is($arr->[0]{'avg'}, 180.5, "average");
 
 
 # Now use "now" which is kind of dumb since it's a unit test
@@ -33,25 +34,25 @@ is($arr->[0]{'avg'}, 103860.5, "average");
 $arr = $query->run_query( query =>'get values.output, average(values.output) as avg between ("01/01/1970 00:00:00 UTC",now) from tsdstest where intf = "ge-0/0/0" ');
 is($arr->[0]{'values.output'}[0][0], 0, "first timestamp");
 is($arr->[0]{'values.output'}[-1][0], 89990, "last timestamp");
-is($arr->[0]{'avg'}, 108000.5, "average");
+is($arr->[0]{'avg'}, 4320.5, "average");
 
 
 # "now" with a relative modifier, will ultimately be the same as above
 $arr = $query->run_query( query =>'get values.output, average(values.output) as avg between ("01/01/1970 00:00:00 UTC",now-1m) from tsdstest where intf = "ge-0/0/0" ');
 is($arr->[0]{'values.output'}[0][0], 0, "first timestamp");
 is($arr->[0]{'values.output'}[-1][0], 89990, "last timestamp");
-is($arr->[0]{'avg'}, 108000.5, "average");
+is($arr->[0]{'avg'}, 4320.5, "average");
 
 
 # epoch timestamps
 $arr = $query->run_query( query =>'get values.output, average(values.output) as avg between (0,7200) from tsdstest where intf = "ge-0/0/0" ');
 is($arr->[0]{'values.output'}[0][0], 0, "first timestamp");
 is($arr->[0]{'values.output'}[-1][0], 7190, "last timestamp");
-is($arr->[0]{'avg'}, 104040.5, "average");
+is($arr->[0]{'avg'}, 360.5, "average");
 
 
 # intermingled
 $arr = $query->run_query( query =>'get values.output, average(values.output) as avg between (0,"01/01/1970 02:00:00 UTC") from tsdstest where intf = "ge-0/0/0" ');
 is($arr->[0]{'values.output'}[0][0], 0, "first timestamp");
 is($arr->[0]{'values.output'}[-1][0], 7190, "last timestamp");
-is($arr->[0]{'avg'}, 104040.5, "average");
+is($arr->[0]{'avg'}, 360.5, "average");

@@ -1,6 +1,5 @@
+#!/usr/bin/perl -I /opt/grnoc/venv/grnoc-tsds-services/lib/perl5
 package GRNOC::TSDS::DataType;
-
-use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
 
 use Moo;
 use Types::Standard qw( Str Object );

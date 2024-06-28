@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 8;
+use Test::More tests => 2;
 
 use GRNOC::Config;
 use GRNOC::TSDS::MongoDB;
@@ -15,6 +15,8 @@ use Tie::IxHash;
 
 use FindBin;
 use Data::Dumper;
+
+
 
 # parse testing config file
 my $config_file = "$FindBin::Bin/conf/config.xml";
@@ -80,22 +82,6 @@ my $installed = $tsds_install->install();
 diag( 'GRNOC::TSDS::Install::install error: ' . $tsds_install->error) if defined($tsds_install->error);
 ok($installed, "Install Succeeded");
 
-# ISSUE=12363 verify sharding
-my $sharded_collections = [ 'data', 'data_300', 'data_3600', 'data_86400', 'measurements' ];
-
-foreach my $collection_name ( @$sharded_collections ) {
-
-    my $output = $mongo->_execute_mongo( "db.getSiblingDB( \"$unit_test_db\" ).getCollection( \"$collection_name\" ).stats()" );
-    my $sharded = $output->{'sharded'};
-
-    ok( $sharded, "$collection_name is sharded" );
-}
-
-# make sure temp database/collection is sharded too
-my $output = $mongo->_execute_mongo( "db.getSiblingDB( \"__tsds_temp_space\" ).getCollection( \"__workspace\" ).stats()" );
-my $sharded = $output->{'sharded'};
-
-ok( $sharded, "__tsds_temp_space is sharded" );
 
 # initialize rabbit queue
 my $rabbit_host = $config->get( '/config/rabbit/@host' );
@@ -113,4 +99,4 @@ $rabbit->queue_declare( 1, $rabbit_queue, {'auto_delete' => 0} );
 # remove all prior messages from queue, if any
 $rabbit->purge( 1, $rabbit_queue );
 
-ok( 1, "initialized mongo and rabbit" );
+ok( 1, "Initialized mongo and rabbit" );

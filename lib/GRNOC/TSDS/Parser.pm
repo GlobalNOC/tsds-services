@@ -1,6 +1,5 @@
+#!/usr/bin/perl -I /opt/grnoc/venv/grnoc-tsds-services/lib/perl5
 package GRNOC::TSDS::Parser;
-
-use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
 
 use strict;
 use warnings;
@@ -224,7 +223,9 @@ sub evaluate {
         $self->_clean_temp_table();
     }
 
+    if (defined($token_start) && defined($self->{'query_total'}) && defined($query)) {
     log_info("[tsds_trace]: Response Time: " . tv_interval($token_start, [gettimeofday]) . " seconds | Objects Returned: " . $self->{'query_total'} . " | Original Query: $query");
+    }
 
     return $res;
 }
@@ -1159,6 +1160,7 @@ sub _query_database {
         # properly indexed to help guide mongo away from doing any massive table scans
         return if (! $self->_verify_where_fields($metadata, $where_names));
 
+
         # we need start/end times to do some calculations on the values
         $queried_field_names->{'start'}      = 1;
         $queried_field_names->{'end'}        = 1;
@@ -2016,7 +2018,7 @@ sub _get_meta_limit_result {
 	# to "circuit.name: {" for use later
 	foreach my $limit_res (@$limited_results){
 	    my $id = $limit_res->{'_id'};
-	    foreach my $key (keys %{$id}){
+	    foreach my $key (keys $id){
 		my $str = $key;
 		my $val = $id->{$key};
 		if (ref($val) eq 'HASH'){
@@ -2105,6 +2107,8 @@ sub _verify_where_fields{
     flatten_keys_hash($metadata->{'meta_fields'}, undef, \%indexes);
 
     $indexes{'identifier'} = 1;
+    $indexes{'start'} = 1;
+    $indexes{'end'} = 1;
 
     foreach my $where_name (keys %{$where_names}){
         if(!defined($indexes{$where_name})){
@@ -2439,7 +2443,7 @@ sub _clone_truncate {
 		my $value2 = $value->{$key2};
 		for (my $i = @$value2 - 1; $i >= 0; $i--){
 		    if ($value2->[$i][0] >= $new_end || $value2->[$i][0] < $new_start){
-			splice(@{$value2}, $i, 1);
+			splice($value2, $i, 1);
 		    }
 		}
 
@@ -2451,7 +2455,7 @@ sub _clone_truncate {
 	if (ref $value eq 'ARRAY' && $value->[0] eq 'ARRAY'){
 	    for (my $i = @$value - 1; $i >= 0; $i--){
 		if ($value->[$i][0] >= $new_end || $value->[$i][0] < $new_start){
-		    splice(@{$value}, $i, 1);
+		    splice($value, $i, 1);
 		}
 	    }
 	}

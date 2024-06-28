@@ -1,3 +1,4 @@
+#!/usr/bin/perl -I /opt/grnoc/venv/grnoc-tsds-services/lib/perl5
 package GRNOC::TSDS::Writer::DataMessage;
 
 use Moo;
@@ -103,6 +104,7 @@ sub _build_measurement_identifier {
 
     # return the final digest of the hash
     return $hash->hexdigest();
+    
 }
 
 ### private methods ###

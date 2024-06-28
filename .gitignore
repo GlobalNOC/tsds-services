@@ -1,5 +1,6 @@
+local/*
+venv/*
+dist/*
 .vscode/*
 !.vscode/launch.json
 !.vscode/settings.json
-venv/*
-dist/*

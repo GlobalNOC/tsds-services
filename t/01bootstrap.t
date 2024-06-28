@@ -54,37 +54,40 @@ $rabbit->purge(1, $rabbit_queue);
 
 my $measurements = {};
 
-$measurements->{'rtr.chic'}{'ge-0/0/0'}   = 10;
-$measurements->{'rtr.newy'}{'xe-0/1/0.0'} = 10;
-$measurements->{'rtr.chic'}{'interface3'} = 10;
-$measurements->{'rtr.chic'}{'interface4'} = 10;
-$measurements->{'rtr.chic'}{'interface5'} = 10;
-$measurements->{'rtr.chic'}{'interface6'} = 10;
-$measurements->{'rtr.chic'}{'interface7'} = 10;
-$measurements->{'rtr.chic'}{'interface8'} = 10;
-$measurements->{'rtr.chic'}{'interface9'} = 10;
-$measurements->{'rtr.chic'}{'interface10'} = 10;
-$measurements->{'rtr.chic'}{'interface11'} = 10;
-$measurements->{'rtr.newy'}{'interface3'} = 10;
-$measurements->{'rtr.newy'}{'interface4'} = 10;
-$measurements->{'rtr.newy'}{'interface5'} = 10;
-$measurements->{'rtr.newy'}{'interface6'} = 10;
-$measurements->{'rtr.newy'}{'interface7'} = 10;
-$measurements->{'rtr.newy'}{'interface8'} = 10;
-$measurements->{'rtr.newy'}{'interface9'} = 10;
-$measurements->{'rtr.newy'}{'interface10'} = 10;
-$measurements->{'rtr.newy'}{'interface11'} = 10;
-$measurements->{'rtr.seat'}{'interface1'} = 60*10; # This interface is much slower, useful to do long range calculations
-$measurements->{'rtr.seat'}{'interface2'} = 60*10; # This interface is much slower, useful to do long range calculations
+$measurements->{'rtr.chic'}{'ge-0/0/0'}   = INTERVAL;
+$measurements->{'rtr.newy'}{'xe-0/1/0.0'} = INTERVAL;
+$measurements->{'rtr.chic'}{'interface3'} = INTERVAL;
+$measurements->{'rtr.chic'}{'interface4'} = INTERVAL;
+$measurements->{'rtr.chic'}{'interface5'} = INTERVAL;
+$measurements->{'rtr.chic'}{'interface6'} = INTERVAL;
+$measurements->{'rtr.chic'}{'interface7'} = INTERVAL;
+$measurements->{'rtr.chic'}{'interface8'} = INTERVAL;
+$measurements->{'rtr.chic'}{'interface9'} = INTERVAL;
+$measurements->{'rtr.chic'}{'interface10'} = INTERVAL;
+$measurements->{'rtr.chic'}{'interface11'} = INTERVAL;
+$measurements->{'rtr.newy'}{'interface3'} = INTERVAL;
+$measurements->{'rtr.newy'}{'interface4'} = INTERVAL;
+$measurements->{'rtr.newy'}{'interface5'} = INTERVAL;
+$measurements->{'rtr.newy'}{'interface6'} = INTERVAL;
+$measurements->{'rtr.newy'}{'interface7'} = INTERVAL;
+$measurements->{'rtr.newy'}{'interface8'} = INTERVAL;
+$measurements->{'rtr.newy'}{'interface9'} = INTERVAL;
+$measurements->{'rtr.newy'}{'interface10'} = INTERVAL;
+$measurements->{'rtr.newy'}{'interface11'} = INTERVAL;
+$measurements->{'rtr.seat'}{'interface1'} = 60*INTERVAL; # This interface is much slower, useful to do long range calculations
+$measurements->{'rtr.seat'}{'interface2'} = 60*INTERVAL; # This interface is much slower, useful to do long range calculations
 
 # first, we'll send data to initialize the measurements
-my @nodes = keys( %$measurements );
+# sorted to ensure same data inserted every time
+my @unsorted_nodes = keys( %$measurements );
+my @nodes = sort { $a cmp $b } @unsorted_nodes; 
 
 my $num_measurements = 0;
 
 foreach my $node ( @nodes ) {
 
-    my @intfs = keys( %{$measurements->{$node}} );
+    my @unsorted_intfs = keys( %{$measurements->{$node}} );
+    my @intfs = sort { $a cmp $b } @unsorted_intfs;
 
     foreach my $intf ( @intfs ) {
 
@@ -106,11 +109,12 @@ foreach my $node ( @nodes ) {
 # handle all measurements
 
 my $i=0;
-my $j=0;   
+my $j=0;
 
 foreach my $node ( @nodes ) {
 
-    my @intfs = keys( %{$measurements->{$node}} );
+    my @unsorted_intfs = keys( %{$measurements->{$node}} );
+    my @intfs = sort { $a cmp $b } @unsorted_intfs;
 
     foreach my $intf ( @intfs ) {
 

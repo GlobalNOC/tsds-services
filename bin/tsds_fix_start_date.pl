@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -I /opt/grnoc/venv/grnoc-tsds-services/lib/perl5
 
 # When migrating data from old snapp to tsds, first a new interface meta-data record ("measurement") is entered, 
 # which has 'start' = NOW. 
@@ -31,9 +31,6 @@
 
 use strict;
 use warnings;
-
-use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
-use lib './venv/lib/perl5';
 
 use Data::Dumper;
 use GRNOC::Log;

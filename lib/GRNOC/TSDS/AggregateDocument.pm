@@ -1,6 +1,5 @@
+#!/usr/bin/perl -I /opt/grnoc/venv/grnoc-tsds-services/lib/perl5
 package GRNOC::TSDS::AggregateDocument;
-
-use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
 
 use Moo;
 
@@ -87,7 +86,7 @@ sub add_value_types {
                                   start => $self->start,
                                   end => $self->end );
 
-    return $aggregate_collection->update( $query, {'$set' => $updates} );
+    return $aggregate_collection->update_one( $query, {'$set' => $updates} );
 }
 
 sub update {
@@ -199,13 +198,13 @@ sub create {
 
     if ( $bulk ) {
 
-	$bulk->insert( $fields );
+	$bulk->insert_one( $fields );
     }
 
     else {
 
 	my $aggregate_collection = $self->data_type->database->get_collection( "data_$interval" );
-	$aggregate_collection->insert( $fields );
+	$aggregate_collection->insert_one( $fields );
     }
 
     return $self;

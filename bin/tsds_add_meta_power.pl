@@ -1,10 +1,7 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -I /opt/grnoc/venv/grnoc-tsds-services/lib/perl5
 
 use strict;
 use warnings;
-
-use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
-use lib './venv/lib/perl5';
 
 # One time script to add metafields for power
 # Adds network, node_type, node_role, type, description, and alternate_intf fields

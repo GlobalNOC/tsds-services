@@ -1,6 +1,5 @@
+#!/usr/bin/perl -I /opt/grnoc/venv/grnoc-tsds-services/lib/perl5
 package GRNOC::TSDS::DataDocument;
-
-use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
 
 use Moo;
 
@@ -254,7 +253,7 @@ sub replace {
 				   updated => 1,
                                    values => $values );
 
-    $data_collection->update( $query, $fields );
+    $data_collection->update_one( $query, $fields );
 
     return $self;
 }
