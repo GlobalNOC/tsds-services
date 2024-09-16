@@ -103,10 +103,20 @@ ok(!defined $bad_metadata, "Got expected metadata (undef)");
 
 $cache->cache_timeout(3);
 my $expected_counters = {
-    'input' => 0,
-    'output' => 0,
-};
+          'input' => 0,
+          'outerror' => 0,
+          'outUcast' => 0,
+          'status' => 0,
+          'output' => 0,
+          'inerror' => 0,
+          'inUcast' => 0,
+          'newtypelol1' => 0,
+          'newtypelol2' => 0,
+          'indiscard' => 0,
+          'outdiscard' => 0
+        };
 my $counters = $cache->get_data_type_counter_values("tsdstest");
+warn Dumper($counters);
 cmp_deeply($counters, $expected_counters, "Got expected counters");
 
 # Second call to ensure cached values are also returned correctly
@@ -155,6 +165,7 @@ my $expected_values = {
     'output' => 43201,
 };
 my $prev_values = $cache->get_prev_measurement_values($new_measurement);
+warn Dumper($prev_values);
 cmp_deeply($prev_values, $expected_values, "Got expected values");
 
 
