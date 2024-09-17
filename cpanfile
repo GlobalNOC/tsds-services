@@ -18,7 +18,7 @@ requires 'List::Util', '== 1.47';
 requires 'LockFile::Simple', '== 0.208';
 requires 'Marpa::R2', '== 3.000000';
 requires 'Math::Round', '== 0.06';
-requires 'MongoDB', '== v1.8.1';
+requires 'MongoDB', '== v2.2.2';
 requires 'MongoDB::BSON', '== v1.8.1';
 requires 'Moo', '== 2.005005';
 requires 'Net::AMQP::RabbitMQ', '== 2.30000';

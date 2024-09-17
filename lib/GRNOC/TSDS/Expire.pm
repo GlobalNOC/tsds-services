@@ -388,11 +388,11 @@ sub _mongo_connect {
     my $mongo;
     eval {
         $mongo = MongoDB::MongoClient->new(
-            host => "$mongo_host:$mongo_port",
-            socket_timeout_ms => -1,
-            username => $rw_user->{'user'},
-            password => $rw_user->{'password'}
-        );
+            host => "$mongo_host");#:$mongo_port",
+            #socket_timeout_ms => -1,
+            #username => $rw_user->{'user'},
+            #password => $rw_user->{'password'}
+        #);
     };
     if($@){
         die "Could not connect to Mongo: $@";

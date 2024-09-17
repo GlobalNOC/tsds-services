@@ -1,0 +1,50 @@
+---
+apiVersion: mongodbcommunity.mongodb.com/v1
+kind: MongoDBCommunity
+metadata:
+  name: tsds-mongodb
+  labels:
+    app: tsds-mongodb
+spec:
+  statefulSet:
+    spec:
+      template:
+        spec:
+          {{- with .Values.mongodb.affinity }}
+          affinity:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          
+          {{- with .Values.mongodb.topologySpreadConstraints }}
+          topologySpreadConstraints:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          
+          {{- with .Values.mongodb.tolerations }}
+          tolerations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          containers:
+            - name: mongod
+              {{- with .Values.mongodb.resources }}
+              resources:
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
+
+  members: {{ .Values.mongodb.members | default 1 }}
+  arbiters: {{ .Values.mongodb.arbiters | default 1 }}
+  type: ReplicaSet
+  version: "4.2.0"
+  security:
+    authentication:
+      ignoreUnknownUsers: true
+      modes: ["SCRAM", "SCRAM-SHA-1"]
+  users:
+    - db: admin
+      name: root
+      passwordSecretRef:
+        name: tsds-mongodb-root-password
+      roles:
+        - db: admin
+          name: root
+      scramCredentialsSecretName: tsds-mongodb-root-scram

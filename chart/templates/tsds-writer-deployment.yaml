@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tsds-writer
+  labels:
+    app: tsds-writer
+    {{ include "tsds.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.writers.autoscaling.enabled }}
+  replicas: {{ .Values.writers.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app: tsds-writer
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: tsds-writer
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.writers.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+          
+      {{- with .Values.writers.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+          
+      {{- with .Values.writers.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: tsds-writer
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default "latest" }}"
+          imagePullPolicy: Always
+          {{- with .Values.writers.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - mountPath: /etc/grnoc/tsds/services/logging.conf
+              name: tsds-logging
+              subPath: logging.conf
+            - mountPath: /etc/grnoc/tsds/services/config.xml
+              name: tsds-config
+              subPath: config.xml
+          command: ["/usr/bin/tsds_writer.pl", "--queue", "timeseries_data"]
+      volumes:
+        - name: tsds-logging
+          configMap:
+            items:
+              - key: logging.conf
+                path: logging.conf
+            name: tsds-logging
+        - name: tsds-config
+          secret:
+            secretName: tsds-config
