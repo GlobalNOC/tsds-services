@@ -200,6 +200,24 @@ sub push_ds {
     return $self->{'push_ds'};
 }
 
+sub influxdb {
+
+    my ( $self, $influxdb ) = @_;
+
+    $self->{'influxdb'} = $influxdb if ( defined( $influxdb ) );
+
+    return $self->{'influxdb'};
+}
+
+sub cache {
+
+    my ( $self, $cache ) = @_;
+
+    $self->{'cache'} = $cache if ( defined( $cache ) );
+
+    return $self->{'cache'};
+}
+
 sub report_ds {
 
     my ( $self, $report_ds ) = @_;

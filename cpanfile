@@ -9,6 +9,7 @@ requires 'Env::C', '== 0.13';
 requires 'File::Slurp', '== 9999.19';
 requires 'Hash::Merge', '== 0.200';
 requires 'HTML::Parser', '== 3.71';
+requires 'InfluxDB::LineProtocol', '>= 1.015';
 requires 'JSON', '== 2.59';
 requires 'JSON::XS', '== 3.01';
 requires 'List::Flatten::Recursive', '== 0.103460';

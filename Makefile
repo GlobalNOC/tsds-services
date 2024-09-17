@@ -1,5 +1,4 @@
 VERSION = 1.7.2
-
 NAME = grnoc-tsds-services
 
 rpm: dist

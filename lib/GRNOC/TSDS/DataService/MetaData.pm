@@ -847,6 +847,7 @@ sub add_measurement_type_value {
     my ( $self, %args ) = @_;
     my $measurement_type = $args{'measurement_type'};
     my $name             = $args{'name'};
+    my $is_counter       = $args{'is_counter'};
     my $descr            = $args{'description'};
     my $units            = $args{'units'};
     my $ordinal          = $args{'ordinal'};
@@ -866,6 +867,7 @@ sub add_measurement_type_value {
         description => $descr,
         units => $units
     };
+    $value->{'is_counter'} = defined($is_counter) ? int($is_counter) : 0;
     $value->{'ordinal'} = int($ordinal) if(defined($ordinal));
 
     my $id = $col->update_one({}, { '$set' => { "values.$name" => $value } } );
@@ -978,6 +980,7 @@ sub update_measurement_type_values {
     
     my $measurement_type = $args{'measurement_type'};
     my $name             = $args{'name'};
+    my $is_counter       = $args{'is_counter'};
     my $descr            = $args{'description'};
     my $units            = $args{'units'};
     my $ordinal          = $args{'ordinal'};
@@ -999,9 +1002,10 @@ sub update_measurement_type_values {
     }
 
     my $set = {};
-    $set->{"values.$name.description"} = $descr             if(defined($descr));
-    $set->{"values.$name.units"}       = $units             if(defined($units));
-    $set->{"values.$name.ordinal"}     = defined($ordinal)  ? int($ordinal)       : undef; 
+    $set->{"values.$name.description"} = $descr               if(defined($descr));
+    $set->{"values.$name.is_counter"}  = defined($is_counter) ? int($is_counter)    : 0;
+    $set->{"values.$name.units"}       = $units               if(defined($units));
+    $set->{"values.$name.ordinal"}     = defined($ordinal)    ? int($ordinal)       : undef; 
 
     if(!$set){
         $self->error( "You must pass in at least 1 field to update" );
