@@ -7,7 +7,7 @@ use Types::Standard qw( Str Int HashRef Object );
 use Types::XSD::Lite qw( PositiveInteger NonNegativeInteger );
 
 use GRNOC::TSDS::DataPoint;
-
+use Digest::SHA;
 use Data::Dumper;
 
 ### required attributes ###
@@ -93,8 +93,13 @@ sub _build_measurement_identifier {
         # skip it if its not a required field
         next if ( !$metadata_fields->{$field}{'required'} );
 
-        # include this field value in our hash
-        $hash->add( $self->meta->{$field} );
+        #try {
+            # include this field value in our hash
+            $hash->add( $self->meta->{$field} );
+        #} catch {
+
+        #    die("Could not add field \"$field\" to SHA hash digest: $_");
+        #};
     }
 
     # return the final digest of the hash

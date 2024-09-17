@@ -1,0 +1,39 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: tsds-decom-cronjob
+  labels:
+    {{ include "tsds.labels" . | nindent 4 }}
+spec:
+  schedule: "0 0 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          containers:
+            - name: tsds-decom
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default "latest" }}"
+              imagePullPolicy: Always
+              command: ["/usr/bin/tsds-decom.pl"]
+              volumeMounts:
+                - mountPath: /etc/grnoc/tsds/services/logging.conf
+                  name: tsds-logging
+                  subPath: logging.conf
+                - mountPath: /etc/grnoc/tsds/services/config.xml
+                  name: tsds-config
+                  subPath: config.xml
+          volumes:
+            - name: tsds-logging
+              configMap:
+                items:
+                  - key: logging.conf
+                    path: logging.conf
+                name: tsds-logging
+            - name: tsds-config
+              secret:
+                secretName: tsds-config
+          restartPolicy: OnFailure

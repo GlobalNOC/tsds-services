@@ -1,0 +1,138 @@
+{{- if .Values.writers.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: tsds-writer
+  labels:
+    app: tsds-writer
+    {{ include "tsds.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: tsds-writer
+  minReplicas: {{ .Values.writers.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.writers.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.writers.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.writers.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.writers.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.writers.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+{{- end }}
+
+{{- if .Values.agg_workers.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: tsds-aggregate-worker
+  labels:
+    app: tsds-aggregate-worker
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: tsds-aggregate-worker
+  minReplicas: {{ .Values.agg_workers.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.agg_workers.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.agg_workers.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.agg_workers.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.agg_workers.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.agg_workers.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+{{- end }}
+
+{{- if .Values.agg_writers.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: tsds-aggregate-writer
+  labels:
+    app: tsds-aggregate-writer
+    {{ include "tsds.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: tsds-aggregate-writer
+  minReplicas: {{ .Values.agg_writers.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.agg_writers.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.agg_writers.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.agg_writers.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.agg_writers.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.agg_writers.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+{{- end }}
+
+{{- if .Values.services.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: tsds-apache
+  labels:
+    app: tsds-apache
+    {{ include "tsds.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: tsds-apache
+  minReplicas: {{ .Values.services.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.services.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.services.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.services.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.services.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.services.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+{{- end }}

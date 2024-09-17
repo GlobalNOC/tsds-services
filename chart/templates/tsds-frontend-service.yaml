@@ -1,0 +1,15 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tsds-frontend
+  labels:
+    {{ include "tsds.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 8080
+      name: tsds-frontend
+  selector:
+    app: tsds-frontend

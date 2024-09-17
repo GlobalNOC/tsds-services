@@ -439,3 +439,33 @@ Enable the delta index and merger in cron by uncommenting them out in `/etc/cron
 ```
 [root@tsds ~]# chkconfig searchd on
 ```
+
+## TSDS Telegraf Proxy
+The `tsds-telegraf-proxy` service listens for POSTs containing data in the "Line Protocol" format, and then forwards each datapoint to TSDS via RabbitMQ.
+
+## Start the service
+```
+sudo systemctl start tsds-telegraf-proxy
+```
+
+### Configure Telegraf
+The example configuration below assumes `tsds-telegraf-proxy` is hosted at `https://tsds.services.grnoc.iu.edu/write`. The `database` option is not used by our proxy. `skip_database_creation` and `content_encoded` must be set as shown below. The `interval` tag must also be set to be compatible with TSDS; This can be set inside `global_tags` or under each `inputs.*.tags`.
+
+```
+[global_tags]
+  interval = "10"
+
+[[outputs.influxdb]]
+  urls = ["https://tsds.services.grnoc.iu.edu"]
+  database = "telegraf"
+  username = "username"
+  password = "password"
+  skip_database_creation = true
+  content_encoding = "identity"
+
+[[inputs.cpu]]
+  percpu = true
+  totalcpu = true
+  [inputs.cpu.tags]
+    interval = "10"
+```
