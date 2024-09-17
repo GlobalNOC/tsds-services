@@ -15,7 +15,7 @@
 #----- Push DataService.
 #--------------------------------------------------------------------
 
-package GRNOC::TSDS::GWS::Influx;
+package GRNOC::TSDS::GWS::InfluxDB;
 
 use strict;
 use warnings;

@@ -118,6 +118,7 @@ rm -rf $RPM_BUILD_ROOT
 %{__install} bin/tsds_install.pl %{buildroot}/usr/bin/tsds_install.pl
 %{__install} bin/tsds_upgrade.pl %{buildroot}/usr/bin/tsds_upgrade.pl
 %{__install} bin/tsds_writer %{buildroot}/usr/bin/tsds_writer
+%{__install} bin/tsds_influxdb %{buildroot}/usr/bin/tsds_influxdb
 %{__install} bin/tsds_fix_measurements.pl %{buildroot}/usr/bin/tsds_fix_measurements.pl
 %{__install} bin/tsds-decom.pl %{buildroot}/usr/bin/tsds-decom.pl
 %{__install} bin/tsds_setup.pl %{buildroot}/usr/bin/tsds_setup.pl
@@ -130,6 +131,7 @@ rm -rf $RPM_BUILD_ROOT
 %{__install} systemd/mongod-shard2.service %{buildroot}/usr/lib/systemd/system/mongod-shard2.service
 %{__install} systemd/mongod-shard3.service %{buildroot}/usr/lib/systemd/system/mongod-shard3.service
 %{__install} systemd/mongos.service %{buildroot}/usr/lib/systemd/system/mongos.service
+%{__install} systemd/tsds_influxdb.service %{buildroot}/usr/lib/systemd/system/tsds_influxdb.service
 %{__install} init.d/tsds_writer %{buildroot}/etc/init.d/tsds_writer
 
 %{__install} www/atlas.cgi %{buildroot}/usr/lib/grnoc/tsds/services/cgi-bin/atlas.cgi
@@ -156,6 +158,7 @@ rm -rf $RPM_BUILD_ROOT
 %{__install} lib/GRNOC/TSDS/Expire.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
 %{__install} lib/GRNOC/TSDS/GWS.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
 %{__install} lib/GRNOC/TSDS/Install.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
+%{__install} lib/GRNOC/TSDS/InfluxDB.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
 %{__install} lib/GRNOC/TSDS/MeasurementDecommer.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
 %{__install} lib/GRNOC/TSDS/MetaStats.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
 %{__install} lib/GRNOC/TSDS/MongoDB.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
@@ -180,6 +183,7 @@ rm -rf $RPM_BUILD_ROOT
 %{__install} lib/GRNOC/TSDS/GWS/Atlas.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/GWS
 %{__install} lib/GRNOC/TSDS/GWS/Forge.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/GWS
 %{__install} lib/GRNOC/TSDS/GWS/Image.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/GWS
+%{__install} lib/GRNOC/TSDS/GWS/InfluxDB.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/GWS
 %{__install} lib/GRNOC/TSDS/GWS/MetaData.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/GWS
 %{__install} lib/GRNOC/TSDS/GWS/Push.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/GWS
 %{__install} lib/GRNOC/TSDS/GWS/Query.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS/GWS
@@ -283,11 +287,13 @@ rm -rf $RPM_BUILD_ROOT
 %{perl_vendorlib}/GRNOC/TSDS/GWS/Atlas.pm
 %{perl_vendorlib}/GRNOC/TSDS/GWS/Forge.pm
 %{perl_vendorlib}/GRNOC/TSDS/GWS/Image.pm
+%{perl_vendorlib}/GRNOC/TSDS/GWS/InfluxDB.pm
 %{perl_vendorlib}/GRNOC/TSDS/GWS/MetaData.pm
 %{perl_vendorlib}/GRNOC/TSDS/GWS/Push.pm
 %{perl_vendorlib}/GRNOC/TSDS/GWS/Query.pm
 %{perl_vendorlib}/GRNOC/TSDS/GWS/Report.pm
 %{perl_vendorlib}/GRNOC/TSDS/GWS/Search.pm
+%{perl_vendorlib}/GRNOC/TSDS/InfluxDB.pm
 %{perl_vendorlib}/GRNOC/TSDS/Install.pm
 %{perl_vendorlib}/GRNOC/TSDS/MeasurementDecommer.pm
 %{perl_vendorlib}/GRNOC/TSDS/MongoDB.pm
@@ -326,6 +332,7 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/tsds_fix_measurements.pl
 /usr/bin/tsds-decom.pl
 /usr/bin/tsds_upgrade.pl
+/usr/bin/tsds_influxdb
 /usr/bin/tsds_writer
 /usr/bin/tsds_setup.pl
 /usr/bin/tsds-change-required-metadata.pl
@@ -341,6 +348,7 @@ rm -rf $RPM_BUILD_ROOT
 /usr/lib/systemd/system/mongod-shard2.service
 /usr/lib/systemd/system/mongod-shard3.service
 /usr/lib/systemd/system/mongos.service
+/usr/lib/systemd/system/tsds_influxdb.service
 
 %defattr(-, root, root, 755)
 

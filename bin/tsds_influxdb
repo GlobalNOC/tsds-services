@@ -20,7 +20,7 @@ use warnings;
 
 
 use lib '../lib/';
-use GRNOC::TSDS::GWS::Influx;
+use GRNOC::TSDS::GWS::InfluxDB;
 use GRNOC::TSDS::Util::ConfigChooser;
 
 use FindBin;
@@ -48,7 +48,7 @@ $logging_file = $location->{'logging_location'};
 GRNOC::Log->new( config => $logging_file );
 
 
-my $websvc = GRNOC::TSDS::GWS::Influx->new( config_file => $config_file );
+my $websvc = GRNOC::TSDS::GWS::InfluxDB->new( config_file => $config_file );
 
 post '/' => sub {
     my $c = shift;
