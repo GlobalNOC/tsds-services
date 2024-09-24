@@ -8,6 +8,7 @@ rpm: dist
 clean:
 	rm -rf dist/$(NAME)-$(VERSION)/
 	rm -rf dist
+	rm -rf venv
 
 dist: clean venv
 	rm -rf dist/$(NAME)-$(VERSION)/
@@ -20,3 +21,9 @@ test: venv
 
 venv:
 	carton install --deployment --path=venv
+
+ol8:
+	rm -f *.rpm
+	docker build -t "containers.github.grnoc.iu.edu/ndca/tsds-services:$(VERSION)" .
+	docker run --entrypoint /bin/sleep --name tsds-services-rpm --rm -d "containers.github.grnoc.iu.edu/ndca/tsds-services:$(VERSION)" 3
+	docker cp tsds-services-rpm:/root/grnoc-tsds-services-$(VERSION)-1.el8.x86_64.rpm .

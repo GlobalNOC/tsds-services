@@ -4,7 +4,7 @@ package GRNOC::TSDS::Parser;
 use strict;
 use warnings;
 
-use feature 'switch';
+use experimental qw( switch );
 
 use Carp;
 use Marpa::R2;
@@ -2018,7 +2018,7 @@ sub _get_meta_limit_result {
 	# to "circuit.name: {" for use later
 	foreach my $limit_res (@$limited_results){
 	    my $id = $limit_res->{'_id'};
-	    foreach my $key (keys $id){
+	    foreach my $key (keys %$id){
 		my $str = $key;
 		my $val = $id->{$key};
 		if (ref($val) eq 'HASH'){
@@ -2443,7 +2443,7 @@ sub _clone_truncate {
 		my $value2 = $value->{$key2};
 		for (my $i = @$value2 - 1; $i >= 0; $i--){
 		    if ($value2->[$i][0] >= $new_end || $value2->[$i][0] < $new_start){
-			splice($value2, $i, 1);
+			splice(@$value2, $i, 1);
 		    }
 		}
 
@@ -2455,7 +2455,7 @@ sub _clone_truncate {
 	if (ref $value eq 'ARRAY' && $value->[0] eq 'ARRAY'){
 	    for (my $i = @$value - 1; $i >= 0; $i--){
 		if ($value->[$i][0] >= $new_end || $value->[$i][0] < $new_start){
-		    splice($value, $i, 1);
+		    splice(@$value, $i, 1);
 		}
 	    }
 	}

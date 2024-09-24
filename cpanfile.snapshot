@@ -87,6 +87,21 @@ DISTRIBUTIONS
       perl 5.006001
       strict 0
       warnings 0
+  BSON-XS-v0.8.4
+    pathname: M/MO/MONGODB/BSON-XS-v0.8.4.tar.gz
+    provides:
+      BSON::XS v0.8.4
+    requirements:
+      BSON 1.012000
+      Config::AutoConf 0.22
+      ExtUtils::MakeMaker 0
+      Path::Tiny 0.052
+      XSLoader 0
+      boolean 0
+      perl 5.010001
+      strict 0
+      version 0
+      warnings 0
   BSON-v1.12.2
     pathname: M/MO/MONGODB/BSON-v1.12.2.tar.gz
     provides:
@@ -163,11 +178,73 @@ DISTRIBUTIONS
       Encode 0
       Exporter 0
       ExtUtils::MakeMaker 0
-      XSLoader 0.14
-  Canary-Stability-2013
-    pathname: M/ML/MLEHMANN/Canary-Stability-2013.tar.gz
+      File::Spec 0.82
+      File::Temp 0.17
+      HTML::Entities 3.69
+      if 0
+      overload 0
+      parent 0.225
+      perl 5.008001
+      strict 0
+      utf8 0
+      warnings 0
+  CPAN-Meta-2.150010
+    pathname: D/DA/DAGOLDEN/CPAN-Meta-2.150010.tar.gz
     provides:
-      Canary::Stability 2013
+      CPAN::Meta 2.150010
+      CPAN::Meta::Converter 2.150010
+      CPAN::Meta::Feature 2.150010
+      CPAN::Meta::History 2.150010
+      CPAN::Meta::Merge 2.150010
+      CPAN::Meta::Prereqs 2.150010
+      CPAN::Meta::Spec 2.150010
+      CPAN::Meta::Validator 2.150010
+      Parse::CPAN::Meta 2.150010
+    requirements:
+      CPAN::Meta::Requirements 2.121
+      CPAN::Meta::YAML 0.011
+      Carp 0
+      Encode 0
+      Exporter 0
+      ExtUtils::MakeMaker 6.17
+      File::Spec 0.80
+      JSON::PP 2.27300
+      Scalar::Util 0
+      perl 5.008001
+      strict 0
+      version 0.88
+      warnings 0
+  CPAN-Meta-Requirements-2.143
+    pathname: R/RJ/RJBS/CPAN-Meta-Requirements-2.143.tar.gz
+    provides:
+      CPAN::Meta::Requirements 2.143
+      CPAN::Meta::Requirements::Range 2.143
+    requirements:
+      B 0
+      Carp 0
+      ExtUtils::MakeMaker 6.17
+      perl 5.010000
+      strict 0
+      version 0.88
+      warnings 0
+  CPAN-Meta-YAML-0.018
+    pathname: D/DA/DAGOLDEN/CPAN-Meta-YAML-0.018.tar.gz
+    provides:
+      CPAN::Meta::YAML 0.018
+    requirements:
+      B 0
+      Carp 0
+      Exporter 0
+      ExtUtils::MakeMaker 6.17
+      Fcntl 0
+      Scalar::Util 0
+      perl 5.008001
+      strict 0
+      warnings 0
+  Cache-Memcached-Fast-0.23
+    pathname: K/KR/KROKI/Cache-Memcached-Fast-0.23.tar.gz
+    provides:
+      Cache::Memcached::Fast 0.23
     requirements:
       ExtUtils::MakeMaker 0
       Test::More 0
@@ -256,14 +333,6 @@ DISTRIBUTIONS
       Compress::Raw::Zlib 2.209
     requirements:
       ExtUtils::MakeMaker 0
-  Clone-Choose-0.010
-    pathname: H/HE/HERMES/Clone-Choose-0.010.tar.gz
-    provides:
-      Clone::Choose 0.010
-    requirements:
-      ExtUtils::MakeMaker 0
-      Storable 0
-      perl 5.008001
   Config-AutoConf-0.320
     pathname: A/AM/AMBS/Config-AutoConf-0.320.tar.gz
     provides:
@@ -765,6 +834,17 @@ DISTRIBUTIONS
       perl 5.006
       strict 0
       warnings 0
+  Digest-HMAC-1.04
+    pathname: A/AR/ARODLAND/Digest-HMAC-1.04.tar.gz
+    provides:
+      Digest::HMAC 1.04
+      Digest::HMAC_MD5 1.04
+      Digest::HMAC_SHA1 1.04
+    requirements:
+      Digest::MD5 2
+      Digest::SHA 1
+      ExtUtils::MakeMaker 0
+      perl 5.004
   Dist-CheckConflicts-0.11
     pathname: D/DO/DOY/Dist-CheckConflicts-0.11.tar.gz
     provides:
@@ -1058,14 +1138,14 @@ DISTRIBUTIONS
       ExtUtils::MakeMaker 0
       base 0
       perl 5.006
-  Filter-signatures-0.19
-    pathname: C/CO/CORION/Filter-signatures-0.19.tar.gz
+  Getopt-Long-2.58
+    pathname: J/JV/JV/Getopt-Long-2.58.tar.gz
     provides:
-      Filter::signatures 0.19
+      Getopt::Long 2.58
+      Getopt::Long::Parser 2.58
     requirements:
       ExtUtils::MakeMaker 0
-      Filter::Simple 0.91
-      perl 5.006
+      Pod::Usage 1.14
   HTML-Form-6.11
     pathname: S/SI/SIMBABQUE/HTML-Form-6.11.tar.gz
     provides:
@@ -1318,8 +1398,41 @@ DISTRIBUTIONS
     provides:
       JSON::Any 1.40
     requirements:
-      Canary::Stability 0
-      ExtUtils::MakeMaker 6.52
+      CPAN::Meta::Requirements 2.120620
+      Carp 0
+      ExtUtils::MakeMaker 0
+      Module::Metadata 0
+      constant 0
+      perl 5.008
+      strict 0
+      warnings 0
+  JSON-MaybeXS-1.004005
+    pathname: E/ET/ETHER/JSON-MaybeXS-1.004005.tar.gz
+    provides:
+      JSON::MaybeXS 1.004005
+    requirements:
+      Carp 0
+      Cpanel::JSON::XS 2.3310
+      ExtUtils::MakeMaker 0
+      JSON::PP 2.27300
+      Scalar::Util 0
+      perl 5.006
+  JSON-PP-4.16
+    pathname: I/IS/ISHIGAKI/JSON-PP-4.16.tar.gz
+    provides:
+      JSON::PP 4.16
+      JSON::PP::Boolean 4.16
+      JSON::PP::IncrParser 4.16
+    requirements:
+      ExtUtils::MakeMaker 0
+      Scalar::Util 1.08
+      Test::More 0
+  JSON-XS-3.01
+    pathname: M/ML/MLEHMANN/JSON-XS-3.01.tar.gz
+    provides:
+      JSON::XS 3.01
+    requirements:
+      ExtUtils::MakeMaker 0
       Types::Serialiser 0
       common::sense 0
   LWP-MediaTypes-6.04
@@ -1743,6 +1856,141 @@ DISTRIBUTIONS
       Math::Int64 0.34
       Scalar::Util 0
       XSLoader 0
+  Net-DNS-1.47
+    pathname: N/NL/NLNETLABS/Net-DNS-1.47.tar.gz
+    provides:
+      Net::DNS 1.47
+      Net::DNS::Domain 1990
+      Net::DNS::DomainName 1990
+      Net::DNS::DomainName1035 1990
+      Net::DNS::DomainName2535 1990
+      Net::DNS::Header 1982
+      Net::DNS::Mailbox 1990
+      Net::DNS::Mailbox1035 1990
+      Net::DNS::Mailbox2535 1990
+      Net::DNS::Nameserver 1990
+      Net::DNS::Packet 1982
+      Net::DNS::Parameters 1987
+      Net::DNS::Question 1990
+      Net::DNS::RR 1990
+      Net::DNS::RR::A 1972
+      Net::DNS::RR::AAAA 1896
+      Net::DNS::RR::AFSDB 1972
+      Net::DNS::RR::AMTRELAY 1896
+      Net::DNS::RR::APL 1896
+      Net::DNS::RR::APL::Item 1896
+      Net::DNS::RR::CAA 1910
+      Net::DNS::RR::CDNSKEY 1909
+      Net::DNS::RR::CDS 1909
+      Net::DNS::RR::CERT 1972
+      Net::DNS::RR::CNAME 1972
+      Net::DNS::RR::CSYNC 1910
+      Net::DNS::RR::DELEG 1965
+      Net::DNS::RR::DHCID 1896
+      Net::DNS::RR::DNAME 1896
+      Net::DNS::RR::DNSKEY 1972
+      Net::DNS::RR::DS 1972
+      Net::DNS::RR::EUI48 1896
+      Net::DNS::RR::EUI64 1896
+      Net::DNS::RR::GPOS 1910
+      Net::DNS::RR::HINFO 1896
+      Net::DNS::RR::HIP 1896
+      Net::DNS::RR::HTTPS 1972
+      Net::DNS::RR::IPSECKEY 1957
+      Net::DNS::RR::ISDN 1972
+      Net::DNS::RR::KEY 1972
+      Net::DNS::RR::KX 1945
+      Net::DNS::RR::L32 1896
+      Net::DNS::RR::L64 1896
+      Net::DNS::RR::LOC 1896
+      Net::DNS::RR::LP 1896
+      Net::DNS::RR::MB 1972
+      Net::DNS::RR::MG 1972
+      Net::DNS::RR::MINFO 1972
+      Net::DNS::RR::MR 1972
+      Net::DNS::RR::MX 1972
+      Net::DNS::RR::NAPTR 1898
+      Net::DNS::RR::NID 1896
+      Net::DNS::RR::NS 1972
+      Net::DNS::RR::NSEC 1972
+      Net::DNS::RR::NSEC3 1972
+      Net::DNS::RR::NSEC3PARAM 1972
+      Net::DNS::RR::NULL 1972
+      Net::DNS::RR::OPENPGPKEY 1896
+      Net::DNS::RR::OPT 1980
+      Net::DNS::RR::OPT::CHAIN 1980
+      Net::DNS::RR::OPT::CLIENT_SUBNET 1980
+      Net::DNS::RR::OPT::COOKIE 1980
+      Net::DNS::RR::OPT::DAU 1980
+      Net::DNS::RR::OPT::DHU 1980
+      Net::DNS::RR::OPT::EXPIRE 1980
+      Net::DNS::RR::OPT::EXTENDED_ERROR 1980
+      Net::DNS::RR::OPT::KEY_TAG 1980
+      Net::DNS::RR::OPT::N3U 1980
+      Net::DNS::RR::OPT::NSID 1980
+      Net::DNS::RR::OPT::PADDING 1980
+      Net::DNS::RR::OPT::REPORT_CHANNEL 1980
+      Net::DNS::RR::OPT::TCP_KEEPALIVE 1980
+      Net::DNS::RR::PTR 1972
+      Net::DNS::RR::PX 1945
+      Net::DNS::RR::RP 1972
+      Net::DNS::RR::RRSIG 1990
+      Net::DNS::RR::RT 1972
+      Net::DNS::RR::SIG 1990
+      Net::DNS::RR::SMIMEA 1896
+      Net::DNS::RR::SOA 1972
+      Net::DNS::RR::SPF 1896
+      Net::DNS::RR::SRV 1945
+      Net::DNS::RR::SSHFP 1896
+      Net::DNS::RR::SVCB 1990
+      Net::DNS::RR::TKEY 1908
+      Net::DNS::RR::TLSA 1896
+      Net::DNS::RR::TSIG 1980
+      Net::DNS::RR::TXT 1972
+      Net::DNS::RR::URI 1896
+      Net::DNS::RR::X25 1972
+      Net::DNS::RR::ZONEMD 1896
+      Net::DNS::Resolver 1981
+      Net::DNS::Resolver::Base 1982
+      Net::DNS::Resolver::MSWin32 1981
+      Net::DNS::Resolver::Recurse 1981
+      Net::DNS::Resolver::UNIX 1981
+      Net::DNS::Resolver::android 1981
+      Net::DNS::Resolver::cygwin 1981
+      Net::DNS::Resolver::os2 1981
+      Net::DNS::Resolver::os390 1981
+      Net::DNS::Text 1990
+      Net::DNS::Update 1990
+      Net::DNS::ZoneFile 1990
+      Net::DNS::ZoneFile::Generator 1990
+      Net::DNS::ZoneFile::Text 1990
+    requirements:
+      Carp 1.1
+      Config 0
+      Digest::HMAC 1.03
+      Digest::MD5 2.37
+      Digest::SHA 5.23
+      Encode 2.26
+      Exporter 5.63
+      ExtUtils::MakeMaker 6.48
+      File::Spec 3.29
+      Getopt::Long 2.43
+      IO::File 1.14
+      IO::Select 1.17
+      IO::Socket 1.3
+      IO::Socket::IP 0.38
+      MIME::Base64 3.07
+      PerlIO 1.05
+      Scalar::Util 1.19
+      Socket 1.81
+      Time::Local 1.19
+      base 2.13
+      constant 1.17
+      integer 1
+      overload 1.06
+      perl 5.008009
+      strict 1.03
+      warnings 1.0501
   Net-HTTP-6.23
     pathname: O/OA/OALDERS/Net-HTTP-6.23.tar.gz
     provides:
@@ -2136,13 +2384,13 @@ DISTRIBUTIONS
       ExtUtils::MakeMaker 0
       Scalar::Util 0
       perl 5.006
-  Scalar-List-Utils-1.47
-    pathname: P/PE/PEVANS/Scalar-List-Utils-1.47.tar.gz
+  Scalar-List-Utils-1.49
+    pathname: P/PE/PEVANS/Scalar-List-Utils-1.49.tar.gz
     provides:
-      List::Util 1.47
-      List::Util::XS 1.47
-      Scalar::Util 1.47
-      Sub::Util 1.47
+      List::Util 1.49
+      List::Util::XS 1.49
+      Scalar::Util 1.49
+      Sub::Util 1.49
     requirements:
       ExtUtils::MakeMaker 0
       Test::More 0
@@ -2685,9 +2933,9 @@ DISTRIBUTIONS
       Exporter 0
       ExtUtils::MakeMaker 0
       constant 0
-      perl 5.00503
-  Tie-IxHash-1.23
-    pathname: C/CH/CHORNY/Tie-IxHash-1.23.tar.gz
+      perl 5.005030
+  Tie-IxHash-1.22
+    pathname: C/CH/CHORNY/Tie-IxHash-1.22.tar.gz
     provides:
       Tie::IxHash 1.22
     requirements:
@@ -2851,57 +3099,57 @@ DISTRIBUTIONS
       Types::XSD::Lite 0.005
     requirements:
       ExtUtils::MakeMaker 6.17
-      Type::Library 2.000000
-      perl 5.008003
-  URI-5.21
-    pathname: O/OA/OALDERS/URI-5.21.tar.gz
+      Type::Library 0.004
+  URI-5.27
+    pathname: O/OA/OALDERS/URI-5.27.tar.gz
     provides:
-      URI 5.21
-      URI::Escape 5.21
-      URI::Heuristic 5.21
-      URI::IRI 5.21
-      URI::QueryParam 5.21
-      URI::Split 5.21
-      URI::URL 5.21
-      URI::WithBase 5.21
-      URI::data 5.21
-      URI::file 5.21
-      URI::file::Base 5.21
-      URI::file::FAT 5.21
-      URI::file::Mac 5.21
-      URI::file::OS2 5.21
-      URI::file::QNX 5.21
-      URI::file::Unix 5.21
-      URI::file::Win32 5.21
-      URI::ftp 5.21
-      URI::gopher 5.21
-      URI::http 5.21
-      URI::https 5.21
-      URI::icap 5.21
-      URI::icaps 5.21
-      URI::ldap 5.21
-      URI::ldapi 5.21
-      URI::ldaps 5.21
-      URI::mailto 5.21
-      URI::mms 5.21
-      URI::news 5.21
-      URI::nntp 5.21
-      URI::nntps 5.21
-      URI::pop 5.21
-      URI::rlogin 5.21
-      URI::rsync 5.21
-      URI::rtsp 5.21
-      URI::rtspu 5.21
-      URI::sftp 5.21
-      URI::sip 5.21
-      URI::sips 5.21
-      URI::snews 5.21
-      URI::ssh 5.21
-      URI::telnet 5.21
-      URI::tn3270 5.21
-      URI::urn 5.21
-      URI::urn::isbn 5.21
-      URI::urn::oid 5.21
+      URI 5.27
+      URI::Escape 5.27
+      URI::Heuristic 5.27
+      URI::IRI 5.27
+      URI::QueryParam 5.27
+      URI::Split 5.27
+      URI::URL 5.27
+      URI::WithBase 5.27
+      URI::data 5.27
+      URI::file 5.27
+      URI::file::Base 5.27
+      URI::file::FAT 5.27
+      URI::file::Mac 5.27
+      URI::file::OS2 5.27
+      URI::file::QNX 5.27
+      URI::file::Unix 5.27
+      URI::file::Win32 5.27
+      URI::ftp 5.27
+      URI::geo 5.27
+      URI::gopher 5.27
+      URI::http 5.27
+      URI::https 5.27
+      URI::icap 5.27
+      URI::icaps 5.27
+      URI::ldap 5.27
+      URI::ldapi 5.27
+      URI::ldaps 5.27
+      URI::mailto 5.27
+      URI::mms 5.27
+      URI::news 5.27
+      URI::nntp 5.27
+      URI::nntps 5.27
+      URI::pop 5.27
+      URI::rlogin 5.27
+      URI::rsync 5.27
+      URI::rtsp 5.27
+      URI::rtspu 5.27
+      URI::sftp 5.27
+      URI::sip 5.27
+      URI::sips 5.27
+      URI::snews 5.27
+      URI::ssh 5.27
+      URI::telnet 5.27
+      URI::tn3270 5.27
+      URI::urn 5.27
+      URI::urn::isbn 5.27
+      URI::urn::oid 5.27
     requirements:
       Carp 0
       Cwd 0
@@ -2920,6 +3168,17 @@ DISTRIBUTIONS
       strict 0
       utf8 0
       warnings 0
+  UUID-URandom-0.001
+    pathname: D/DA/DAGOLDEN/UUID-URandom-0.001.tar.gz
+    provides:
+      UUID::URandom 0.001
+    requirements:
+      Crypt::URandom 0.36
+      Exporter 5.57
+      ExtUtils::MakeMaker 6.17
+      perl 5.008
+      strict 0
+      warnings 0
   Unicode-Stringprep-1.105
     pathname: C/CF/CFAERBER/Unicode-Stringprep-1.105.tar.gz
     provides:
@@ -2934,10 +3193,10 @@ DISTRIBUTIONS
       Test::NoWarnings 0
       Unicode::Normalize 1
       perl 5.008003
-  Variable-Magic-0.64
-    pathname: V/VP/VPIT/Variable-Magic-0.64.tar.gz
+  Variable-Magic-0.63
+    pathname: V/VP/VPIT/Variable-Magic-0.63.tar.gz
     provides:
-      Variable::Magic 0.64
+      Variable::Magic 0.63
     requirements:
       Carp 0
       Config 0

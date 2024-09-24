@@ -113,9 +113,9 @@ sub start {
 
     try {
 
-        $mongo = MongoDB::MongoClient->new( host => $mongo_host );#,
-#                                            username => $rw_user->{'user'},
- #                                           password => $rw_user->{'password'} );
+        $mongo = MongoDB::MongoClient->new( host => $mongo_host,
+                                            username => $rw_user->{'user'},
+                                            password => $rw_user->{'password'} );
     }
 
     catch {
@@ -371,7 +371,7 @@ sub _consume_messages {
                 # requeue the message to try again later if mongo communication fails
                 catch {
 
-                    $self->logger->error( "Unable to fetch data types from MongoDB." );
+                    $self->logger->error( "Unable to fetch data types from MongoDB: $_" );
 
                     $success = 0;
                 };
@@ -446,7 +446,7 @@ sub _consume_messages {
                 # requeue the message to try again later if mongo communication fails
                 catch {
 
-                    $self->logger->error( "Unable to fetch data types from MongoDB." );
+                    $self->logger->error( "Unable to fetch data types from MongoDB: $_" );
 
                     $success = 0;
                 };
@@ -1587,9 +1587,7 @@ sub _fetch_data_types {
             $data_type = GRNOC::TSDS::DataType->new( name => $database,
                                                      database => $self->mongo_rw->get_database( $database ) );
         }
-
         catch {
-
             $self->logger->warn( $_ );
         };
 

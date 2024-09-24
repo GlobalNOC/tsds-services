@@ -210,26 +210,27 @@ sub _rabbit_connect {
 }
 
 sub _mongodb_connect {
-
     my ( $self ) = @_;
-  # connect to mongo                                                                                                                                                       
+
     my $mongo_host = $self->config->get( '/config/mongo/@host' );
     my $mongo_port = $self->config->get( '/config/mongo/@port' );
     my $rw_user    = $self->config->get( "/config/mongo/readwrite" );
 
     my $mongo;
     while ( 1 ) {
-	$self->logger->debug( "Connecting to MongoDB as readwrite on $mongo_host:$mongo_port." );          
+	$self->logger->debug( "Connecting to MongoDB as readwrite on $mongo_host:$mongo_port." );
 	my $connected = 0;
         try {
-    	    $mongo = MongoDB::MongoClient->new( host => "$mongo_host");#:$mongo_port",                                                            
-						#username => $rw_user->{'user'},                                                           
-                      	#		        password => $rw_user->{'password'} );     
+            $mongo = MongoDB::MongoClient->new(
+                host => "$mongo_host:$mongo_port",
+                username => $rw_user->{'user'},
+                password => $rw_user->{'password'}
+            );
             $self->_set_mongo_rw( $mongo );
             $connected = 1;
         }
         catch {
-	    $self->logger->error( "Error connecting to MongoDB: $_" );                                                                                                      
+	    $self->logger->error( "Error connecting to MongoDB: $_" );
 	    die( "Error connecting to MongoDB: $_" );  
         };
 

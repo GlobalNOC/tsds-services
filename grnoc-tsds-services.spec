@@ -12,7 +12,7 @@ Group: Measurement
 URL: http://globalnoc.iu.edu
 Source0: %{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
-BuildArch: noarch
+
 BuildRequires: expat-devel
 BuildRequires: openssl-devel
 Requires: perl >= 5.8.8

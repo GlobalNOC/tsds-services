@@ -6,6 +6,7 @@ use warnings;
 
 use GRNOC::Log;
 use GRNOC::Config;
+use GRNOC::TSDS::Config;
 use GRNOC::TSDS::Constants;
 
 use Storable qw( dclone );
@@ -50,41 +51,50 @@ sub new {
     return $singleton{$privilege} if (defined $singleton{$privilege});
     $singleton{$privilege} = $self;
 
-    my $config = GRNOC::Config->new(
-        config_file => $self->{'config_file'},
-        force_array => 0 
+    my $base_config = new GRNOC::TSDS::Config(
+	config_file => $self->{'config_file'},
     );
+    my $core_databases = [
+        'admin',
+        'test',
+        'config',
+        'tsds_reports',
+    ];
 
-    $self->{'config'} = $config;
+    $self->{'config'} = $base_config;
 
-    my $host = $self->{'config'}->get( '/config/mongo/@host' );
-    my $port = $self->{'config'}->get( '/config/mongo/@port' );
+    my $host = $base_config->mongodb_host;
+    my $port = $base_config->mongodb_port;
+    my $user = $base_config->mongodb_user;
+    my $pass = $base_config->mongodb_pass;
 
-    # store our configurably igrnored databases
-    $self->{'config'}->{'force_array'} = 1;
-    my $ignore_databases = $self->{'config'}->get( '/config/ignore-databases/database' );
-    $self->{'config'}->{'force_array'} = 0;
-    foreach my $ignore_database (@$ignore_databases) {
-        $self->{'ignore_databases'}{$ignore_database} = 1;
+    if ($self->{'privilege'} eq 'root') {
+	$user = $base_config->mongodb_root_user;
+	$pass = $base_config->mongodb_root_pass;
     }
-    $self->{'host'} = $host;
-    $self->{'port'} = $port;   
-
-    my $user = $self->{'config'}->get( "/config/mongo/$privilege" );
-    $self->{'user'}     = $user->{'user'};
-    $self->{'password'} = $user->{'password'};
-
     log_debug( "Connecting to MongoDB as $privilege user on $host:$port." );
 
+    $self->{'host'} = $host;
+    $self->{'port'} = $port;
+    $self->{'user'} = $user;
+    $self->{'password'} = $pass;
+
     eval {
-        $self->{'mongo'}   = MongoDB::MongoClient->new( 
-            host     => "$host:$port", 
-            username => $user->{'user'},
-            password => $self->{'password'},
-            read_preference => 'secondaryPreferred'
-        );
+	if ($base_config->mongodb_uri) {
+            $self->{'mongo'} = MongoDB::MongoClient->new(
+                host => $base_config->mongodb_uri,
+                read_preference => 'secondaryPreferred'
+            );
+	} else {
+            $self->{'mongo'} = MongoDB::MongoClient->new(
+                host => "$host:$port",
+                username => $user,
+                password => $pass,
+                read_preference => 'secondaryPreferred',
+            );
+	}
     };
-    if($@){
+    if ($@) {
         $self->error("Couldn't establish $privilege database connections: $@");
         return;
     }
@@ -190,14 +200,13 @@ sub _has_access_to {
 sub _get_tsds_users {
     my ( $self ) = @_;
 
-    my $ro_user = $self->{'config'}->get( "/config/mongo/readonly" );
-    my $rw_user = $self->{'config'}->get( "/config/mongo/readwrite" );
-
-    $ro_user->{'role'} = 'read';
-    $rw_user->{'role'} = 'readWrite';
-
-
-    return [$ro_user, $rw_user];
+    return [
+	{
+	    user => $self->{'config'}->mongodb_user,
+	    password => $self->{'config'}->mongodb_pass,
+	    role => 'readWrite',
+	}
+    ];
 }
 
 sub _grant_db_role {

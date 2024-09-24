@@ -3,8 +3,8 @@ package GRNOC::TSDS::Cache;
 
 
 use Data::Dumper;
-use GRNOC::Config;
 use GRNOC::Log;
+use GRNOC::TSDS::Config;
 use GRNOC::TSDS::DataType;
 use InfluxDB::LineProtocol  qw(line2data);
 use MongoDB;
@@ -45,33 +45,24 @@ has cache_timeout => (
 sub BUILD {
     my ($self, $args) = @_;
 
-    $self->{config} = new GRNOC::Config(
-        config_file => $args->{config_file},
-        force_array => 0
+    $self->{config} = new GRNOC::TSDS::Config(
+	config_file => $args->{config_file}
     );
 
-    my $mongo_host = $self->config->get('/config/mongo/@host');
-    my $mongo_port = $self->config->get('/config/mongo/@port');
-    my $rw_user    = $self->config->get('/config/mongo/readwrite');
-    log_debug("Connecting to MongoDB as readwrite on $mongo_host:$mongo_port.");
-
-    try {
-        $self->mongo(new MongoDB::MongoClient(
-            host => "$mongo_host:$mongo_port",
-            username => $rw_user->{'user'},
-            password => $rw_user->{'password'}
-        ));
+    my $mongo = new GRNOC::TSDS::MongoDB(
+	config_file => $args->{config_file},
+	privilege => 'rw'
+    );
+    if (!defined $mongo) {
+	die "Error connecting to MongoDB. See logs for more details.";
     }
-    catch {
-        log_error("Error connecting to MongoDB: $_");
-        die("Error connecting to MongoDB: $_");
-    };
+    $self->mongo($mongo->mongo);
 
-    my $redis_host = $self->config->get('/config/redis/@host');
-    my $redis_port = $self->config->get('/config/redis/@port');
+    my $redis_host = $self->config->redis_host;
+    my $redis_port = $self->config->redis_port;
+    log_debug("Connecting to Redis $redis_host:$redis_port.");
 
     try {
-        log_debug("Connecting to Redis $redis_host:$redis_port.");
         $self->redis(new Redis(
             server => "$redis_host:$redis_port",
             reconnect => 120,

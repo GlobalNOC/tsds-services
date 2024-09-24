@@ -314,10 +314,12 @@ sub add_aggregation {
     $set->{'eval_position'} = $new_eval_position;
 
     # create the data_[interval] collection
-    if(!$self->mongo_root()->add_collection_shard( $measurement_type, "data_$interval" , $GRNOC::TSDS::MongoDB::DATA_SHARDING )){
-        $self->error( "Error adding collection shard for data_$interval measurement_type: ".$self->mongo_rw()->error() );
-        return;
-    }
+    # if(!$self->mongo_root()->add_collection_shard( $measurement_type, "data_$interval" , $GRNOC::TSDS::MongoDB::DATA_SHARDING )){
+    #     $self->error( "Error adding collection shard for data_$interval measurement_type: ".$self->mongo_root()->error() );
+    # 	warn "Error adding collection shard for data_$interval measurement_type: ".$self->mongo_root()->error();
+    #     return;
+    # }
+
     my $agg_data_col = $self->mongo_rw()->get_collection( $measurement_type, "data_$interval", create => 1 );
     my $indexes = $agg_data_col->indexes();
     $indexes->create_one([start => 1]);
