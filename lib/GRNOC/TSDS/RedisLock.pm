@@ -5,7 +5,6 @@ use Moo;
 use Types::Standard qw( Str Int HashRef Object Maybe );
 
 use GRNOC::Log;
-use GRNOC::Config;
 
 use Redis;
 use Redis::DistLock;
@@ -29,8 +28,8 @@ has lock_timeout => ( is => 'rw',
 sub BUILD {
     my ( $self ) = @_;
 
-    my $redis_host = $self->config->get( '/config/redis/@host' );
-    my $redis_port = $self->config->get( '/config/redis/@port' );
+    my $redis_host = $self->config->redis_host;
+    my $redis_port = $self->config->redis_port;
 
     log_debug( "Connecting to Redis $redis_host:$redis_port." );
 

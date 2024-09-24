@@ -19,7 +19,7 @@ use strict;
 use warnings;
 
 use GRNOC::Log;
-use GRNOC::Config;
+use GRNOC::TSDS::Config;
 use GRNOC::TSDS::MongoDB;
 
 sub new {
@@ -69,12 +69,7 @@ sub _init {
 
     my $self = shift;
 
-    # parse & store config file
-    my $config = GRNOC::Config->new( config_file => $self->{'config_file'},
-                                     force_array => 0 );
-
-    $self->config( $config );
-
+    $self->config(new GRNOC::TSDS::Config(config_file => $self->{'config_file'}));
 }
 
 sub query_ds {

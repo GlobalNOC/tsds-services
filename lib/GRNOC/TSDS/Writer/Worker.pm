@@ -4,8 +4,9 @@ package GRNOC::TSDS::Writer::Worker;
 use Moo;
 use Types::Standard qw( Str Int HashRef Object Maybe );
 
-use GRNOC::TSDS::DataType;
 use GRNOC::TSDS::Constants;
+use GRNOC::TSDS::DataType;
+use GRNOC::TSDS::MongoDB;
 use GRNOC::TSDS::AggregateDocument;
 use GRNOC::TSDS::DataDocument;
 use GRNOC::TSDS::Writer::AggregateMessage;
@@ -102,47 +103,28 @@ sub start {
 
     $self->_set_json( $json );
 
-    # connect to mongo
-    my $mongo_host = $self->config->get( '/config/mongo/@host' );
-    my $mongo_port = $self->config->get( '/config/mongo/@port' );
-    my $rw_user    = $self->config->get( "/config/mongo/readwrite" );
-
-    $self->logger->debug( "Connecting to MongoDB as readwrite on $mongo_host:$mongo_port." );
-
-    my $mongo;
-
-    try {
-
-        $mongo = MongoDB::MongoClient->new( host => $mongo_host,
-                                            username => $rw_user->{'user'},
-                                            password => $rw_user->{'password'} );
+    my $mongo_conn = new GRNOC::TSDS::MongoDB(config => $self->config);
+    if (!defined $mongo_conn) {
+        die "Couldn't connect to MongoDB. See logs for more details.";
     }
-
-    catch {
-
-        $self->logger->error( "Error connecting to MongoDB: $_" );
-        die( "Error connecting to MongoDB: $_" );
-    };
-
-    $self->_set_mongo_rw( $mongo );
+    $self->_set_mongo_rw($mongo_conn->mongo);
 
     $self->_redis_connect();
 
     # connect to memcache
-    my $memcache_host = $self->config->get( '/config/memcache/@host' );
-    my $memcache_port = $self->config->get( '/config/memcache/@port' );
+    my $memcache_host = $self->config->memcached_host;
+    my $memcache_port = $self->config->memcached_port;
 
-    $self->logger->debug( "Connecting to memcached $memcache_host:$memcache_port." );
+    $self->logger->debug("Connecting to memcached $memcache_host:$memcache_port.");
 
     my $memcache = Cache::Memcached::Fast->new( {'servers' => [{'address' => "$memcache_host:$memcache_port", 'weight' => 1}]} );
-
-    $self->_set_memcache( $memcache );
+    $self->_set_memcache($memcache);
 
     # connect to rabbit
     $self->_rabbit_connect();
 
     # set up metadata_ds object, will handle metadata messages
-    my $metadata_ds = GRNOC::TSDS::DataService::MetaData->new(config_file => $self->config->{'config_file'});
+    my $metadata_ds = GRNOC::TSDS::DataService::MetaData->new(config_file => $self->config->config_file);
     $self->_set_metadata_ds( $metadata_ds );
 
     $self->logger->debug( 'Starting RabbitMQ consume loop.' );
@@ -1556,17 +1538,8 @@ sub _fetch_data_types {
 
     # determine databases to ignore
     my $ignore_databases = {};
-
-    $self->config->{'force_array'} = 1;
-    my @ignore_databases = $self->config->get( '/config/ignore-databases/database' );
-    $self->config->{'force_array'} = 0;
-
-    foreach my $database ( @ignore_databases ) {
-
-        $database = $database->[0];
-
+    foreach my $database (@{$self->config->mongodb_ignore_databases}) {
         $self->logger->debug( "Ignoring database '$database'." );
-
         $ignore_databases->{$database} = 1;
     }
 
@@ -1609,7 +1582,7 @@ sub _redis_connect {
 	my $connected = 0;
 
 	try {
-	    $self->_set_redislock( GRNOC::TSDS::RedisLock->new( config => $self->config ) );
+	    $self->_set_redislock(GRNOC::TSDS::RedisLock->new(config => $self->config));
 	    $connected = 1;
 	}
 	catch {
@@ -1625,8 +1598,8 @@ sub _rabbit_connect {
 
     my ( $self ) = @_;
 
-    my $rabbit_host = $self->config->get( '/config/rabbit/@host' );
-    my $rabbit_port = $self->config->get( '/config/rabbit/@port' );
+    my $rabbit_host = $self->config->rabbitmq_host;
+    my $rabbit_port = $self->config->rabbitmq_port;
     my $rabbit_queue = $self->queue;
 
     while ( 1 ) {

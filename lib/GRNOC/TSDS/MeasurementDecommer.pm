@@ -8,7 +8,9 @@ use GRNOC::Config;
 use GRNOC::CLI;
 use GRNOC::Log;
 
+use GRNOC::TSDS::MongoDB;
 use GRNOC::TSDS::RedisLock;
+use GRNOC::TSDS::Config;
 use GRNOC::TSDS::Constants;
 
 use MongoDB;
@@ -42,21 +44,16 @@ has max_procs => ( is => 'rwp',
 ### constructor builder ###
 
 sub BUILD {
-
     my ( $self ) = @_;
 
-    # create and store config object
-    my $config = GRNOC::Config->new( config_file => $self->config_file,
-                                     force_array => 0 );
-
-    $self->_set_config( $config );
+    $self->_set_config(new GRNOC::TSDS::Config(
+	config_file => $self->config_file
+    ));
 
     # connect to mongo
     $self->_mongo_connect();
 
-    # figure out max procs
-    my $max_procs = $self->config()->get('/config/decom/@max_procs');
-    $self->_set_max_procs($max_procs);
+    $self->_set_max_procs($self->config->tsds_max_decom_procs);
 
     # determine current timestamp
     $self->_set_now( time() );
@@ -69,6 +66,11 @@ sub BUILD {
 sub decom_metadata {
     my ( $self ) = @_;
  
+    my $ignore_databases = {};
+    foreach my $k (@{$self->config->mongodb_ignore_databases}) {
+	$ignore_databases->{$k} = 1;
+    }
+
     my @dbs = $self->mongo()->database_names;
 
     my $expired = {};
@@ -76,7 +78,7 @@ sub decom_metadata {
     foreach my $db_name (@dbs){
 
 	# skip known non tsds ones
-	next if ($db_name eq 'admin' || $db_name eq 'config');
+	next if (defined $ignore_databases->{$db_name});
 
 	# skip if we have a specified one and this isn't it
 	next if ($self->database() && $db_name ne $self->database());
@@ -172,7 +174,7 @@ sub _process_db {
 	    $measurements = $db->get_collection( 'measurements' );
 	    $data = $db->get_collection( 'data' );	
 
-	    my $redislock = GRNOC::TSDS::RedisLock->new(config => $self->config());
+	    my $redislock = GRNOC::TSDS::RedisLock->new(config => $self->config);
 
 	    foreach my $doc ( @block ) {
 		
@@ -305,31 +307,15 @@ sub _decom_doc {
 
 
 sub _mongo_connect {
-
     my ( $self ) = @_;
 
-    my $mongo_host = $self->config->get( '/config/mongo/@host' );
-    my $mongo_port = $self->config->get( '/config/mongo/@port' );
-    my $rw_user    = $self->config->get( "/config/mongo/readwrite" );
-
-    log_debug( "Connecting to MongoDB $mongo_host:$mongo_port." );
-    log_debug( "Connecting to MongoDB as readwrite on $mongo_host:$mongo_port." );
-
-    my $mongo;
-    eval {
-        $mongo = MongoDB::MongoClient->new(
-            host => "$mongo_host:$mongo_port",     
-            username => $rw_user->{'user'},
-            password => $rw_user->{'password'},
-	    socket_timeout_ms => 120 * 1000,
-	    max_time_ms => 60 * 1000,
-        );
-    };
-    if($@){
-        die "Could not connect to Mongo: $@";
+    my $mongo_conn = new GRNOC::TSDS::MongoDB(
+        config => $self->config
+    );
+    if (!defined $mongo_conn) {
+        die "Couldn't connect to MongoDB. See logs for more details.";
     }
-
-    $self->_set_mongo( $mongo );
+    $self->_set_mongo($mongo_conn->mongo);
 }
 
 1;

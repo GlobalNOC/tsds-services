@@ -22,7 +22,7 @@ has config_file => (
     required => 1
 );
 has config => (
-    is => 'ro',
+    is => 'rw',
     isa => Object
 );
 has redis => (
@@ -45,14 +45,11 @@ has cache_timeout => (
 sub BUILD {
     my ($self, $args) = @_;
 
-    $self->{config} = new GRNOC::TSDS::Config(
-	config_file => $args->{config_file}
-    );
+    $self->config(new GRNOC::TSDS::Config(
+        config_file => $args->{'config_file'}
+    ));
 
-    my $mongo = new GRNOC::TSDS::MongoDB(
-	config_file => $args->{config_file},
-	privilege => 'rw'
-    );
+    my $mongo = new GRNOC::TSDS::MongoDB(config => $self->config);
     if (!defined $mongo) {
 	die "Error connecting to MongoDB. See logs for more details.";
     }

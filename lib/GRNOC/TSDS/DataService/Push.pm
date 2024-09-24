@@ -40,37 +40,15 @@ sub new {
 sub _setup_push_restrictions {
     my ( $self ) = @_;
 
-    my $push_restrictions = {};
-
-    $self->config->{'force_array'} = 1;
-    my $push_names = $self->config->get('/config/push-users/user/@name');
-
-    foreach my $user (@$push_names){
-	my $databases = $self->config->get("/config/push-users/user[\@name='$user']/database");
-
-	foreach my $database (@$databases){
-	    my $db_name  = $database->{'name'};
-	    my $metadata = $database->{'metadata'} || [];
-
-	    my $meta_restrictions = {};
-	    foreach my $metadata (@$metadata){
-		$meta_restrictions->{$metadata->{'field'}} = $metadata->{'pattern'};
-	    }
-
-	    $push_restrictions->{$user}{$db_name} = $meta_restrictions;
-	}
-    }    
-
-    $self->config->{'force_array'} = 0;
-    $self->{'push_restrictions'} = $push_restrictions;
+    $self->{'push_restrictions'} = $self->config->tsds_push_users;
 }
 
 sub _connect_rabbit {
     my ( $self ) = @_;
 
-    my $rabbit_host = $self->config->get( '/config/rabbit/@host' );
-    my $rabbit_port = $self->config->get( '/config/rabbit/@port' );
-    my $rabbit_queue = $self->config->get( '/config/rabbit/@queue' );
+    my $rabbit_host = $self->config->rabbitmq_host;
+    my $rabbit_port = $self->config->rabbitmq_port;
+    my $rabbit_queue = $self->config->rabbitmq_queue;
     
     my $rabbit = Net::AMQP::RabbitMQ->new();   
     $self->{'rabbit'} = $rabbit;   

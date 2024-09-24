@@ -15,10 +15,10 @@ use strict;
 use warnings;
 
 use GRNOC::CLI;
-use GRNOC::Config;
 
 use GRNOC::TSDS;
 use GRNOC::TSDS::MongoDB;
+use GRNOC::TSDS::Config;
 use GRNOC::TSDS::Constants;
 use GRNOC::TSDS::DataService::MetaData;
 use GRNOC::TSDS::DataService::Aggregation;
@@ -202,13 +202,10 @@ sub new {
     $self->cli( GRNOC::CLI->new() );
 
     # create and store config object
-    $self->config( GRNOC::Config->new( config_file => $self->{'config_file'},
-                                       force_array => 0 ) );
+    $self->config(new GRNOC::TSDS::Config(config_file => $self->{'config_file'}));
 
     # create and store MongoDB object
-    $self->mongo_root( GRNOC::TSDS::MongoDB->new( config_file => $self->{'config_file'}, privilege => 'root' ) );
-
-    # detect error connecting to database
+    $self->mongo_root(new GRNOC::TSDS::MongoDB(config => $self->config, privilege => 'root'));
     if ( !$self->mongo_root() ) {
         $self->error( 'An error occurred attempting to connect to MongoDB.' );
         return;
@@ -327,13 +324,11 @@ sub install {
 
     $self->_create_users() or return;
 
-
     # Now that users have been created we can create the dataservices that actually use them. Doing
     # this step earlier when using auth means that the rw and ro connections would fail because
     # the users don't exist yet
     # create the metadata dataservice
     $self->metadata_ds( GRNOC::TSDS::DataService::MetaData->new( config_file => $self->{'config_file'} ) );
-
     # detect error connecting to database
     if ( !$self->metadata_ds() ) {
         $self->error( 'An error occurred attempting to create the metadata dataservice.' );
@@ -342,7 +337,6 @@ sub install {
 
     # create the aggregation dataservice
     $self->aggregation_ds( GRNOC::TSDS::DataService::Aggregation->new( config_file => $self->{'config_file'} ) );
-
     # detect error connecting to database
     if ( !$self->aggregation_ds() ) {
         $self->error( 'An error occurred attempting to create the aggregation dataservice.' );
@@ -351,7 +345,6 @@ sub install {
 
     
     if ( !$self->_create_shards() ) {
-
 	$self->error( 'An error occurred attempting to create the shards.' );
 	return;
     }

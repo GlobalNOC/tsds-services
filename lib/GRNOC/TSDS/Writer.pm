@@ -4,6 +4,7 @@ package GRNOC::TSDS::Writer;
 use Moo;
 use Types::Standard qw( Str Bool );
 
+use GRNOC::TSDS::Config;
 use GRNOC::TSDS::Writer::Worker;
 use GRNOC::Config;
 use GRNOC::Log;
@@ -152,6 +153,10 @@ sub _create_workers {
 
     my $total_workers = $num_processes + $num_aggregate_processes;
 
+    my $config_v2 = new GRNOC::TSDS::Config(
+        config_file => $self->config_file
+    );
+
     my $forker = Parallel::ForkManager->new( $total_workers );
 
     # keep track of children pids
@@ -170,7 +175,7 @@ sub _create_workers {
         $forker->start() and next;
 
         # create worker in this process
-        my $worker = GRNOC::TSDS::Writer::Worker->new( config => $self->config,
+        my $worker = GRNOC::TSDS::Writer::Worker->new( config => $config_v2,
                                                        logger => $self->logger,
 						       queue => $queue );
 
@@ -187,7 +192,7 @@ sub _create_workers {
         $forker->start() and next;
 
         # create worker in this process
-        my $worker = GRNOC::TSDS::Writer::Worker->new( config => $self->config,
+        my $worker = GRNOC::TSDS::Writer::Worker->new( config => $config_v2,
                                                        logger => $self->logger,
 						       queue => $aggregate_queue );
 

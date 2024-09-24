@@ -35,13 +35,27 @@ sub BUILD {
            config_file => $args->{config_file},
            force_array => 0
 	));
+    } elsif (defined $args->{config}) {
+	$self->config_file($self->config->{'config_file'});
     }
 
     return $self;
 }
 
 
+sub tsds_max_decom_procs {
+    my $self = shift;
+
+    if (!defined $self->config) {
+	return $ENV{TSDS_MAX_DECOM_PROCS};
+    } else {
+	return $self->config->get('/config/decom/@max_procs');
+    }
+}
+
+
 sub mongodb_uri {
+    my $self = shift;
     return $ENV{MONGODB_URI};
 }
 
@@ -49,7 +63,7 @@ sub mongodb_uri {
 sub mongodb_user {
     my $self = shift;
 
-    if (exists $ENV{MONGODB_USER}) {
+    if (!defined $self->config) {
 	return $ENV{MONGODB_USER};
     } else {
 	return $self->config->get('/config/mongo/readwrite/@user');
@@ -60,7 +74,7 @@ sub mongodb_user {
 sub mongodb_pass {
     my $self = shift;
 
-    if (exists $ENV{MONGODB_PASS}) {
+    if (!defined $self->config) {
 	return $ENV{MONGODB_PASS};
     } else {
 	return $self->config->get('/config/mongo/readwrite/@password');
@@ -71,7 +85,7 @@ sub mongodb_pass {
 sub mongodb_root_user {
     my $self = shift;
 
-    if (exists $ENV{MONGODB_USER}) {
+    if (!defined $self->config) {
 	return $ENV{MONGODB_USER};
     } else {
 	return $self->config->get('/config/mongo/root/@user');
@@ -79,10 +93,43 @@ sub mongodb_root_user {
 }
 
 
+sub tsds_push_users {
+    my $self = shift;
+
+    my $push_restrictions = {};
+
+    if (!defined $self->config) {
+	return $push_restrictions;
+    }
+
+    $self->config->{'force_array'} = 1;
+    my $push_names = $self->config->get('/config/push-users/user/@name');
+
+    foreach my $user (@$push_names){
+	my $databases = $self->config->get("/config/push-users/user[\@name='$user']/database");
+
+	foreach my $database (@$databases){
+	    my $db_name  = $database->{'name'};
+	    my $metadata = $database->{'metadata'} || [];
+
+	    my $meta_restrictions = {};
+	    foreach my $metadata (@$metadata){
+		$meta_restrictions->{$metadata->{'field'}} = $metadata->{'pattern'};
+	    }
+
+	    $push_restrictions->{$user}{$db_name} = $meta_restrictions;
+	}
+    }    
+
+    $self->config->{'force_array'} = 0;
+    return $push_restrictions;
+}
+
+
 sub mongodb_root_pass {
     my $self = shift;
 
-    if (exists $ENV{MONGODB_PASS}) {
+    if (!defined $self->config) {
 	return $ENV{MONGODB_PASS};
     } else {
 	return $self->config->get('/config/mongo/root/@password');
@@ -93,7 +140,7 @@ sub mongodb_root_pass {
 sub mongodb_host {
     my $self = shift;
 
-    if (exists $ENV{MONGODB_HOST}) {
+    if (!defined $self->config) {
 	return $ENV{MONGODB_HOST};
     } else {
 	return $self->config->get('/config/mongo/@host');
@@ -104,7 +151,7 @@ sub mongodb_host {
 sub mongodb_port {
     my $self = shift;
 
-    if (exists $ENV{MONGODB_PORT}) {
+    if (!defined $self->config) {
 	return $ENV{MONGODB_PORT};
     } else {
 	return $self->config->get('/config/mongo/@port');
@@ -112,10 +159,21 @@ sub mongodb_port {
 }
 
 
+sub mongodb_ignore_databases {
+    my $self = shift;
+    return [
+        'admin',
+        'test',
+        'config',
+        'tsds_reports'
+    ];
+}
+
+
 sub rabbitmq_host {
     my $self = shift;
 
-    if (exists $ENV{RABBITMQ_HOST}) {
+    if (!defined $self->config) {
 	return $ENV{RABBITMQ_HOST};
     } else {
 	return $self->config->get('/config/rabbit/@host');
@@ -126,7 +184,7 @@ sub rabbitmq_host {
 sub rabbitmq_port {
     my $self = shift;
 
-    if (exists $ENV{RABBITMQ_PORT}) {
+    if (!defined $self->config) {
 	return $ENV{RABBITMQ_PORT};
     } else {
 	return $self->config->get('/config/rabbit/@port');
@@ -134,10 +192,21 @@ sub rabbitmq_port {
 }
 
 
+sub rabbitmq_queue {
+    my $self = shift;
+
+    if (!defined $self->config) {
+	return $ENV{RABBITMQ_QUEUE};
+    } else {
+	return $self->config->get('/config/rabbit/@queue');
+    }
+}
+
+
 sub redis_host {
     my $self = shift;
 
-    if (exists $ENV{REDIS_HOST}) {
+    if (!defined $self->config) {
 	return $ENV{REDIS_HOST};
     } else {
 	return $self->config->get('/config/redis/@host');
@@ -148,7 +217,7 @@ sub redis_host {
 sub redis_port {
     my $self = shift;
 
-    if (exists $ENV{REDIS_PORT}) {
+    if (!defined $self->config) {
 	return $ENV{REDIS_PORT};
     } else {
 	return $self->config->get('/config/redis/@port');
@@ -158,7 +227,7 @@ sub redis_port {
 sub memcached_host {
     my $self = shift;
 
-    if (exists $ENV{MEMCACHED_HOST}) {
+    if (!defined $self->config) {
 	return $ENV{MEMCACHED_HOST};
     } else {
 	return $self->config->get('/config/memcache/@host');
@@ -169,7 +238,7 @@ sub memcached_host {
 sub memcached_port {
     my $self = shift;
 
-    if (exists $ENV{MEMCACHED_PORT}) {
+    if (!defined $self->config) {
 	return $ENV{MEMCACHED_PORT};
     } else {
 	return $self->config->get('/config/memcache/@port');

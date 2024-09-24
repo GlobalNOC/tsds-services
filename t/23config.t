@@ -3,7 +3,7 @@ use warnings;
 
 use Data::Dumper;
 use FindBin;
-use Test::More tests => 3;
+use Test::More tests => 4;
 
 use GRNOC::TSDS::Config;
 
@@ -16,12 +16,14 @@ GRNOC::Log->new(config => $log_file);
 my $c = new GRNOC::TSDS::Config(
     config_file => $config_file,
 );
-
-
 ok($c->mongodb_user eq "tsds_rw");
 
 
-$ENV{MONGODB_USER} = "example";
-ok($c->mongodb_user eq "example");
+my $d = new GRNOC::TSDS::Config();
 
-ok(!defined $c->mongodb_uri);
+ok(!defined $d->mongodb_user);
+
+$ENV{MONGODB_USER} = "example";
+ok($d->mongodb_user eq "example");
+
+ok(!defined $d->mongodb_uri);
