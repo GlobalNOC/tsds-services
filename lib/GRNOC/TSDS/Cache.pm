@@ -6,10 +6,10 @@ use Data::Dumper;
 use GRNOC::Log;
 use GRNOC::TSDS::Config;
 use GRNOC::TSDS::DataType;
+use GRNOC::TSDS::Redis;
 use InfluxDB::LineProtocol  qw(line2data);
 use MongoDB;
 use Moo;
-use Redis;
 use Redis::DistLock;
 use Try::Tiny;
 use Types::Standard qw( Str Object );
@@ -49,34 +49,20 @@ sub BUILD {
         config_file => $args->{'config_file'}
     ));
 
-    my $mongo = new GRNOC::TSDS::MongoDB(config => $self->config);
-    if (!defined $mongo) {
-	die "Error connecting to MongoDB. See logs for more details.";
+    my $mongo_conn = new GRNOC::TSDS::MongoDB(config => $self->config);
+    if (!defined $mongo_conn) {
+	    die "Error connecting to MongoDB. See logs for more details.";
     }
-    $self->mongo($mongo->mongo);
-
-    my $redis_host = $self->config->redis_host;
-    my $redis_port = $self->config->redis_port;
-    log_debug("Connecting to Redis $redis_host:$redis_port.");
+    $self->mongo($mongo_conn->mongo);
 
     try {
-        $self->redis(new Redis(
-            server => "$redis_host:$redis_port",
-            reconnect => 120,
-            every => 3 * 1000 * 1000
-        )); # microseconds
+        my $redis_conn = new GRNOC::TSDS::Redis(config => $self->config);
+        $self->redis($redis_conn->redis);
     }
     catch {
         log_error("Error connecting to Redis: $_ $@");
         die("Error connecting to Redis: $_");
     };
-
-    log_debug('Creating locker.');
-    $self->locker(Redis::DistLock->new(
-        servers => [$self->redis],
-        retry_count => 3,
-        retry_delay => 0.5
-    ));
 
     return $self;
 }

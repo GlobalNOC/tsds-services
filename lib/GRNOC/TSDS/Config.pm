@@ -30,13 +30,13 @@ results.
 sub BUILD {
     my ($self, $args) = @_;
 
-    if (defined $args->{config_file}) {
-	$self->config(new GRNOC::Config(
-           config_file => $args->{config_file},
-           force_array => 0
-	));
+    if ($args->{config_file}) {
+        $self->config(new GRNOC::Config(
+            config_file => $args->{config_file},
+            force_array => 0
+        ));
     } elsif (defined $args->{config}) {
-	$self->config_file($self->config->{'config_file'});
+        $self->config_file($self->config->{'config_file'});
     }
 
     return $self;
@@ -47,9 +47,9 @@ sub tsds_max_decom_procs {
     my $self = shift;
 
     if (!defined $self->config) {
-	return $ENV{TSDS_MAX_DECOM_PROCS};
+        return $ENV{TSDS_MAX_DECOM_PROCS};
     } else {
-	return $self->config->get('/config/decom/@max_procs');
+        return $self->config->get('/config/decom/@max_procs');
     }
 }
 
@@ -64,9 +64,9 @@ sub mongodb_user {
     my $self = shift;
 
     if (!defined $self->config) {
-	return $ENV{MONGODB_USER};
+        return $ENV{MONGODB_USER};
     } else {
-	return $self->config->get('/config/mongo/readwrite/@user');
+        return $self->config->get('/config/mongo/readwrite/@user');
     }
 }
 
@@ -75,9 +75,9 @@ sub mongodb_pass {
     my $self = shift;
 
     if (!defined $self->config) {
-	return $ENV{MONGODB_PASS};
+        return $ENV{MONGODB_PASS};
     } else {
-	return $self->config->get('/config/mongo/readwrite/@password');
+        return $self->config->get('/config/mongo/readwrite/@password');
     }
 }
 
@@ -86,9 +86,9 @@ sub mongodb_root_user {
     my $self = shift;
 
     if (!defined $self->config) {
-	return $ENV{MONGODB_USER};
+        return $ENV{MONGODB_USER};
     } else {
-	return $self->config->get('/config/mongo/root/@user');
+        return $self->config->get('/config/mongo/root/@user');
     }
 }
 
@@ -99,27 +99,27 @@ sub tsds_push_users {
     my $push_restrictions = {};
 
     if (!defined $self->config) {
-	return $push_restrictions;
+        return $push_restrictions;
     }
 
     $self->config->{'force_array'} = 1;
     my $push_names = $self->config->get('/config/push-users/user/@name');
 
     foreach my $user (@$push_names){
-	my $databases = $self->config->get("/config/push-users/user[\@name='$user']/database");
+        my $databases = $self->config->get("/config/push-users/user[\@name='$user']/database");
 
-	foreach my $database (@$databases){
-	    my $db_name  = $database->{'name'};
-	    my $metadata = $database->{'metadata'} || [];
+        foreach my $database (@$databases){
+            my $db_name  = $database->{'name'};
+            my $metadata = $database->{'metadata'} || [];
 
-	    my $meta_restrictions = {};
-	    foreach my $metadata (@$metadata){
-		$meta_restrictions->{$metadata->{'field'}} = $metadata->{'pattern'};
-	    }
+            my $meta_restrictions = {};
+            foreach my $metadata (@$metadata){
+                $meta_restrictions->{$metadata->{'field'}} = $metadata->{'pattern'};
+            }
 
-	    $push_restrictions->{$user}{$db_name} = $meta_restrictions;
-	}
-    }    
+            $push_restrictions->{$user}{$db_name} = $meta_restrictions;
+        }
+    }
 
     $self->config->{'force_array'} = 0;
     return $push_restrictions;
@@ -130,9 +130,9 @@ sub mongodb_root_pass {
     my $self = shift;
 
     if (!defined $self->config) {
-	return $ENV{MONGODB_PASS};
+        return $ENV{MONGODB_PASS};
     } else {
-	return $self->config->get('/config/mongo/root/@password');
+        return $self->config->get('/config/mongo/root/@password');
     }
 }
 
@@ -141,9 +141,9 @@ sub mongodb_host {
     my $self = shift;
 
     if (!defined $self->config) {
-	return $ENV{MONGODB_HOST};
+        return $ENV{MONGODB_HOST};
     } else {
-	return $self->config->get('/config/mongo/@host');
+        return $self->config->get('/config/mongo/@host');
     }
 }
 
@@ -152,9 +152,9 @@ sub mongodb_port {
     my $self = shift;
 
     if (!defined $self->config) {
-	return $ENV{MONGODB_PORT};
+        return $ENV{MONGODB_PORT};
     } else {
-	return $self->config->get('/config/mongo/@port');
+        return $self->config->get('/config/mongo/@port');
     }
 }
 
@@ -174,9 +174,9 @@ sub rabbitmq_host {
     my $self = shift;
 
     if (!defined $self->config) {
-	return $ENV{RABBITMQ_HOST};
+        return $ENV{RABBITMQ_HOST};
     } else {
-	return $self->config->get('/config/rabbit/@host');
+        return $self->config->get('/config/rabbit/@host');
     }
 }
 
@@ -185,9 +185,9 @@ sub rabbitmq_port {
     my $self = shift;
 
     if (!defined $self->config) {
-	return $ENV{RABBITMQ_PORT};
+        return $ENV{RABBITMQ_PORT};
     } else {
-	return $self->config->get('/config/rabbit/@port');
+        return $self->config->get('/config/rabbit/@port');
     }
 }
 
@@ -196,9 +196,9 @@ sub rabbitmq_queue {
     my $self = shift;
 
     if (!defined $self->config) {
-	return $ENV{RABBITMQ_QUEUE};
+        return $ENV{RABBITMQ_QUEUE};
     } else {
-	return $self->config->get('/config/rabbit/@queue');
+        return $self->config->get('/config/rabbit/@queue');
     }
 }
 
@@ -207,9 +207,9 @@ sub redis_host {
     my $self = shift;
 
     if (!defined $self->config) {
-	return $ENV{REDIS_HOST};
+        return $ENV{REDIS_HOST};
     } else {
-	return $self->config->get('/config/redis/@host');
+        return $self->config->get('/config/redis/@host');
     }
 }
 
@@ -218,9 +218,9 @@ sub redis_port {
     my $self = shift;
 
     if (!defined $self->config) {
-	return $ENV{REDIS_PORT};
+        return $ENV{REDIS_PORT};
     } else {
-	return $self->config->get('/config/redis/@port');
+        return $self->config->get('/config/redis/@port');
     }
 }
 
@@ -228,9 +228,9 @@ sub memcached_host {
     my $self = shift;
 
     if (!defined $self->config) {
-	return $ENV{MEMCACHED_HOST};
+        return $ENV{MEMCACHED_HOST};
     } else {
-	return $self->config->get('/config/memcache/@host');
+        return $self->config->get('/config/memcache/@host');
     }
 }
 
@@ -239,9 +239,9 @@ sub memcached_port {
     my $self = shift;
 
     if (!defined $self->config) {
-	return $ENV{MEMCACHED_PORT};
+        return $ENV{MEMCACHED_PORT};
     } else {
-	return $self->config->get('/config/memcache/@port');
+        return $self->config->get('/config/memcache/@port');
     }
 }
 

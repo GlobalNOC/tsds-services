@@ -17,9 +17,13 @@ use warnings;
 
 use base 'GRNOC::TSDS::DataService';
 
+use constant RECONNECT_TIMEOUT => 10;
+
 use JSON::XS;
-use Net::AMQP::RabbitMQ;
 use Data::Dumper;
+
+use GRNOC::TSDS::RabbitMQ;
+
 
 sub new {
 
@@ -46,25 +50,22 @@ sub _setup_push_restrictions {
 sub _connect_rabbit {
     my ( $self ) = @_;
 
-    my $rabbit_host = $self->config->rabbitmq_host;
-    my $rabbit_port = $self->config->rabbitmq_port;
-    my $rabbit_queue = $self->config->rabbitmq_queue;
-    
-    my $rabbit = Net::AMQP::RabbitMQ->new();   
-    $self->{'rabbit'} = $rabbit;   
-    $self->{'rabbit_queue'} = $rabbit_queue;
+    my $connected = 0;
+    while (!$connected) {
+        try {
+            my $rabbitmq_conn = new GRNOC::TSDS::RabbitMQ(config => $self->config);
+            $self->_set_rabbit($rabbitmq_conn->rabbitmq);
 
-    eval {
-	$rabbit->connect( $rabbit_host, {'port' => $rabbit_port} );
-	$rabbit->channel_open( 1 );
-    };
-
-    if ( $@ ){
-	$self->error( 'Unable to connect to RabbitMQ.' );
-	return;	
+            $self->rabbit->channel_open(1);
+            $connected = 1;
+        }
+        catch {
+            $self->logger->error("Error connecting to RabbitMQ: $_" );
+            $self->logger->info("Reconnecting after " . RECONNECT_TIMEOUT . " seconds..." );
+            sleep(RECONNECT_TIMEOUT);
+        };
     }
-
-    return 1;
+    return $connected;
 }
 
 sub _validate_message {
@@ -137,14 +138,13 @@ sub add_data {
     $self->_validate_message($data, $user) || return;    
 
     eval {
-	$rabbit->publish( 1, $self->{'rabbit_queue'}, $data, {'exchange' => ''} );
+        $rabbit->publish( 1, $self->config->rabbitmq_queue, $data, {'exchange' => ''} );
     };
 
     # detect error
     if ( $@ ) {
-
-	$self->error( 'An error occurred publishing the data: ' . $@);
-	return;
+        $self->error( 'An error occurred publishing the data: ' . $@);
+        return;
     }
      
     return "Data queued to rabbit successfully";

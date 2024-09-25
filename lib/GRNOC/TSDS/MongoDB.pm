@@ -83,8 +83,8 @@ sub new {
     my $pass = $self->{'config'}->mongodb_pass;
 
     if ($privilege eq 'root') {
-	$user = $self->{'config'}->mongodb_root_user;
-	$pass = $self->{'config'}->mongodb_root_pass;
+        $user = $self->{'config'}->mongodb_root_user;
+        $pass = $self->{'config'}->mongodb_root_pass;
     }
     log_info("Connecting to MongoDB as $privilege user on $host:$port.");
 
@@ -94,19 +94,19 @@ sub new {
     $self->{'password'} = $pass;
 
     eval {
-	if ($self->{'config'}->mongodb_uri) {
-            $self->{'mongo'} = MongoDB::MongoClient->new(
-                host => $self->{'config'}->mongodb_uri,
-                read_preference => 'secondaryPreferred'
-            );
-	} else {
-            $self->{'mongo'} = MongoDB::MongoClient->new(
-                host => "$host:$port",
-                username => $user,
-                password => $pass,
-                read_preference => 'secondaryPreferred',
-            );
-	}
+        if ($self->{'config'}->mongodb_uri) {
+                $self->{'mongo'} = MongoDB::MongoClient->new(
+                    host => $self->{'config'}->mongodb_uri,
+                    read_preference => 'secondaryPreferred'
+                );
+        } else {
+                $self->{'mongo'} = MongoDB::MongoClient->new(
+                    host => "$host:$port",
+                    username => $user,
+                    password => $pass,
+                    read_preference => 'secondaryPreferred',
+                );
+        }
     };
     if ($@) {
         $self->error("Couldn't establish $privilege database connections: $@");
@@ -131,7 +131,7 @@ sub get_database {
     # if we're force creating this just do it, that's what the driver does
     if ($create){
         $self->_grant_db_role( db => $name ) || return;
-	return $mongo->get_database($name);
+        return $mongo->get_database($name);
     }
     if ($drop){
         $self->_revoke_db_role( db => $name ) || return;
