@@ -37,10 +37,21 @@ sub new {
     log_debug("Connecting to RabbitMQ: $conn_str");
     
     $self->{'rabbitmq'} = new Net::AMQP::RabbitMQ();
-    $self->{'rabbitmq'}->connect(
-        $self->{'config'}->rabbitmq_host,
-        {port => $self->{'config'}->rabbitmq_port}
-    );
+    if ($self->{'config'}->rabbitmq_user) {
+        $self->{'rabbitmq'}->connect(
+            $self->{'config'}->rabbitmq_host,
+            {
+                user => $self->{'config'}->rabbitmq_user,
+                password => $self->{'config'}->rabbitmq_pass,
+                port => $self->{'config'}->rabbitmq_port
+            }
+        );
+    } else {
+        $self->{'rabbitmq'}->connect(
+            $self->{'config'}->rabbitmq_host,
+            {port => $self->{'config'}->rabbitmq_port}
+        );
+    }
 
     return $self;
 }

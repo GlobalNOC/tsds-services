@@ -66,8 +66,8 @@ sub new {
 
 
     if (defined $self->{'config_file'}) {
-	$self->{'config'} = new GRNOC::TSDS::Config(
-	    config_file => $self->{'config_file'},
+        $self->{'config'} = new GRNOC::TSDS::Config(
+            config_file => $self->{'config_file'},
         );
     }
     $self->{'ignore_databases'} = {
@@ -75,37 +75,39 @@ sub new {
         'test' => 1,
         'config' => 1,
         'tsds_reports' => 1,
+        'local' => 1,
     };
 
-    my $host = $self->{'config'}->mongodb_host;
-    my $port = $self->{'config'}->mongodb_port;
-    my $user = $self->{'config'}->mongodb_user;
-    my $pass = $self->{'config'}->mongodb_pass;
-
-    if ($privilege eq 'root') {
-        $user = $self->{'config'}->mongodb_root_user;
-        $pass = $self->{'config'}->mongodb_root_pass;
-    }
-    log_info("Connecting to MongoDB as $privilege user on $host:$port.");
-
-    $self->{'host'} = $host;
-    $self->{'port'} = $port;
-    $self->{'user'} = $user;
-    $self->{'password'} = $pass;
 
     eval {
         if ($self->{'config'}->mongodb_uri) {
-                $self->{'mongo'} = MongoDB::MongoClient->new(
-                    host => $self->{'config'}->mongodb_uri,
-                    read_preference => 'secondaryPreferred'
-                );
+            $self->{'mongo'} = MongoDB::MongoClient->new(
+                host => $self->{'config'}->mongodb_uri,
+                read_preference => 'secondaryPreferred'
+            );
         } else {
-                $self->{'mongo'} = MongoDB::MongoClient->new(
-                    host => "$host:$port",
-                    username => $user,
-                    password => $pass,
-                    read_preference => 'secondaryPreferred',
-                );
+            my $host = $self->{'config'}->mongodb_host;
+            my $port = $self->{'config'}->mongodb_port;
+            my $user = $self->{'config'}->mongodb_user;
+            my $pass = $self->{'config'}->mongodb_pass;
+
+            if ($privilege eq 'root') {
+                $user = $self->{'config'}->mongodb_root_user;
+                $pass = $self->{'config'}->mongodb_root_pass;
+            }
+            log_info("Connecting to MongoDB as $privilege user on $host:$port.");
+
+            $self->{'host'} = $host;
+            $self->{'port'} = $port;
+            $self->{'user'} = $user;
+            $self->{'password'} = $pass;
+
+            $self->{'mongo'} = MongoDB::MongoClient->new(
+                host => "$host:$port",
+                username => $user,
+                password => $pass,
+                read_preference => 'secondaryPreferred',
+            );
         }
     };
     if ($@) {

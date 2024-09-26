@@ -17,7 +17,7 @@ use constant DEFAULT_CONFIG_FILE => '/etc/grnoc/tsds/services/config.xml';
 use constant DEFAULT_LOGGING_FILE => '/etc/grnoc/tsds/services/logging.conf';
 
 
-my $config;
+my $config = '';
 my $logging = DEFAULT_LOGGING_FILE;
 my $queue;
 my $help;

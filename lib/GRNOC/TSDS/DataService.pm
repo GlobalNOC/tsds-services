@@ -66,10 +66,11 @@ sub error {
 }
 
 sub _init {
-
     my $self = shift;
 
-    $self->config(new GRNOC::TSDS::Config(config_file => $self->{'config_file'}));
+    if (!defined $self->{'config'}) {
+        $self->config(new GRNOC::TSDS::Config(config_file => $self->{'config_file'}));
+    }
 }
 
 sub query_ds {

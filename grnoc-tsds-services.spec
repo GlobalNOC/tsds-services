@@ -160,8 +160,11 @@ rm -rf $RPM_BUILD_ROOT
 %{__install} lib/GRNOC/TSDS/Install.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
 %{__install} lib/GRNOC/TSDS/InfluxDB.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
 %{__install} lib/GRNOC/TSDS/MeasurementDecommer.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
-%{__install} lib/GRNOC/TSDS/MetaStats.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
 %{__install} lib/GRNOC/TSDS/MongoDB.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
+%{__install} lib/GRNOC/TSDS/Config.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
+%{__install} lib/GRNOC/TSDS/Memcached.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
+%{__install} lib/GRNOC/TSDS/RabbitMQ.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
+%{__install} lib/GRNOC/TSDS/Redis.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
 %{__install} lib/GRNOC/TSDS/Parser.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
 %{__install} lib/GRNOC/TSDS/RedisLock.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
 %{__install} lib/GRNOC/TSDS/SearchIndexer.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
@@ -307,7 +310,10 @@ rm -rf $RPM_BUILD_ROOT
 %{perl_vendorlib}/GRNOC/TSDS/Writer/AggregateMessage.pm
 %{perl_vendorlib}/GRNOC/TSDS/Writer/DataMessage.pm
 %{perl_vendorlib}/GRNOC/TSDS/Writer/Worker.pm
-%{perl_vendorlib}/GRNOC/TSDS/MetaStats.pm
+%{perl_vendorlib}/GRNOC/TSDS/Config.pm
+%{perl_vendorlib}/GRNOC/TSDS/Memcached.pm
+%{perl_vendorlib}/GRNOC/TSDS/RabbitMQ.pm
+%{perl_vendorlib}/GRNOC/TSDS/Redis.pm
 %{perl_vendorlib}/GRNOC/TSDS/Setup.pm
 
 %defattr(754, apache, apache, -)

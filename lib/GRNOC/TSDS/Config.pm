@@ -165,8 +165,21 @@ sub mongodb_ignore_databases {
         'admin',
         'test',
         'config',
-        'tsds_reports'
+        'tsds_reports',
+        'local'
     ];
+}
+
+
+sub rabbitmq_user {
+    my $self = shift;
+    return $ENV{RABBITMQ_USER};
+}
+
+
+sub rabbitmq_pass {
+    my $self = shift;
+    return $ENV{RABBITMQ_PASS};
 }
 
 
