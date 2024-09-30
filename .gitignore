@@ -7,3 +7,4 @@ dist/*
 t/conf/config.xml
 *~
 *.rpm
+vendor/*

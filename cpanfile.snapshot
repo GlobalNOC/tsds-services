@@ -3356,6 +3356,39 @@ DISTRIBUTIONS
       XML::Writer::_String 0.623
     requirements:
       ExtUtils::MakeMaker 0
+  XML-XPath-1.48
+    pathname: M/MA/MANWAR/XML-XPath-1.48.tar.gz
+    provides:
+      XML::XPath 1.48
+      XML::XPath::Boolean 1.48
+      XML::XPath::Builder 1.48
+      XML::XPath::Expr 1.48
+      XML::XPath::Function 1.48
+      XML::XPath::Literal 1.48
+      XML::XPath::LocationPath 1.48
+      XML::XPath::Node 1.48
+      XML::XPath::Node::Attribute 1.48
+      XML::XPath::Node::AttributeImpl 1.48
+      XML::XPath::Node::Comment 1.48
+      XML::XPath::Node::Element 1.48
+      XML::XPath::Node::Namespace 1.48
+      XML::XPath::Node::PI 1.48
+      XML::XPath::Node::Text 1.48
+      XML::XPath::NodeSet 1.48
+      XML::XPath::Number 1.48
+      XML::XPath::Parser 1.48
+      XML::XPath::PerlSAX 1.48
+      XML::XPath::Root 1.48
+      XML::XPath::Step 1.48
+      XML::XPath::Variable 1.48
+      XML::XPath::XMLParser 1.48
+    requirements:
+      ExtUtils::MakeMaker 0
+      Path::Tiny 0.076
+      Scalar::Util 1.45
+      Test::More 0
+      XML::Parser 2.23
+      perl 5.010001
   XSLoader-0.24
     pathname: S/SA/SAPER/XSLoader-0.24.tar.gz
     provides:

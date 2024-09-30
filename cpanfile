@@ -37,6 +37,7 @@ requires 'Try::Tiny', '== 0.30';
 requires 'Type::Tiny', '== 1.004002';
 requires 'Types::XSD::Lite', '== 0.005';
 requires 'WWW::Mechanize::PhantomJS', '== 0.14';
+requires 'XML::XPath', '== 1.48';
 requires 'XML::Writer', '== 0.623';
 requires 'Authen::SCRAM::Client', '== 0.011';
 requires 'Scalar::Util', '== 1.49';

@@ -62,6 +62,8 @@ RUN dnf install -y /root/grnoc-tsds-services*x86_64.rpm
 
 # setup apache config
 RUN rm /etc/httpd/conf.d/welcome.conf
+RUN rm /etc/grnoc/tsds/services/config.xml
+
 RUN echo 'IncludeOptional "/etc/httpd/conf.d/grnoc/*.conf"' >> /etc/httpd/conf.d/grnoc_include.conf
 RUN sed -i 's/ErrorLog "logs\/error_log"/ErrorLog \/dev\/stderr/g' /etc/httpd/conf/httpd.conf
 RUN sed -i 's/CustomLog "logs\/access_log"/CustomLog \/dev\/stdout/g' /etc/httpd/conf/httpd.conf
