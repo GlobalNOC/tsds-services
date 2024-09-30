@@ -76,7 +76,7 @@ sub run_query {
     my ( $self, %args ) = @_;
 
     my $query = $args{'query'};
- 
+
     my $results = $self->parser()->evaluate($query, force_constraint => 1);
 
     if ( !$results ) {

@@ -58,9 +58,11 @@ sub new {
 
     # create object
     my $self = {
-	bnf_file      => BNF_FILE,
-	temp_table    => '__workspace',
-	temp_database => '__tsds_temp_space',
+        config        => '',
+        config_file   => '',
+        bnf_file      => BNF_FILE,
+        temp_table    => '__workspace',
+        temp_database => '__tsds_temp_space',
         temp_id       => Sys::Hostname::hostname . $$,
 	@_
     };
@@ -78,7 +80,11 @@ sub new {
     $self->grammar(Marpa::R2::Scanless::G->new({source  => \$language}));
 
     # connect to mongo
-    $self->mongo_rw( GRNOC::TSDS::MongoDB->new( config_file => $self->{'config_file'}, privilege => 'rw') );
+    if ($self->{'config'}) {
+        $self->mongo_rw( GRNOC::TSDS::MongoDB->new( config => $self->{'config'}, privilege => 'rw') );
+    } else {
+        $self->mongo_rw( GRNOC::TSDS::MongoDB->new( config_file => $self->{'config_file'}, privilege => 'rw') );
+    }
 
     return $self;
 }
