@@ -52,7 +52,7 @@ sub new {
 
     my $privilege;
     if (!defined $self->{'privilege'}) {
-	$self->{'privilege'} = 'rw';
+        $self->{'privilege'} = 'rw';
     }
 
     if ($self->{'privilege'} eq 'root') {

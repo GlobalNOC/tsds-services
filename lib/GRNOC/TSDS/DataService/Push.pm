@@ -54,14 +54,14 @@ sub _connect_rabbit {
     while (!$connected) {
         try {
             my $rabbitmq_conn = new GRNOC::TSDS::RabbitMQ(config => $self->config);
-            $self->_set_rabbit($rabbitmq_conn->rabbitmq);
+            $self->{'rabbit'} = $rabbitmq_conn->rabbitmq;
 
-            $self->rabbit->channel_open(1);
+            $self->{'rabbit'}->channel_open(1);
             $connected = 1;
         }
         catch {
-            $self->logger->error("Error connecting to RabbitMQ: $_" );
-            $self->logger->info("Reconnecting after " . RECONNECT_TIMEOUT . " seconds..." );
+            $self->error("Error connecting to RabbitMQ: $_" );
+            warn "Reconnecting after " . RECONNECT_TIMEOUT . " seconds...";
             sleep(RECONNECT_TIMEOUT);
         };
     }

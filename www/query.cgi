@@ -20,6 +20,9 @@ use strict;
 use warnings;
 
 use lib '../lib/';
+use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
+
+use GRNOC::TSDS::Config;
 use GRNOC::TSDS::GWS::Query;
 use GRNOC::TSDS::Util::ConfigChooser;
 
@@ -42,11 +45,7 @@ my $location;
 # we may have already created the websvc object earlier in mod_perl env
 if ( !defined( $websvc ) ) {
 
-
-    # are we running under a make test situation?
     if ( $ENV{'HTTP_HOST'} eq 'localhost:8529' ) {
-
-        # use testing config file if so
         $config_file = $TESTING_CONFIG_FILE;
         $logging_file = $DEFAULT_LOGGING_FILE;
     }
@@ -58,9 +57,14 @@ if ( !defined( $websvc ) ) {
 
     GRNOC::Log->new( config => $logging_file );
 
-    $websvc = GRNOC::TSDS::GWS::Query->new( config_file => $config_file );
-    $websvc->update_constraints_file($location->{'config_location'});
+    if (!-f $config_file) {
+        $config_file = '';
+    }
 
+    my $config = new GRNOC::TSDS::Config(config_file => $config_file);
+    $websvc = GRNOC::TSDS::GWS::Query->new(config => $config);
+
+    $websvc->update_constraints_file($location->{'config_location'});
 }
 
 $location = GRNOC::TSDS::Util::ConfigChooser->get_location($ENV{'REQUEST_URI'});

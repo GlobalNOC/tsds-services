@@ -36,7 +36,7 @@ sub BUILD {
             force_array => 0
         ));
     } elsif (defined $args->{config}) {
-        $self->config_file($self->config->{'config_file'});
+        die "GRNOC::TSDS::Config - 'config' is not a valid argument";
     }
 
     return $self;
@@ -50,6 +50,22 @@ sub tsds_max_decom_procs {
         return $ENV{TSDS_MAX_DECOM_PROCS};
     } else {
         return $self->config->get('/config/decom/@max_procs');
+    }
+}
+
+
+sub tsds_proxy_users {
+    my $self = shift;
+
+    if (!defined $self->config) {
+        my $users_str = defined $ENV{TSDS_PROXY_USERS} ? $ENV{TSDS_PROXY_USERS} : '';
+        my @users = split(',', $users_str);
+        return \@users;
+    } else {
+        $self->config->{'force_array'} = 1;
+        my $proxy_users = $self->config->get('/config/proxy-users/username');
+        $self->config->{'force_array'} = 0;
+        return $proxy_users;
     }
 }
 

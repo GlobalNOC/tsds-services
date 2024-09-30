@@ -20,6 +20,8 @@ use strict;
 use warnings;
 
 use lib '../lib/';
+use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
+
 use GRNOC::TSDS::Config;
 use GRNOC::TSDS::GWS::Push;
 use GRNOC::TSDS::Util::ConfigChooser;
