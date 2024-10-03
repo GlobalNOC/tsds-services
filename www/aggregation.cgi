@@ -36,7 +36,6 @@ my $DEFAULT_CONFIG_FILE  = '/etc/grnoc/tsds/services/config.xml';
 my $DEFAULT_LOGGING_FILE = '/etc/grnoc/tsds/services/logging.conf';
 my $TESTING_CONFIG_FILE  = "$FindBin::Bin/../t/conf/tsds-services.xml";
 
-
 our $websvc;
 
 my $config_file;
@@ -63,6 +62,7 @@ if ( !defined( $websvc ) ) {
     }
     my $config = new GRNOC::TSDS::Config(config_file => $config_file);
     $websvc = GRNOC::TSDS::GWS::Aggregation->new(config => $config);
+
     $websvc->update_constraints_file($location->{'config_location'});
 
 }

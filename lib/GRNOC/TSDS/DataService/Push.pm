@@ -19,8 +19,9 @@ use base 'GRNOC::TSDS::DataService';
 
 use constant RECONNECT_TIMEOUT => 10;
 
-use JSON::XS;
 use Data::Dumper;
+use JSON::XS;
+use Try::Tiny;
 
 use GRNOC::TSDS::RabbitMQ;
 
