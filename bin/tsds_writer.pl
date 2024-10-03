@@ -19,7 +19,6 @@ use constant DEFAULT_LOGGING_FILE => '/etc/grnoc/tsds/services/logging.conf';
 
 my $config = '';
 my $logging = DEFAULT_LOGGING_FILE;
-my $queue;
 my $help;
 
 GetOptions(
@@ -38,8 +37,7 @@ my $config_object = new GRNOC::TSDS::Config(config_file => $config);
 
 my $worker = new GRNOC::TSDS::Writer::Worker(
     config => $config_object,
-    logger => $logger,
-    queue => $queue
+    logger => $logger
 );
 $worker->start();
 

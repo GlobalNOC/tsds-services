@@ -75,7 +75,7 @@ sub start {
 
     my ( $self ) = @_;
 
-    my $queue = $self->queue;
+    my $queue = $self->{'config'}->rabbitmq_queue;
 
     $self->logger->debug( "Starting." );
 
