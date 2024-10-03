@@ -1,4 +1,4 @@
-local/*
+local/
 venv/*
 dist/*
 .vscode/*
@@ -7,4 +7,4 @@ dist/*
 t/conf/config.xml
 *~
 *.rpm
-vendor/*
+vendor/
