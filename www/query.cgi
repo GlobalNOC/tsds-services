@@ -60,7 +60,6 @@ if ( !defined( $websvc ) ) {
     if (!-f $config_file) {
         $config_file = '';
     }
-
     my $config = new GRNOC::TSDS::Config(config_file => $config_file);
     $websvc = GRNOC::TSDS::GWS::Query->new(config => $config);
 
