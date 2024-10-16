@@ -1,3 +1,10 @@
+## GRNOC TSDS Services 1.7.3 -- Oct 2024
+
+### Features
+
+* Adds tsds_influx: A Mojolicious based webservice to ingest line protocol / influxdb formated metrics
+* Adds support for environment variable based configuration for container based deployments
+
 ## GRNOC TSDS Services 1.7.2 -- Mar 7 2024
 
 ### Bug Fixes:
