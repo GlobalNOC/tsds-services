@@ -41,4 +41,4 @@ requires 'XML::XPath', '== 1.48';
 requires 'XML::Writer', '== 0.623';
 requires 'Authen::SCRAM::Client', '== 0.011';
 requires 'Scalar::Util', '== 1.49';
-
+requires 'Mojolicious', '== 7.94';

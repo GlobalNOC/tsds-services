@@ -5,7 +5,7 @@ AutoReqProv: no # Keep rpmbuild from trying to figure out Perl on its own
 
 Summary: GRNOC TSDS Services
 Name: grnoc-tsds-services
-Version: 1.7.3
+Version: 1.8.0
 Release: 1%{?dist}
 License: GRNOC
 Group: Measurement
@@ -149,6 +149,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %{__install} lib/GRNOC/TSDS/AggregateDocument.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
 %{__install} lib/GRNOC/TSDS/AggregatePoint.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
+%{__install} lib/GRNOC/TSDS/Cache.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
 %{__install} lib/GRNOC/TSDS/Constants.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
 %{__install} lib/GRNOC/TSDS/Constraints.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
 %{__install} lib/GRNOC/TSDS/DataDocument.pm %{buildroot}%{perl_vendorlib}/GRNOC/TSDS
@@ -269,6 +270,7 @@ rm -rf $RPM_BUILD_ROOT
 %{perl_vendorlib}/GRNOC/TSDS/AggregateDocument.pm
 %{perl_vendorlib}/GRNOC/TSDS/AggregatePoint.pm
 %{perl_vendorlib}/GRNOC/TSDS/SearchIndexer.pm
+%{perl_vendorlib}/GRNOC/TSDS/Cache.pm
 %{perl_vendorlib}/GRNOC/TSDS/Constants.pm
 %{perl_vendorlib}/GRNOC/TSDS/Constraints.pm
 %{perl_vendorlib}/GRNOC/TSDS/DataService.pm

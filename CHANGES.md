@@ -1,4 +1,4 @@
-## GRNOC TSDS Services 1.7.3 -- Oct 2024
+## GRNOC TSDS Services 1.8.0 -- Oct 2024
 
 ### Features
 

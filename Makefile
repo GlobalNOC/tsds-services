@@ -1,4 +1,4 @@
-VERSION = 1.7.3
+VERSION = $(shell grep "our $$VERSION" lib/GRNOC/TSDS.pm | awk '{print $$4}' | sed "s/['|;]//g")
 NAME = grnoc-tsds-services
 
 rpm: dist

@@ -4,7 +4,7 @@ Description=TSDS InfluxDB WebService
 [Service]
 User=root
 Group=root
-ExecStart=/usr/bin/tsds_influxdb daemon -m production -l http://0.0.0.0:8080
+ExecStart=/usr/bin/tsds_influxdb --config "/etc/grnoc/tsds/services/config.xml"
 PIDFile=/var/run/tsds_influxdb.pid
 
 # System Resource Limits

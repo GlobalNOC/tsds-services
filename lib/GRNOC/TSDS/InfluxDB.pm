@@ -9,8 +9,7 @@ use Data::Dumper;
 
 has config_file => (
     is => 'ro',
-    isa => Str,
-    required => 1
+    isa => Str
 );
 has config => (
     is => 'ro',
@@ -21,10 +20,14 @@ has config => (
 sub BUILD {
     my ($self, $args) = @_;
 
-    $self->{config} = new GRNOC::Config(
-        config_file => $args->{config_file},
-        force_array => 0
-    );
+    if (defined $args->{config}) {
+        $self->{config} = $args->{config};
+    } else {
+        $self->{config} = new GRNOC::Config(
+            config_file => $args->{config_file},
+            force_array => 0
+        );
+    }
 }
 
 

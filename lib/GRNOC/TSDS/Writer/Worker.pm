@@ -44,8 +44,7 @@ has config => ( is => 'ro',
 has logger => ( is => 'ro',
                 required => 1 );
 
-has queue => ( is => 'ro',
-               required => 1 );
+has queue => ( is => 'rwp' );
 
 ### internal attributes ###
 
@@ -76,6 +75,7 @@ sub start {
     my ( $self ) = @_;
 
     my $queue = $self->{'config'}->rabbitmq_queue;
+    $self->_set_queue($queue);
 
     $self->logger->debug( "Starting." );
 

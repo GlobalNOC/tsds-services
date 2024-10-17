@@ -18,8 +18,7 @@ use Digest::SHA;
 
 has config_file => (
     is => 'ro',
-    isa => Str,
-    required => 1
+    isa => Str
 );
 has config => (
     is => 'rw',
@@ -45,9 +44,13 @@ has cache_timeout => (
 sub BUILD {
     my ($self, $args) = @_;
 
-    $self->config(new GRNOC::TSDS::Config(
-        config_file => $args->{'config_file'}
-    ));
+    if (defined $args->{config}) {
+        $self->config($args->{config});
+    } else {
+        $self->config(new GRNOC::TSDS::Config(
+            config_file => $args->{'config_file'}
+        ));
+    }
 
     my $mongo_conn = new GRNOC::TSDS::MongoDB(config => $self->config);
     if (!defined $mongo_conn) {
