@@ -54,6 +54,28 @@ sub tsds_max_decom_procs {
 }
 
 
+sub tsds_writer_procs {
+    my $self = shift;
+
+    if (!defined $self->config) {
+        return $ENV{TSDS_WRITER_PROCS};
+    } else {
+        return $self->config->get('/config/num-processes');
+    }
+}
+
+
+sub tsds_aggregate_writer_procs {
+    my $self = shift;
+
+    if (!defined $self->config) {
+        return $ENV{TSDS_AGGREGATE_WRITER_PROCS};
+    } else {
+        return $self->config->get('/config/num-aggregate-processes');
+    }
+}
+
+
 sub tsds_proxy_users {
     my $self = shift;
 
@@ -66,6 +88,17 @@ sub tsds_proxy_users {
         my $proxy_users = $self->config->get('/config/proxy-users/username');
         $self->config->{'force_array'} = 0;
         return $proxy_users;
+    }
+}
+
+
+sub tsds_writer_pid_file {
+    my $self = shift;
+
+    if (defined $self->config) {
+        return $self->config->get('/config/pid-file');
+    } else {
+        return '/tmp/tsds_writer.pid';
     }
 }
 
@@ -228,6 +261,17 @@ sub rabbitmq_queue {
         return $ENV{RABBITMQ_QUEUE};
     } else {
         return $self->config->get('/config/rabbit/@queue');
+    }
+}
+
+
+sub rabbitmq_aggregate_queue {
+    my $self = shift;
+
+    if (!defined $self->config) {
+        return $ENV{RABBITMQ_AGGREGATE_QUEUE};
+    } else {
+        return $self->config->get('/config/rabbit/@aggregate-queue');
     }
 }
 
