@@ -59,18 +59,8 @@ sub new {
 
     $self->parser( GRNOC::TSDS::Parser->new( @_ ) );
 
-    # create and store config object
-    my $config = GRNOC::Config->new( 
-        config_file => $self->{'config_file'},
-        force_array => 0
-    );
-    if($config->{'error'}){
-        warn "Error parsing config in TSDS::DataService::Search: ".$config->{'error'}{'msg'};
-        return;
-    }
-
-    my $sphinx_host = $config->get('/config/sphinx/mysql/@host') || '127.0.0.1';
-    my $sphinx_port = $config->get('/config/sphinx/mysql/@port') || 9306;
+    my $sphinx_host = $self->config->sphinx_host;
+    my $sphinx_port = $self->config->sphinx_port;
     
     my $dbh = DBI->connect("dbi:mysql:database=;host=$sphinx_host;port=$sphinx_port", "", "",{mysql_no_autocommit_cmd => 1});
     if(!$dbh){
