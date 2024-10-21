@@ -297,6 +297,29 @@ sub redis_port {
     }
 }
 
+
+sub sphinx_host {
+    my $self = shift;
+
+    if (!defined $self->config) {
+        return $ENV{SPHINX_HOST};
+    } else {
+        return $self->config->get('/config/sphinx/mysql/@host') | '127.0.0.1';
+    }
+}
+
+
+sub sphinx_port {
+    my $self = shift;
+
+    if (!defined $self->config) {
+        return $ENV{SPHINX_PORT};
+    } else {
+        return $self->config->get('/config/sphinx/mysql/@port') | 9306;
+    }
+}
+
+
 sub memcached_host {
     my $self = shift;
 
