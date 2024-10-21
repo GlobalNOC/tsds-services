@@ -5,9 +5,10 @@ use Moo;
 
 use GRNOC::TSDS;
 use GRNOC::CLI;
-use GRNOC::Config;
 
+use GRNOC::TSDS::Config;
 use GRNOC::TSDS::Install;
+use GRNOC::TSDS::MongoDB;
 
 use Data::Dumper;
 use MongoDB;
@@ -35,32 +36,20 @@ has error => ( is => 'rwp' );
 ### constructor builder ###
 
 sub BUILD {
-
     my ( $self ) = @_;
 
-    my $config = GRNOC::Config->new( config_file => $self->config_file,
-                                     force_array => 0 );
+    my $config = new GRNOC::TSDS::Config(
+	config_file => $self->config_file
+    );
 
-    $self->_set_config( $config );
-
-    my $mongo_host = $self->config->get( '/config/mongo/@host' );
-    my $mongo_port = $self->config->get( '/config/mongo/@port' );
-    my $root_user  = $self->config->get( "/config/mongo/root" );
-
-    my $mongo_root;
-    eval {
-        $mongo_root = MongoDB::MongoClient->new(
-            host => "$mongo_host:$mongo_port",
-            socket_timeout_ms => -1,
-            username => $root_user->{'user'},
-            password => $root_user->{'password'}
-            );
-    };
-    if($@){
-        die "Could not connect to Mongo: $@";
+    my $mongo_conn = new GRNOC::TSDS::MongoDB(
+	config => $config,
+	privilege => 'root'
+    );
+    if (!defined $mongo_conn) {
+	die "Couldn't connect to MongoDB. See logs for more details.";
     }
-
-    $self->_set_mongo_root( $mongo_root );
+    $self->_set_mongo_root($mongo_conn->mongo);
 }
 
 ### public methods ###

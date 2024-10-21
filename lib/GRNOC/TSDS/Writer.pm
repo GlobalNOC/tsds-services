@@ -4,6 +4,7 @@ package GRNOC::TSDS::Writer;
 use Moo;
 use Types::Standard qw( Str Bool );
 
+use GRNOC::TSDS::Config;
 use GRNOC::TSDS::Writer::Worker;
 use GRNOC::Config;
 use GRNOC::Log;
@@ -47,14 +48,12 @@ sub BUILD {
     # create and store logger object
     my $grnoc_log = GRNOC::Log->new( config => $self->logging_file );
     my $logger = GRNOC::Log->get_logger();
+    $self->_set_logger($logger);
 
-    $self->_set_logger( $logger );
-
-    # create and store config object
-    my $config = GRNOC::Config->new( config_file => $self->config_file,
-                                     force_array => 0 );
-
-    $self->_set_config( $config );
+    my $config = new GRNOC::TSDS::Config(
+        config_file => $self->config_file
+    );
+    $self->_set_config($config);
 
     return $self;
 }
@@ -86,7 +85,7 @@ sub start {
 
         $self->logger->debug( 'Daemonizing.' );
 
-        my $daemon = Proc::Daemon->new( pid_file => $self->config->get( '/config/pid-file' ) );
+        my $daemon = Proc::Daemon->new(pid_file => $self->config->tsds_writer_pid_file);
 
         my $pid = $daemon->Init();
 
@@ -128,25 +127,15 @@ sub stop {
 
 ### helper methods ###
 
-sub _build_config {
-
-    my ( $self ) = @_;
-
-    $self->logger->debug( 'Building GRNOC::Config with config file ' . $self->config_file . '.' );
-
-    return GRNOC::Config->new( config_file => $self->config_file,
-                               force_array => 0 );
-}
-
 sub _create_workers {
 
     my ( $self ) = @_;
 
-    my $num_processes = $self->config->get( '/config/num-processes' );
-    my $num_aggregate_processes = $self->config->get( '/config/num-aggregate-processes' );
+    my $num_processes = $self->config->tsds_writer_procs;
+    my $num_aggregate_processes = $self->config->tsds_aggregate_writer_procs;
 
-    my $queue = $self->config->get( '/config/rabbit/@queue' );
-    my $aggregate_queue = $self->config->get( '/config/rabbit/@aggregate-queue' );
+    my $queue = $self->config->rabbitmq_queue;
+    my $aggregate_queue = $self->config->rabbitmq_aggregate_queue;
 
     $self->logger->info( "Creating $num_processes high resolution and $num_aggregate_processes aggregate child worker processes." );
 

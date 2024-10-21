@@ -22,7 +22,7 @@ use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
 use strict;
 use warnings;
 
-use GRNOC::Config;
+use GRNOC::TSDS::Config;
 use GRNOC::WebService::Dispatcher;
 
 use HTML::Parser;
@@ -62,6 +62,10 @@ sub _init {
 
     my $self = shift;
 
+    if (!$self->{'config_file'} && !$self->{'config'}) {
+        die "One of 'config_file' or 'config' must be specified";
+    }
+
     $self->_init_config();
     $self->_init_websvc();
 
@@ -69,26 +73,23 @@ sub _init {
 }
 
 sub _init_config {
-
     my $self = shift;
 
-    my $config = GRNOC::Config->new( config_file => $self->{'config_file'},
-                                     force_array => 0 );
-
-    $self->config( $config );
+    if ($self->{'config_file'}) {
+        my $config = new GRNOC::TSDS::Config(
+            config_file => $self->{'config_file'},
+            force_array => 0
+        );
+        $self->config($config);
+    }
 }
 
 sub _init_websvc {
 
     my $self = shift;
 
-    my $config = $self->config();
+    my $proxy_users = $self->config->tsds_proxy_users;
 
-    $config->{'force_array'} = 1;
-    my $proxy_users = $config->get( '/config/proxy-users/username' );
-    $config->{'force_array'} = 0;
-
-    # create websvc dispatcher object
     my $websvc = GRNOC::WebService::Dispatcher->new( allowed_proxy_users => $proxy_users,
                                                      max_post_size       => MAX_UPLOAD_SIZE );
 
@@ -198,6 +199,24 @@ sub push_ds {
     $self->{'push_ds'} = $push_ds if ( defined( $push_ds ) );
 
     return $self->{'push_ds'};
+}
+
+sub influxdb {
+
+    my ( $self, $influxdb ) = @_;
+
+    $self->{'influxdb'} = $influxdb if ( defined( $influxdb ) );
+
+    return $self->{'influxdb'};
+}
+
+sub cache {
+
+    my ( $self, $cache ) = @_;
+
+    $self->{'cache'} = $cache if ( defined( $cache ) );
+
+    return $self->{'cache'};
 }
 
 sub report_ds {

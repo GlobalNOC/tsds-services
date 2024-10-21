@@ -1,0 +1,18 @@
+[Unit]
+Description=TSDS InfluxDB WebService
+
+[Service]
+User=root
+Group=root
+ExecStart=/usr/bin/tsds_influxdb --config "/etc/grnoc/tsds/services/config.xml"
+PIDFile=/var/run/tsds_influxdb.pid
+
+# System Resource Limits
+LimitFSIZE=infinity
+LimitCPU=infinity
+LimitAS=infinity
+LimitNOFILE=64000
+LimitNPROC=64000
+
+[Install]
+WantedBy=multi-user.target

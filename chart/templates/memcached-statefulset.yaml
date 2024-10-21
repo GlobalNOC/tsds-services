@@ -1,0 +1,25 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: tsds-memcached-statefulset
+  labels:
+    app: tsds-memcached
+    {{ include "tsds.labels" . | nindent 4 }}
+spec:
+  serviceName: tsds-memcached
+  replicas: {{ .Values.memcached.replicaCount }}
+  selector:
+    matchLabels:
+      app: tsds-memcached
+  template:
+    metadata:
+      labels:
+        app: tsds-memcached
+    spec:
+      containers:
+        - name: memcached
+          image: memcached:1.6.23-alpine
+          ports:
+            - containerPort: 11211
+              name: memcached

@@ -760,23 +760,23 @@ sub add_measurement_type {
     # add the measurement_type
     my $db = $self->mongo_root()->get_database( $measurement_type, create => 1, privilege => 'root' );
 
-    # enable sharding on the measurement_type
-    if(!$self->mongo_root()->enable_sharding( $measurement_type )){
-        $self->error( 'Error enabling sharding on measurement_type: '.$self->mongo_root()->error() );
-        return;
-    }
+#    # enable sharding on the measurement_type
+#    if(!$self->mongo_root()->enable_sharding( $measurement_type )){
+#        $self->error( 'Error enabling sharding on measurement_type: '.$self->mongo_root()->error() );
+#        return;
+#   }
 
     # create the default collections for a measurement_type and ensure indexes on each of them
     foreach my $col_name (@{DEFAULT_COLLECTIONS()}){
         if( $col_name eq 'data' || $col_name eq 'measurements' ){
 
-            my $shard_key = $GRNOC::TSDS::MongoDB::DATA_SHARDING;
+ #           my $shard_key = $GRNOC::TSDS::MongoDB::DATA_SHARDING;
 
             # add shard for collection, this also creates the collection it seems
-            if(!$self->mongo_root()->add_collection_shard( $measurement_type, $col_name, $shard_key )){
-                $self->error( "Error adding collection shard for $col_name measurement_type: ".$self->mongo_root()->error() );
-                return;
-            }
+ #           if(!$self->mongo_root()->add_collection_shard( $measurement_type, $col_name, $shard_key )){
+ #               $self->error( "Error adding collection shard for $col_name measurement_type: ".$self->mongo_root()->error() );
+ #               return;
+ #           }
 	    
         } 
 	else {
@@ -784,7 +784,7 @@ sub add_measurement_type {
             $self->mongo_root()->create_collection( $measurement_type, $col_name, privilege => 'root' );
         }
         my $collection = $db->get_collection( $col_name );
-	my $indexes    = $collection->indexes();
+	    my $indexes    = $collection->indexes();
 
         $indexes->create_one([start => 1]);
         $indexes->create_one([end   => 1]);
@@ -847,6 +847,7 @@ sub add_measurement_type_value {
     my ( $self, %args ) = @_;
     my $measurement_type = $args{'measurement_type'};
     my $name             = $args{'name'};
+    my $is_counter       = $args{'is_counter'};
     my $descr            = $args{'description'};
     my $units            = $args{'units'};
     my $ordinal          = $args{'ordinal'};
@@ -866,6 +867,7 @@ sub add_measurement_type_value {
         description => $descr,
         units => $units
     };
+    $value->{'is_counter'} = defined($is_counter) ? int($is_counter) : 0;
     $value->{'ordinal'} = int($ordinal) if(defined($ordinal));
 
     my $id = $col->update_one({}, { '$set' => { "values.$name" => $value } } );
@@ -978,6 +980,7 @@ sub update_measurement_type_values {
     
     my $measurement_type = $args{'measurement_type'};
     my $name             = $args{'name'};
+    my $is_counter       = $args{'is_counter'};
     my $descr            = $args{'description'};
     my $units            = $args{'units'};
     my $ordinal          = $args{'ordinal'};
@@ -999,9 +1002,10 @@ sub update_measurement_type_values {
     }
 
     my $set = {};
-    $set->{"values.$name.description"} = $descr             if(defined($descr));
-    $set->{"values.$name.units"}       = $units             if(defined($units));
-    $set->{"values.$name.ordinal"}     = defined($ordinal)  ? int($ordinal)       : undef; 
+    $set->{"values.$name.description"} = $descr               if(defined($descr));
+    $set->{"values.$name.is_counter"}  = defined($is_counter) ? int($is_counter)    : 0;
+    $set->{"values.$name.units"}       = $units               if(defined($units));
+    $set->{"values.$name.ordinal"}     = defined($ordinal)    ? int($ordinal)       : undef; 
 
     if(!$set){
         $self->error( "You must pass in at least 1 field to update" );

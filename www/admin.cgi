@@ -20,6 +20,9 @@ use strict;
 use warnings;
 
 use lib '../lib/';
+use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
+
+use GRNOC::TSDS::Config;
 use GRNOC::TSDS::GWS::Admin;
 use GRNOC::TSDS::Util::ConfigChooser;
 
@@ -54,7 +57,11 @@ if ( !defined( $websvc ) ) {
 
     GRNOC::Log->new( config => $logging_file );
 
-    $websvc = GRNOC::TSDS::GWS::Admin->new( config_file => $config_file );
+    if (!-f $config_file) {
+        $config_file = '';
+    }
+    my $config = new GRNOC::TSDS::Config(config_file => $config_file);
+    $websvc = GRNOC::TSDS::GWS::Admin->new(config => $config);
 }
 
 $websvc->handle_request();

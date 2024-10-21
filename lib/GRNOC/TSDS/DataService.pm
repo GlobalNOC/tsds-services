@@ -19,7 +19,7 @@ use strict;
 use warnings;
 
 use GRNOC::Log;
-use GRNOC::Config;
+use GRNOC::TSDS::Config;
 use GRNOC::TSDS::MongoDB;
 
 sub new {
@@ -66,15 +66,11 @@ sub error {
 }
 
 sub _init {
-
     my $self = shift;
 
-    # parse & store config file
-    my $config = GRNOC::Config->new( config_file => $self->{'config_file'},
-                                     force_array => 0 );
-
-    $self->config( $config );
-
+    if (!defined $self->{'config'}) {
+        $self->config(new GRNOC::TSDS::Config(config_file => $self->{'config_file'}));
+    }
 }
 
 sub query_ds {
@@ -110,8 +106,13 @@ sub mongo_ro {
 
     $self->{'mongo_ro'} = $mongo if ( defined( $mongo ) );
 
-    if (! defined($self->{'mongo_ro'}) && $self->{'config_file'}){
-	$self->{'mongo_ro'} = GRNOC::TSDS::MongoDB->new( config_file => $self->{'config_file'}, privilege => 'ro' );
+    if (defined $self->{'config'}) {
+        $self->{'mongo_ro'} = GRNOC::TSDS::MongoDB->new(
+            config => $self->{'config'},
+            privilege => 'ro'
+        );
+    } elsif (! defined($self->{'mongo_ro'}) && $self->{'config_file'}){
+        $self->{'mongo_ro'} = GRNOC::TSDS::MongoDB->new( config_file => $self->{'config_file'}, privilege => 'ro' );
     }
 
     return $self->{'mongo_ro'};
@@ -123,8 +124,14 @@ sub mongo_rw {
 
     $self->{'mongo_rw'} = $mongo if ( defined( $mongo ) );
 
+    if (defined $self->{'config'}) {
+        $self->{'mongo_rw'} = GRNOC::TSDS::MongoDB->new(
+            config => $self->{'config'},
+            privilege => 'rw'
+        );
+    }
     if (! defined($self->{'mongo_rw'}) && $self->{'config_file'}){
-	$self->{'mongo_rw'} = GRNOC::TSDS::MongoDB->new( config_file => $self->{'config_file'}, privilege => 'rw' );
+        $self->{'mongo_rw'} = GRNOC::TSDS::MongoDB->new( config_file => $self->{'config_file'}, privilege => 'rw' );
     }
 
     return $self->{'mongo_rw'};
@@ -136,8 +143,14 @@ sub mongo_root {
 
     $self->{'mongo_root'} = $mongo if ( defined( $mongo ) );
 
+    if (defined $self->{'config'}) {
+        $self->{'mongo_root'} = GRNOC::TSDS::MongoDB->new(
+            config => $self->{'config'},
+            privilege => 'root'
+        );
+    }
     if (! defined($self->{'mongo_root'}) && $self->{'config_file'}){
-	$self->{'mongo_root'} = GRNOC::TSDS::MongoDB->new( config_file => $self->{'config_file'}, privilege => 'root' );
+        $self->{'mongo_root'} = GRNOC::TSDS::MongoDB->new( config_file => $self->{'config_file'}, privilege => 'root' );
     }
 
     return $self->{'mongo_root'};

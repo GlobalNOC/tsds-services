@@ -5,7 +5,7 @@ use strict;
 use warnings;
 
 use GRNOC::Log;
-use GRNOC::Config;
+use GRNOC::TSDS::Config;
 use GRNOC::TSDS::Constants;
 
 use Storable qw( dclone );
@@ -19,6 +19,20 @@ our $DATA_SHARDING  = "{'identifier': 1, 'start': 1, 'end': 1}";
 
 my %singleton;
 
+
+=head2 new
+
+Creates a new connection with MongoDB.
+
+Requires either `config: GRNOC::TSDS::Config` or `config_file: str`.
+`privilege` defaults to 'rw'.
+
+    my $conn = new GRNOC::TSDS::MongoDB(
+        config_file => 't/conf/config.xml',
+        privilege   => 'root'
+    );
+
+=cut
 sub new {
     my $caller = shift;
 
@@ -31,60 +45,72 @@ sub new {
 
     bless( $self, $class );
 
-    my $privilege;
-    if(!defined($self->{'privilege'})){
-        $self->error('You must specify the privilege you want mongo to connect with (root, ro, rw)');
+    if (!defined $self->{'config'} && !defined $self->{'config_file'}) {
+        $self->error('Argument `config: GRNOC::TSDS::Config` or `config_file: str` is required.');
         return;
     }
-    elsif($self->{'privilege'} eq 'root' ){
-        $privilege = 'root';	
-    }elsif($self->{'privilege'} eq 'ro' ){
-        $privilege = 'readonly';
-    }elsif($self->{'privilege'} eq 'rw' ){
+
+    my $privilege;
+    if (!defined $self->{'privilege'}) {
+        $self->{'privilege'} = 'rw';
+    }
+
+    if ($self->{'privilege'} eq 'root') {
+        $privilege = 'root';
+    } else {
         $privilege = 'readwrite';
-    }else {
-        $self->error('You must specify the privilege you want mongo to connect with (root, ro, rw)');
-        return;
-    }    
+    }
 
     return $singleton{$privilege} if (defined $singleton{$privilege});
     $singleton{$privilege} = $self;
 
-    my $config = GRNOC::Config->new(
-        config_file => $self->{'config_file'},
-        force_array => 0 
-    );
 
-    $self->{'config'} = $config;
-
-    my $host = $self->{'config'}->get( '/config/mongo/@host' );
-    my $port = $self->{'config'}->get( '/config/mongo/@port' );
-
-    # store our configurably igrnored databases
-    $self->{'config'}->{'force_array'} = 1;
-    my $ignore_databases = $self->{'config'}->get( '/config/ignore-databases/database' );
-    $self->{'config'}->{'force_array'} = 0;
-    foreach my $ignore_database (@$ignore_databases) {
-        $self->{'ignore_databases'}{$ignore_database} = 1;
+    if (defined $self->{'config_file'}) {
+        $self->{'config'} = new GRNOC::TSDS::Config(
+            config_file => $self->{'config_file'},
+        );
     }
-    $self->{'host'} = $host;
-    $self->{'port'} = $port;   
+    $self->{'ignore_databases'} = {
+        'admin' => 1,
+        'test' => 1,
+        'config' => 1,
+        'tsds_reports' => 1,
+        'local' => 1,
+    };
 
-    my $user = $self->{'config'}->get( "/config/mongo/$privilege" );
-    $self->{'user'}     = $user->{'user'};
-    $self->{'password'} = $user->{'password'};
-
-    log_debug( "Connecting to MongoDB as $privilege user on $host:$port." );
 
     eval {
-        $self->{'mongo'}   = MongoDB::MongoClient->new( 
-            host     => "$host:$port", 
-            username => $user->{'user'},
-            password => $self->{'password'},
-            read_preference => 'secondaryPreferred'
-        );
+        if ($self->{'config'}->mongodb_uri) {
+            $self->{'mongo'} = MongoDB::MongoClient->new(
+                host => $self->{'config'}->mongodb_uri,
+                read_preference => 'secondaryPreferred'
+            );
+        } else {
+            my $host = $self->{'config'}->mongodb_host;
+            my $port = $self->{'config'}->mongodb_port;
+            my $user = $self->{'config'}->mongodb_user;
+            my $pass = $self->{'config'}->mongodb_pass;
+
+            if ($privilege eq 'root') {
+                $user = $self->{'config'}->mongodb_root_user;
+                $pass = $self->{'config'}->mongodb_root_pass;
+            }
+            log_info("Connecting to MongoDB as $privilege user on $host:$port.");
+
+            $self->{'host'} = $host;
+            $self->{'port'} = $port;
+            $self->{'user'} = $user;
+            $self->{'password'} = $pass;
+
+            $self->{'mongo'} = MongoDB::MongoClient->new(
+                host => "$host:$port",
+                username => $user,
+                password => $pass,
+                read_preference => 'secondaryPreferred',
+            );
+        }
     };
-    if($@){
+    if ($@) {
         $self->error("Couldn't establish $privilege database connections: $@");
         return;
     }
@@ -107,7 +133,7 @@ sub get_database {
     # if we're force creating this just do it, that's what the driver does
     if ($create){
         $self->_grant_db_role( db => $name ) || return;
-	return $mongo->get_database($name);
+        return $mongo->get_database($name);
     }
     if ($drop){
         $self->_revoke_db_role( db => $name ) || return;
@@ -151,10 +177,15 @@ sub get_databases {
 
     return if ( !@all_databases);
 
+    my $ignore_databases = {};
+    foreach my $k (@{$self->{'config'}->mongodb_ignore_databases}) {
+	$ignore_databases->{$k} = 1;
+    }
+
     my @databases;
     foreach my $database (@all_databases) {
         # skip it if its a 'private' database prefixed with _ or one of the listed databases to ignore
-        if ( $database =~ /^_/ || IGNORE_DATABASES->{$database} || $self->{'ignore_databases'}{$database} ) {
+        if ( $database =~ /^_/ || IGNORE_DATABASES->{$database} || $ignore_databases->{$database} ) {
             log_debug( "Ignoring database $database." );
             next;
         }
@@ -190,14 +221,13 @@ sub _has_access_to {
 sub _get_tsds_users {
     my ( $self ) = @_;
 
-    my $ro_user = $self->{'config'}->get( "/config/mongo/readonly" );
-    my $rw_user = $self->{'config'}->get( "/config/mongo/readwrite" );
-
-    $ro_user->{'role'} = 'read';
-    $rw_user->{'role'} = 'readWrite';
-
-
-    return [$ro_user, $rw_user];
+    return [
+	{
+	    user => $self->{'config'}->mongodb_user,
+	    password => $self->{'config'}->mongodb_pass,
+	    role => 'readWrite',
+	}
+    ];
 }
 
 sub _grant_db_role {

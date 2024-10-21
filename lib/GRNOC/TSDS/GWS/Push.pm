@@ -28,6 +28,7 @@ use GRNOC::WebService::Method;
 use GRNOC::WebService::Regex;
 
 use Data::Dumper;
+use JSON;
 
 sub new {
 
@@ -63,10 +64,7 @@ sub _init_methods {
                                   required      => 1,
                                   multiple      => 0,
                                   description   => '' );
-
-    # register the add_data() method
     $self->websvc()->register_method( $method );
-
 }
 
 # callbacks
@@ -88,9 +86,8 @@ sub _add_data {
     }
 
     return {
-	    results => $results,
+        results => $results,
     };
 }
 
 1;
-

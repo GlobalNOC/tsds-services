@@ -3,13 +3,13 @@ package GRNOC::TSDS::Expire;
 
 use Moo;
 
-use GRNOC::Config;
 use GRNOC::CLI;
 use GRNOC::Log;
 
+use GRNOC::TSDS::Config;
 use GRNOC::TSDS::Constants;
+use GRNOC::TSDS::MongoDB;
 
-use MongoDB;
 use Tie::IxHash;
 use JSON::XS;
 use Math::Round qw( nlowmult nhimult );
@@ -66,14 +66,10 @@ sub BUILD {
     # create and store logger object
     my $grnoc_log = GRNOC::Log->new( config => $self->logging_file );
     my $logger = GRNOC::Log->get_logger();
-
     $self->_set_logger( $logger );
 
-    # create and store config object
-    my $config = GRNOC::Config->new( config_file => $self->config_file,
-                                     force_array => 0 );
-
-    $self->_set_config( $config );
+    my $config = new GRNOC::TSDS::Config(config_file => $self->config_file);
+    $self->_set_config($config);
 
     # create and store json object
     my $json = JSON::XS->new();
@@ -375,30 +371,13 @@ sub _get_data_collection {
 }
 
 sub _mongo_connect {
-
     my ( $self ) = @_;
 
-    my $mongo_host = $self->config->get( '/config/mongo/@host' );
-    my $mongo_port = $self->config->get( '/config/mongo/@port' );
-    my $rw_user    = $self->config->get( "/config/mongo/readwrite" );
-
-    $self->logger->debug( "Connecting to MongoDB $mongo_host:$mongo_port." );
-    $self->logger->debug( "Connecting to MongoDB as readwrite on $mongo_host:$mongo_port." );
-
-    my $mongo;
-    eval {
-        $mongo = MongoDB::MongoClient->new(
-            host => "$mongo_host:$mongo_port",
-            socket_timeout_ms => -1,
-            username => $rw_user->{'user'},
-            password => $rw_user->{'password'}
-        );
-    };
-    if($@){
-        die "Could not connect to Mongo: $@";
+    my $mongo_conn = new GRNOC::TSDS::MongoDB(config => $self->config);
+    if (!defined $mongo_conn) {
+        die "Couldn't connect to MongoDB. See logs for more details.";
     }
-
-    $self->_set_mongo_rw( $mongo );
+    $self->_set_mongo_rw($mongo_conn->mongo);
 }
 
 1;
