@@ -1,7 +1,10 @@
-local/*
+local/
 venv/*
 dist/*
 .vscode/*
 !.vscode/launch.json
-!.vscode/
+!.vscode/settings.json
 t/conf/config.xml
+*~
+*.rpm
+vendor/

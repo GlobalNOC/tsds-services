@@ -4,8 +4,11 @@ package GRNOC::TSDS::Writer::Worker;
 use Moo;
 use Types::Standard qw( Str Int HashRef Object Maybe );
 
-use GRNOC::TSDS::DataType;
 use GRNOC::TSDS::Constants;
+use GRNOC::TSDS::DataType;
+use GRNOC::TSDS::Memcached;
+use GRNOC::TSDS::MongoDB;
+use GRNOC::TSDS::RabbitMQ;
 use GRNOC::TSDS::AggregateDocument;
 use GRNOC::TSDS::DataDocument;
 use GRNOC::TSDS::Writer::AggregateMessage;
@@ -14,9 +17,6 @@ use GRNOC::TSDS::RedisLock;
 
 use GRNOC::TSDS::DataService::MetaData;
 
-use MongoDB;
-use Net::AMQP::RabbitMQ;
-use Cache::Memcached::Fast;
 use Tie::IxHash;
 use JSON::XS;
 use Math::Round qw( nlowmult );
@@ -44,8 +44,7 @@ has config => ( is => 'ro',
 has logger => ( is => 'ro',
                 required => 1 );
 
-has queue => ( is => 'ro',
-               required => 1 );
+has queue => ( is => 'rwp' );
 
 ### internal attributes ###
 
@@ -75,7 +74,8 @@ sub start {
 
     my ( $self ) = @_;
 
-    my $queue = $self->queue;
+    my $queue = $self->{'config'}->rabbitmq_queue;
+    $self->_set_queue($queue);
 
     $self->logger->debug( "Starting." );
 
@@ -102,47 +102,22 @@ sub start {
 
     $self->_set_json( $json );
 
-    # connect to mongo
-    my $mongo_host = $self->config->get( '/config/mongo/@host' );
-    my $mongo_port = $self->config->get( '/config/mongo/@port' );
-    my $rw_user    = $self->config->get( "/config/mongo/readwrite" );
-
-    $self->logger->debug( "Connecting to MongoDB as readwrite on $mongo_host:$mongo_port." );
-
-    my $mongo;
-
-    try {
-
-        $mongo = MongoDB::MongoClient->new( host => "$mongo_host:$mongo_port",
-                                            username => $rw_user->{'user'},
-                                            password => $rw_user->{'password'} );
+    my $mongo_conn = new GRNOC::TSDS::MongoDB(config => $self->config);
+    if (!defined $mongo_conn) {
+        die "Couldn't connect to MongoDB. See logs for more details.";
     }
-
-    catch {
-
-        $self->logger->error( "Error connecting to MongoDB: $_" );
-        die( "Error connecting to MongoDB: $_" );
-    };
-
-    $self->_set_mongo_rw( $mongo );
+    $self->_set_mongo_rw($mongo_conn->mongo);
 
     $self->_redis_connect();
 
-    # connect to memcache
-    my $memcache_host = $self->config->get( '/config/memcache/@host' );
-    my $memcache_port = $self->config->get( '/config/memcache/@port' );
-
-    $self->logger->debug( "Connecting to memcached $memcache_host:$memcache_port." );
-
-    my $memcache = Cache::Memcached::Fast->new( {'servers' => [{'address' => "$memcache_host:$memcache_port", 'weight' => 1}]} );
-
-    $self->_set_memcache( $memcache );
+    my $memcached_conn = new GRNOC::TSDS::Memcached(config => $self->config);
+    $self->_set_memcache($memcached_conn->memcached);
 
     # connect to rabbit
     $self->_rabbit_connect();
 
     # set up metadata_ds object, will handle metadata messages
-    my $metadata_ds = GRNOC::TSDS::DataService::MetaData->new(config_file => $self->config->{'config_file'});
+    my $metadata_ds = GRNOC::TSDS::DataService::MetaData->new(config_file => $self->config->config_file);
     $self->_set_metadata_ds( $metadata_ds );
 
     $self->logger->debug( 'Starting RabbitMQ consume loop.' );
@@ -371,7 +346,7 @@ sub _consume_messages {
                 # requeue the message to try again later if mongo communication fails
                 catch {
 
-                    $self->logger->error( "Unable to fetch data types from MongoDB." );
+                    $self->logger->error( "Unable to fetch data types from MongoDB: $_" );
 
                     $success = 0;
                 };
@@ -446,7 +421,7 @@ sub _consume_messages {
                 # requeue the message to try again later if mongo communication fails
                 catch {
 
-                    $self->logger->error( "Unable to fetch data types from MongoDB." );
+                    $self->logger->error( "Unable to fetch data types from MongoDB: $_" );
 
                     $success = 0;
                 };
@@ -606,9 +581,13 @@ sub _process_data_messages {
 
     # handle every message sent, ordered by their timestamp in ascending order
     foreach my $message ( sort { $a->time <=> $b->time } @$messages ) {
-
+        #$self->logger->error("Procesing Message");
         my $data_type = $message->data_type;
+        #$self->logger->error("Procesing Message of Type: " . $data_type);
+        #$self->logger->error("MetaFields: " . Dumper($message->meta));
+        #$self->logger->error("Message Values: " . Dumper($message->values));
         my $measurement_identifier = $message->measurement_identifier;
+        #$self->logger->error("Message Identifier: " . $measurement_identifier);
         my $interval = $message->interval;
 	my $data_points;
 
@@ -1552,17 +1531,8 @@ sub _fetch_data_types {
 
     # determine databases to ignore
     my $ignore_databases = {};
-
-    $self->config->{'force_array'} = 1;
-    my @ignore_databases = $self->config->get( '/config/ignore-databases/database' );
-    $self->config->{'force_array'} = 0;
-
-    foreach my $database ( @ignore_databases ) {
-
-        $database = $database->[0];
-
+    foreach my $database (@{$self->config->mongodb_ignore_databases}) {
         $self->logger->debug( "Ignoring database '$database'." );
-
         $ignore_databases->{$database} = 1;
     }
 
@@ -1583,9 +1553,7 @@ sub _fetch_data_types {
             $data_type = GRNOC::TSDS::DataType->new( name => $database,
                                                      database => $self->mongo_rw->get_database( $database ) );
         }
-
         catch {
-
             $self->logger->warn( $_ );
         };
 
@@ -1602,69 +1570,66 @@ sub _fetch_data_types {
 sub _redis_connect {
     my ( $self ) = @_;
 
-    while ( 1 ) {
-
-	my $connected = 0;
-
-	try {
-	    $self->_set_redislock( GRNOC::TSDS::RedisLock->new( config => $self->config ) );
-	    $connected = 1;
-	}
-	catch {
-	    $self->logger->error( "Error connecting to Redis: $_" );
-	};
-
-	last if $connected;
-	sleep( RECONNECT_TIMEOUT );
+    my $connected = 0;
+    while (!$connected) {
+        try {
+            $self->_set_redislock(new GRNOC::TSDS::RedisLock(config => $self->config));
+            $connected = 1;
+        }
+        catch {
+            $self->logger->error("Error connecting to Redis: $_");
+            $self->logger->info("Reconnecting after " . RECONNECT_TIMEOUT . " seconds..." );
+            sleep(RECONNECT_TIMEOUT);
+        };
     }
+    return $connected;
 }
 
 sub _rabbit_connect {
-
     my ( $self ) = @_;
 
-    my $rabbit_host = $self->config->get( '/config/rabbit/@host' );
-    my $rabbit_port = $self->config->get( '/config/rabbit/@port' );
-    my $rabbit_queue = $self->queue;
-
-    while ( 1 ) {
-
-        $self->logger->info( "Connecting to RabbitMQ $rabbit_host:$rabbit_port." );
-
-        my $connected = 0;
-
+    my $connected = 0;
+    while (!$connected) {
         try {
-            my $rabbit = Net::AMQP::RabbitMQ->new();
+            my $rabbitmq_conn = new GRNOC::TSDS::RabbitMQ(config => $self->config);
+            $self->_set_rabbit($rabbitmq_conn->rabbitmq);
 
-            $rabbit->connect( $rabbit_host, {'port' => $rabbit_port} );
-
-            # open channel & declare queue for pending writes
-            $rabbit->channel_open( PENDING_QUEUE_CHANNEL );
-            $rabbit->queue_declare( PENDING_QUEUE_CHANNEL, $rabbit_queue, {'auto_delete' => 0} );
-            $rabbit->basic_qos( PENDING_QUEUE_CHANNEL, { prefetch_count => QUEUE_PREFETCH_COUNT } );
+             # open channel & declare queue for pending writes
+            $self->rabbit->channel_open(PENDING_QUEUE_CHANNEL);
+            $self->rabbit->queue_declare(
+                PENDING_QUEUE_CHANNEL,
+                $self->{'config'}->rabbitmq_queue,
+                {'auto_delete' => 0}
+            );
+            $self->rabbit->basic_qos(
+                PENDING_QUEUE_CHANNEL,
+                {prefetch_count => QUEUE_PREFETCH_COUNT}
+            );
 
             # open channel & declare queue for failed writes
-            $rabbit->channel_open( FAILED_QUEUE_CHANNEL );
-            $rabbit->queue_declare( FAILED_QUEUE_CHANNEL, $self->queue . "_failed", {'auto_delete' => 0} );
+            $self->rabbit->channel_open(FAILED_QUEUE_CHANNEL);
+            $self->rabbit->queue_declare(
+                FAILED_QUEUE_CHANNEL,
+                $self->{'config'}->rabbitmq_queue . "_failed",
+                {auto_delete => 0}
+            );
 
             # start consuming messages
-            $rabbit->consume( PENDING_QUEUE_CHANNEL, $rabbit_queue, {'no_ack' => 0} );
-
-            $self->_set_rabbit( $rabbit );
+            $self->rabbit->consume(
+                PENDING_QUEUE_CHANNEL,
+                $self->{'config'}->rabbitmq_queue,
+                {no_ack => 0}
+            );
 
             $connected = 1;
         }
-
         catch {
-
-            $self->logger->error( "Error connecting to RabbitMQ: $_" );
+            $self->logger->error("Error connecting to RabbitMQ: $_" );
+            $self->logger->info("Reconnecting after " . RECONNECT_TIMEOUT . " seconds..." );
+            sleep(RECONNECT_TIMEOUT);
         };
-
-        last if $connected;
-
-        $self->logger->info( "Reconnecting after " . RECONNECT_TIMEOUT . " seconds..." );
-        sleep( RECONNECT_TIMEOUT );
     }
+    return $connected;
 }
 
 1;

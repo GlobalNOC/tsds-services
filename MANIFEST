@@ -3,6 +3,7 @@ bin/tsds_firehose.pl
 bin/tsds_install.pl
 bin/tsds_search_indexer.pl
 bin/tsds_upgrade.pl
+bin/tsds_influxdb
 bin/tsds_writer
 bin/tsds_fix_measurements.pl
 bin/tsds-decom.pl
@@ -45,12 +46,14 @@ systemd/mongod-shard1.service
 systemd/mongod-shard2.service
 systemd/mongod-shard3.service
 systemd/mongos.service
+systemd/tsds_influxdb.service
 init.d/tsds_writer
 INSTALL.md
 lib/GRNOC/TSDS.pm
 lib/GRNOC/TSDS/AggregateDocument.pm
 lib/GRNOC/TSDS/AggregatePoint.pm
 lib/GRNOC/TSDS/Aggregate/Histogram.pm
+lib/GRNOC/TSDS/Cache.pm
 lib/GRNOC/TSDS/Constants.pm
 lib/GRNOC/TSDS/Constraints.pm
 lib/GRNOC/TSDS/DataDocument.pm
@@ -72,11 +75,13 @@ lib/GRNOC/TSDS/GWS/Aggregation.pm
 lib/GRNOC/TSDS/GWS/Atlas.pm
 lib/GRNOC/TSDS/GWS/Forge.pm
 lib/GRNOC/TSDS/GWS/Image.pm
+lib/GRNOC/TSDS/GWS/InfluxDB.pm
 lib/GRNOC/TSDS/GWS/MetaData.pm
 lib/GRNOC/TSDS/GWS/Push.pm
 lib/GRNOC/TSDS/GWS/Query.pm
 lib/GRNOC/TSDS/GWS/Report.pm
 lib/GRNOC/TSDS/GWS/Search.pm
+lib/GRNOC/TSDS/InfluxDB.pm
 lib/GRNOC/TSDS/Install.pm
 lib/GRNOC/TSDS/MeasurementDecommer.pm
 lib/GRNOC/TSDS/MongoDB.pm

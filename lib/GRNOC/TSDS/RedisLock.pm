@@ -5,9 +5,8 @@ use Moo;
 use Types::Standard qw( Str Int HashRef Object Maybe );
 
 use GRNOC::Log;
-use GRNOC::Config;
 
-use Redis;
+use GRNOC::TSDS::Redis;
 use Redis::DistLock;
 
 use Try::Tiny;
@@ -29,37 +28,22 @@ has lock_timeout => ( is => 'rw',
 sub BUILD {
     my ( $self ) = @_;
 
-    my $redis_host = $self->config->get( '/config/redis/@host' );
-    my $redis_port = $self->config->get( '/config/redis/@port' );
-
-    log_debug( "Connecting to Redis $redis_host:$redis_port." );
-
-    my $redis;
-
     try {
-
-        $redis = Redis->new( server => "$redis_host:$redis_port",
-                             reconnect => 120,
-                             every => 3 * 1000 * 1000 ); # microseconds
-
+        my $redis_conn = new GRNOC::TSDS::Redis(config => $self->config);
+        $self->_set_redis($redis_conn->redis);
     }
-
     catch {
-
-        log_error( "Error connecting to Redis: $_" );
-        die( "Error connecting to Redis: $_" );
+        log_error("Error connecting to Redis: $_");
+        die("Error connecting to Redis: $_");
     };
 
-    $self->_set_redis( $redis );
-
-    # create locker
-    log_debug( 'Creating locker.' );
-
-    my $locker = Redis::DistLock->new( servers => [$redis],
-                                       retry_count => $self->lock_retries(),
-                                       retry_delay => 0.5);
-
-    $self->_set_locker( $locker );
+    log_debug('Creating locker.');
+    my $locker = Redis::DistLock->new(
+        servers => [$self->redis],
+        retry_count => $self->lock_retries(),
+        retry_delay => 0.5
+    );
+    $self->_set_locker($locker);
 
     return $self;    
 }

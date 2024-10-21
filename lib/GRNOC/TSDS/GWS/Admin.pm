@@ -113,7 +113,13 @@ sub _init_methods {
                                   required      => 1,
                                   multiple      => 0,
                                   description   => 'The description displayed in the frontend of the value' );
-    
+
+    $method->add_input_parameter( name          => 'is_counter',
+                                  pattern       => '^(0|1)$',
+                                  required      => 0,
+                                  multiple      => 0,
+                                  description   => 'Flag indicating whether or not this value should be treated as a counter or static value' );
+
     $method->add_input_parameter( name          => 'units',
                                   pattern       => $NAME_ID,
                                   required      => 1,
@@ -239,6 +245,12 @@ sub _init_methods {
                                   required      => 0,
                                   multiple      => 0,
                                   description   => 'The description displayed in the frontend of the value' );
+
+    $method->add_input_parameter( name          => 'is_counter',
+                                  pattern       => '^(0|1)$',
+                                  required      => 0,
+                                  multiple      => 0,
+                                  description   => 'Flag indicating whether or not this value should be treated as a counter or static value' );
 
     $method->add_input_parameter( name          => 'units',
                                   pattern       => $NAME_ID,

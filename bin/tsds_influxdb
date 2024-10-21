@@ -1,0 +1,62 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use lib '../lib/';
+use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
+
+use GRNOC::TSDS::Config;
+use GRNOC::TSDS::GWS::InfluxDB;
+use GRNOC::TSDS::Util::ConfigChooser;
+
+use Data::Dumper;
+use FindBin;
+use Getopt::Long;
+use Mojolicious::Lite;
+
+
+FindBin::again(); # Needed for mod_perl
+
+
+use constant DEFAULT_CONFIG_FILE  => '';
+use constant DEFAULT_LOGGING_FILE => '/etc/grnoc/tsds/services/logging.conf';
+
+my $config_file  = DEFAULT_CONFIG_FILE;
+my $logging_file = DEFAULT_LOGGING_FILE;
+my $help;
+
+GetOptions(
+    'config:s'  => \$config_file,
+    'logging=s' => \$logging_file,
+    'help|h|?'  => \$help
+);
+usage() if $help;
+
+
+my $grnoc_log = new GRNOC::Log(config => $logging_file);
+my $config_object = new GRNOC::TSDS::Config(config_file => $config_file);
+
+my $websvc = new GRNOC::TSDS::GWS::InfluxDB(config => $config_object);
+
+post '/' => sub {
+    my $c = shift;
+
+    eval {
+        my $result = $websvc->_add_influx_data({
+            db => $c->param('db'),
+            data => $c->req->text,
+            user => $ENV{'REMOTE_USER'},
+        });
+        $c->render(
+            json => $result,
+            status => 204
+        );
+    };
+    if ($@) {
+        $c->render(json => {error => 1, error_text => "$@"});
+    }
+};
+
+
+app->start('daemon', '-m', 'production', '-l', 'http://0.0.0.0:8080');
