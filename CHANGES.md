@@ -1,3 +1,9 @@
+## GRNOC TSDS Services 1.8.1 -- Oct 2024
+
+### Bug Fixes:
+
+* Fixes tsds_writer queue name loading on startup
+
 ## GRNOC TSDS Services 1.8.0 -- Oct 2024
 
 ### Features
