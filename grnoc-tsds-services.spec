@@ -5,7 +5,7 @@ AutoReqProv: no # Keep rpmbuild from trying to figure out Perl on its own
 
 Summary: GRNOC TSDS Services
 Name: grnoc-tsds-services
-Version: 1.8.1
+Version: 1.8.2
 Release: 1%{?dist}
 License: GRNOC
 Group: Measurement

@@ -42,6 +42,8 @@ RUN make rpm
 
 FROM oraclelinux:8
 
+COPY conf/mongodb-org-3.6.repo /etc/yum.repos.d/mongodb-org-3.6.repo
+
 COPY --from=0 /root/rpmbuild/RPMS/x86_64/grnoc-tsds-services*x86_64.rpm /root/
 
 RUN dnf install -y \
@@ -56,7 +58,7 @@ RUN yum-config-manager --enable \
 # run makecache
 RUN dnf makecache
 
-RUN dnf install httpd mod_perl mod_perl-devel
+RUN dnf install httpd mod_perl mod_perl-devel mongodb-org-shell
 RUN dnf install -y /root/grnoc-tsds-services*x86_64.rpm
 
 

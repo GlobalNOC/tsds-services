@@ -23,6 +23,9 @@ venv:
 	carton install --deployment --path=venv
 
 ol8:
+	docker build -t "containers.github.grnoc.iu.edu/ndca/tsds-services:$(VERSION)-dev" .
+
+ol8-prod:
 	rm -f *.rpm
 	docker build -t "containers.github.grnoc.iu.edu/ndca/tsds-services:$(VERSION)" .
 	docker run --entrypoint /bin/sleep --name tsds-services-rpm --rm -d "containers.github.grnoc.iu.edu/ndca/tsds-services:$(VERSION)" 3

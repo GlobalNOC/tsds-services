@@ -1,3 +1,9 @@
+## GRNOC TSDS Services 1.8.2 -- Oct 2024
+
+### Features:
+
+* Adds metadata fields to default install
+
 ## GRNOC TSDS Services 1.8.1 -- Oct 2024
 
 ### Bug Fixes:
@@ -6,7 +12,7 @@
 
 ## GRNOC TSDS Services 1.8.0 -- Oct 2024
 
-### Features
+### Features:
 
 * Adds tsds_influx: A Mojolicious based webservice to ingest line protocol / influxdb formated metrics
 * Adds support for environment variable based configuration for container based deployments
