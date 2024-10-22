@@ -1,6 +1,0 @@
-dependencies:
-- name: globalnoc-shib
-  repository: https://charts.k8s.grnoc.iu.edu
-  version: 0.1.14
-digest: sha256:fb4414347488c6d94eb1f7f0fa009c35bd2b6b1c13784237f768042875b47e9f
-generated: "2024-05-02T15:03:24.758596108Z"
