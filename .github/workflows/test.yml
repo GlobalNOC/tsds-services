@@ -3,7 +3,7 @@ on:
 
 jobs:
   tsds_test:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     name: Testing
     steps:
       - name: Copy repository to /github/workspace
