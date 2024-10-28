@@ -1,7 +1,7 @@
 FROM oraclelinux:8 AS rpmbuild
 
 # set working directory
-#WORKDIR /app
+WORKDIR /app
 
 # add mongodb repo
 COPY conf/mongodb-org-3.6.repo /etc/yum.repos.d/mongodb-org-3.6.repo
@@ -35,19 +35,16 @@ RUN dnf install -y \
 RUN cpanm Carton
 
 # copy everything in
-RUN pwd
-RUN ls -la
-
-COPY . ./
+COPY . /app
 
 # build & install rpm
 RUN make rpm
 
 RUN ls -la /root/rpmbuild/RPMS/x86_64
-RUN cp /root/rpmbuild/RPMS/x86_64/grnoc-tsds-services*x86_64.rpm .
+RUN cp /root/rpmbuild/RPMS/x86_64/grnoc-tsds-services*x86_64.rpm /app
 RUN ls -la
 
-CMD ["sleep", "15"]
+CMD ["ls", "-la", "/app"]
 
 # FROM oraclelinux:8
 
