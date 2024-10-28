@@ -18,10 +18,10 @@ jobs:
             pwd
       - name: lookign
         run: |
-            ls -la
+            ls -la /app
             
       - name: Archive RPM
         uses: actions/upload-artifact@v2
         with:
           name: grnoc-tsds-services-${{ env.version }}-1.x86_64.rpm
-          path: grnoc-tsds-services-*.el8.x86_64.rpm
+          path: /app/grnoc-tsds-services-*.el8.x86_64.rpm
