@@ -1,0 +1,10 @@
+on:
+  workflow_dispatch:
+
+jobs:
+  tsds_test:
+    runs-on: ubuntu-latest
+    name: Testing
+    steps:
+      - name: Copy repository to /github/workspace
+        uses: actions/checkout@v2
