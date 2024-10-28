@@ -3,4 +3,5 @@ description: Build tsds-services
 runs:
   using: docker
   image: Dockerfile
-  args:  []
+  args:
+    - --target=rpmbuild
