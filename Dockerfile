@@ -40,6 +40,9 @@ COPY . /app
 # build & install rpm
 RUN make rpm
 
+RUN ls -la /
+RUN ls -la /root
+
 # FROM oraclelinux:8
 
 # COPY --from=rpmbuild /root/rpmbuild/RPMS/x86_64/grnoc-tsds-services*x86_64.rpm /root/
