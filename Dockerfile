@@ -1,7 +1,7 @@
 FROM oraclelinux:8 AS rpmbuild
 
 # set working directory
-WORKDIR /app
+#WORKDIR /app
 
 # add mongodb repo
 COPY conf/mongodb-org-3.6.repo /etc/yum.repos.d/mongodb-org-3.6.repo
@@ -35,7 +35,7 @@ RUN dnf install -y \
 RUN cpanm Carton
 
 # copy everything in
-COPY . /app
+COPY . .
 
 # build & install rpm
 RUN make rpm
