@@ -15,6 +15,9 @@ jobs:
         uses: GlobalNOC/tsds-services@master
       - name: PWD
         run: |
+            ls
+      - name: PWD
+        run: |
             pwd
       - name: List files in the repository
         run: |
