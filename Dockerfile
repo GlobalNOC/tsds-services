@@ -35,13 +35,16 @@ RUN dnf install -y \
 RUN cpanm Carton
 
 # copy everything in
-COPY . .
+RUN pwd
+
+COPY . ./
 
 # build & install rpm
 RUN make rpm
 
 RUN ls -la /root/rpmbuild/RPMS/x86_64
 RUN cp /root/rpmbuild/RPMS/x86_64/grnoc-tsds-services*x86_64.rpm .
+RUN ls -la
 
 CMD ["sleep", "15"]
 
