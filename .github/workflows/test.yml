@@ -1,6 +1,9 @@
 on:
   workflow_dispatch:
 
+env:
+  version: 0.0.0
+
 jobs:
   tsds_test:
     runs-on: self-hosted
@@ -10,3 +13,8 @@ jobs:
         uses: actions/checkout@v2
       - name: Build tsds-services
         uses: GlobalNOC/tsds-services@master
+      - name: Archive RPM
+        uses: actions/upload-artifact@v1
+        with:
+          name: grnoc-tsds-services-${{ env.version }}-1.x86_64.rpm
+          path: /root/grnoc-tsds-services-*.rpm
