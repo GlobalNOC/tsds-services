@@ -42,6 +42,7 @@ RUN make rpm
 
 RUN ls -la /
 RUN ls -la /root
+CMD ["sleep", "15"]
 
 # FROM oraclelinux:8
 
