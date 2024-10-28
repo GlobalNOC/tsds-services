@@ -8,3 +8,5 @@ jobs:
     steps:
       - name: Copy repository to /github/workspace
         uses: actions/checkout@v2
+      - name: Build tsds-services
+        uses: GlobalNOC/tsds-services@master
