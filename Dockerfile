@@ -40,11 +40,10 @@ COPY . /app
 # build & install rpm
 RUN make rpm
 
-RUN ls -la /root/rpmbuild/RPMS/x86_64
-RUN cp /root/rpmbuild/RPMS/x86_64/grnoc-tsds-services*x86_64.rpm /app
-RUN ls -la
+RUN cp /root/rpmbuild/RPMS/x86_64/grnoc-tsds-services*x86_64.rpm /
+RUN ls -la /
 
-ENTRYPOINT ["ls", "-la", "/app"]
+ENTRYPOINT ["sleep", "infinity"]
 
 # FROM oraclelinux:8
 
