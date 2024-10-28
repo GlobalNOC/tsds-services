@@ -13,6 +13,13 @@ jobs:
         uses: actions/checkout@v2
       - name: Build tsds-services
         uses: ./
+      - name: lookign
+        run: |
+            pwd
+      - name: lookign
+        run: |
+            ls -la
+            
       - name: Archive RPM
         uses: actions/upload-artifact@v2
         with:
