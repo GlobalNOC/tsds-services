@@ -11,23 +11,8 @@ jobs:
     steps:
       - name: Copy repository to /github/workspace
         uses: actions/checkout@v2
-      - name: system type
-        run: |
-            uname -a
       - name: Build tsds-services
         uses: ./
-#       - name: PWD
-#         run: |
-#             ls
-#       - name: PWD
-#         run: |
-#             pwd
-#       - name: List files in the repository
-#         run: |
-#             ls /
-#       - name: List files in the repository
-#         run: |
-#             ls /root
       - name: Archive RPM
         uses: actions/upload-artifact@v2
         with:
