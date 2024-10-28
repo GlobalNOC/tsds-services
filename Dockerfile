@@ -40,33 +40,33 @@ COPY . /app
 # build & install rpm
 RUN make rpm
 
-FROM oraclelinux:8
+# FROM oraclelinux:8
 
-COPY --from=rpmbuild /root/rpmbuild/RPMS/x86_64/grnoc-tsds-services*x86_64.rpm /root/
+# COPY --from=rpmbuild /root/rpmbuild/RPMS/x86_64/grnoc-tsds-services*x86_64.rpm /root/
 
-RUN dnf install -y \
-    https://build.grnoc.iu.edu/repo/rhel/8/x86_64/globalnoc-release-8-1.el8.noarch.rpm \
-    oracle-epel-release-el8
+# RUN dnf install -y \
+#     https://build.grnoc.iu.edu/repo/rhel/8/x86_64/globalnoc-release-8-1.el8.noarch.rpm \
+#     oracle-epel-release-el8
 
-# enable additional ol8 repos
-RUN yum-config-manager --enable \
-    ol8_appstream ol8_baseos_latest ol8_codeready_builder \
-    ol8_developer_EPEL  ol8_developer_EPEL_modular
+# # enable additional ol8 repos
+# RUN yum-config-manager --enable \
+#     ol8_appstream ol8_baseos_latest ol8_codeready_builder \
+#     ol8_developer_EPEL  ol8_developer_EPEL_modular
 
-# run makecache
-RUN dnf makecache
+# # run makecache
+# RUN dnf makecache
 
-RUN dnf install httpd mod_perl mod_perl-devel
-RUN dnf install -y /root/grnoc-tsds-services*x86_64.rpm
+# RUN dnf install httpd mod_perl mod_perl-devel
+# RUN dnf install -y /root/grnoc-tsds-services*x86_64.rpm
 
 
-# setup apache config
-RUN rm /etc/httpd/conf.d/welcome.conf
-RUN rm /etc/grnoc/tsds/services/config.xml
+# # setup apache config
+# RUN rm /etc/httpd/conf.d/welcome.conf
+# RUN rm /etc/grnoc/tsds/services/config.xml
 
-RUN echo 'IncludeOptional "/etc/httpd/conf.d/grnoc/*.conf"' >> /etc/httpd/conf.d/grnoc_include.conf
-RUN sed -i 's/ErrorLog "logs\/error_log"/ErrorLog \/dev\/stderr/g' /etc/httpd/conf/httpd.conf
-RUN sed -i 's/CustomLog "logs\/access_log"/CustomLog \/dev\/stdout/g' /etc/httpd/conf/httpd.conf
+# RUN echo 'IncludeOptional "/etc/httpd/conf.d/grnoc/*.conf"' >> /etc/httpd/conf.d/grnoc_include.conf
+# RUN sed -i 's/ErrorLog "logs\/error_log"/ErrorLog \/dev\/stderr/g' /etc/httpd/conf/httpd.conf
+# RUN sed -i 's/CustomLog "logs\/access_log"/CustomLog \/dev\/stdout/g' /etc/httpd/conf/httpd.conf
 
-# set entrypoint
-ENTRYPOINT ["/bin/echo", "'Welcome to TSDS!'"]
+# # set entrypoint
+# ENTRYPOINT ["/bin/echo", "'Welcome to TSDS!'"]
