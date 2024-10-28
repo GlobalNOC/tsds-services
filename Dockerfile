@@ -43,7 +43,7 @@ RUN make rpm
 RUN cp /root/rpmbuild/RPMS/x86_64/grnoc-tsds-services*x86_64.rpm /
 RUN ls -la /
 
-ENTRYPOINT ["sleep", "15"]
+ENTRYPOINT ["cp", "/app/*.rpm", "."]
 
 # FROM oraclelinux:8
 
