@@ -1,4 +1,4 @@
-FROM oraclelinux:8
+FROM oraclelinux:8 AS rpmbuild
 
 # set working directory
 WORKDIR /app
@@ -42,7 +42,7 @@ RUN make rpm
 
 FROM oraclelinux:8
 
-COPY --from=0 /root/rpmbuild/RPMS/x86_64/grnoc-tsds-services*x86_64.rpm /root/
+COPY --from=rpmbuild /root/rpmbuild/RPMS/x86_64/grnoc-tsds-services*x86_64.rpm /root/
 
 RUN dnf install -y \
     https://build.grnoc.iu.edu/repo/rhel/8/x86_64/globalnoc-release-8-1.el8.noarch.rpm \
