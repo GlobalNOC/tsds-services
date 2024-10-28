@@ -16,5 +16,5 @@ jobs:
       - name: Archive RPM
         uses: actions/upload-artifact@v2
         with:
-          name: grnoc-tsds-services-1.x86_64.rpm
-          path: /root/grnoc-tsds-services*x86_64.rpm
+          name: grnoc-tsds-services-${{ env.version }}-1.x86_64.rpm
+          path: grnoc-tsds-services-*.el8.x86_64.rpm
