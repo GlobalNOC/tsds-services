@@ -36,6 +36,7 @@ RUN cpanm Carton
 
 # copy everything in
 RUN pwd
+RUN ls -la
 
 COPY . ./
 
