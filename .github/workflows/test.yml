@@ -10,7 +10,7 @@ jobs:
     name: Testing
     steps:
       - name: Copy repository to /github/workspace
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Build tsds-services
         uses: ./
       - name: lookign
