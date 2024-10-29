@@ -38,12 +38,13 @@ RUN cpanm Carton
 COPY . /app
 
 # build & install rpm
-RUN make rpm
+# RUN make rpm
 
-RUN cp /root/rpmbuild/RPMS/x86_64/grnoc-tsds-services*x86_64.rpm /
-RUN ls -la /
+#RUN cp /root/rpmbuild/RPMS/x86_64/grnoc-tsds-services*x86_64.rpm /
+#RUN ls -la /
 
-ENTRYPOINT ["cp", "/app/*.rpm", "."]
+RUN chmod 777 /app/entrypoint.sh
+ENTRYPOINT /app/entrypoint.sh
 
 # FROM oraclelinux:8
 
