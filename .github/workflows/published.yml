@@ -1,11 +1,23 @@
 on:
-  workflow_dispatch:
-
-env:
-  version: 0.0.0
+  release:
+    types: [published]
 
 jobs:
-  tsds_test:
+  tsds_rpm:
+    runs-on: self-hosted
+    name: Build RPM
+    steps:
+      - name: Copy repository to /github/workspace
+        uses: actions/checkout@v3
+      - name: Build tsds-services
+        uses: ./
+      - name: Archive RPM
+        uses: actions/upload-artifact@v2
+        with:
+          name: grnoc-tsds-services-${{ github.event.release.tag_name }}-1.x86_64.rpm
+          path: grnoc-tsds-services-*.el8.x86_64.rpm
+
+  tsds_container:
     runs-on: self-hosted
     name: Build container
     steps:
@@ -25,9 +37,8 @@ jobs:
         with:
           images: ${{ vars.REPOSITORY }}/${{ github.repository }}
           tags: |
-            type=raw,value=${{ env.version }}
+            type=raw,value=${{ github.event.release.tag_name }}
             type=raw,value=latest
-            type=sha
 
       - name: Save image tag
         id: set_image_name
