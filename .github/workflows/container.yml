@@ -20,10 +20,10 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         env: 
-          IMAGE_NAME: ${{ vars.REPOSITORY }}/${{ env.GITHUB_REPOSITORY }}
+          IMAGE_NAME: ${{ vars.REPOSITORY }}/${{ github.repository }}
           REGISTRY: ${{ vars.REPOSITORY }}
         with:
-          images: ${{ vars.REPOSITORY }}/${{ env.GITHUB_REPOSITORY }}
+          images: ${{ vars.REPOSITORY }}/${{ github.repository }}
           tags: |
             type=raw,value=${{ env.version }}
             type=raw,value=latest
