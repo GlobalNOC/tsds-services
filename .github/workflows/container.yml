@@ -1,0 +1,45 @@
+on:
+  workflow_dispatch:
+
+env:
+  version: 0.0.0
+
+jobs:
+  tsds_test:
+    runs-on: self-hosted
+    name: Build container
+    steps:
+      - name: Login to Docker
+        uses: docker/login-action@v2.1.0
+        with:
+          registry: ${{ vars.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Configure Docker metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        env: 
+          IMAGE_NAME: ${{ vars.IMAGE_NAME }}
+          REGISTRY: ${{ vars.REGISTRY }}
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ env.version }}
+            type=raw,value=latest
+            type=sha
+
+      - name: Save image tag
+        id: set_image_name
+        run: |
+          TAG=$(echo $DOCKER_METADATA_OUTPUT_TAGS | cut -d ' ' -f1)
+          echo $TAG
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Build and push image
+        uses: docker/build-push-action@v4.0.0
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
