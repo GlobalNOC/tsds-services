@@ -12,7 +12,7 @@ jobs:
       - name: Login to Docker
         uses: docker/login-action@v2.1.0
         with:
-          registry: ${{ vars.REGISTRY }}
+          registry: ${{ vars.REPOSITORY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
           
@@ -20,10 +20,10 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         env: 
-          IMAGE_NAME: ${{ env.REGISTRY }}/${{ env.GITHUB_REPOSITORY }}
-          REGISTRY: ${{ vars.REGISTRY }}
+          IMAGE_NAME: ${{ env.REPOSITORY }}/${{ env.GITHUB_REPOSITORY }}
+          REGISTRY: ${{ vars.REPOSITORY }}
         with:
-          images: ${{ env.REGISTRY }}/${{ env.GITHUB_REPOSITORY }}
+          images: ${{ env.REPOSITORY }}/${{ env.GITHUB_REPOSITORY }}
           tags: |
             type=raw,value=${{ env.version }}
             type=raw,value=latest
