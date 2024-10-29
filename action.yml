@@ -2,6 +2,5 @@ name: tsds-services
 description: Build tsds-services
 runs:
   using: docker
-  image: Dockerfile
+  image: Dockerfile.rpm
   args: []
-  entrypoint: '/app/entrypoint.sh'
