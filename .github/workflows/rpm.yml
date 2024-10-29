@@ -5,7 +5,7 @@ env:
   version: 0.0.0
 
 jobs:
-  tsds_test:
+  tsds_rpm:
     runs-on: self-hosted
     name: Build RPM
     steps:
