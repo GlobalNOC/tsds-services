@@ -6,6 +6,7 @@ use warnings;
 use lib '../lib/';
 use lib '/opt/grnoc/venv/grnoc-tsds-services/lib/perl5';
 
+use GRNOC::Log;
 use GRNOC::TSDS::Config;
 use GRNOC::TSDS::GWS::InfluxDB;
 use GRNOC::TSDS::Util::ConfigChooser;
@@ -35,6 +36,8 @@ usage() if $help;
 
 
 my $grnoc_log = new GRNOC::Log(config => $logging_file);
+my $logger = GRNOC::Log->get_logger();
+
 my $config_object = new GRNOC::TSDS::Config(config_file => $config_file);
 
 my $websvc = new GRNOC::TSDS::GWS::InfluxDB(config => $config_object);
@@ -54,6 +57,7 @@ post '/' => sub {
         );
     };
     if ($@) {
+        $logger->error("$@");
         $c->render(json => {error => 1, error_text => "$@"});
     }
 };

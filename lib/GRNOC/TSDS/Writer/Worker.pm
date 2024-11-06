@@ -44,7 +44,7 @@ has config => ( is => 'ro',
 has logger => ( is => 'ro',
                 required => 1 );
 
-has queue => ( is => 'rwp' );
+has queue => ( is => 'rw' );
 
 ### internal attributes ###
 
@@ -74,16 +74,18 @@ sub start {
 
     my ( $self ) = @_;
 
-    my $queue = $self->{'config'}->rabbitmq_queue;
-    $self->_set_queue($queue);
+    if (!defined $self->queue) {
+        my $queue = $self->{'config'}->rabbitmq_queue;
+        $self->queue($queue);
+    }
 
-    $self->logger->debug( "Starting." );
+    $self->logger->info("Starting worker on $self->{queue}");
 
     # flag that we're running
     $self->_set_is_running( 1 );
 
     # change our process name
-    $0 = "tsds_writer ($queue) [worker]";
+    $0 = "tsds_writer ($self->{queue}) [worker]";
 
     # setup signal handlers
     $SIG{'TERM'} = sub {
@@ -1598,7 +1600,7 @@ sub _rabbit_connect {
             $self->rabbit->channel_open(PENDING_QUEUE_CHANNEL);
             $self->rabbit->queue_declare(
                 PENDING_QUEUE_CHANNEL,
-                $self->{'config'}->rabbitmq_queue,
+                $self->queue,
                 {'auto_delete' => 0}
             );
             $self->rabbit->basic_qos(
@@ -1610,14 +1612,14 @@ sub _rabbit_connect {
             $self->rabbit->channel_open(FAILED_QUEUE_CHANNEL);
             $self->rabbit->queue_declare(
                 FAILED_QUEUE_CHANNEL,
-                $self->{'config'}->rabbitmq_queue . "_failed",
+                $self->queue . "_failed",
                 {auto_delete => 0}
             );
 
             # start consuming messages
             $self->rabbit->consume(
                 PENDING_QUEUE_CHANNEL,
-                $self->{'config'}->rabbitmq_queue,
+                $self->queue,
                 {no_ack => 0}
             );
 

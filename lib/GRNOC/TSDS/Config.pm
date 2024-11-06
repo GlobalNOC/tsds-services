@@ -215,7 +215,8 @@ sub mongodb_ignore_databases {
         'test',
         'config',
         'tsds_reports',
-        'local'
+        'local',
+        'tsds_version'
     ];
 }
 

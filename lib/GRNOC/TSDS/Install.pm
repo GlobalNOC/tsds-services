@@ -474,15 +474,6 @@ sub _create_databases {
 
     # create the temp workspace database
     $self->mongo_root()->get_database("__tsds_temp_space", create => 1 )->run_command({"create" => "__workspace"});
-    if (! $self->mongo_root()->enable_sharding("__tsds_temp_space")){
-        $self->error("Error sharding temp space: " . $self->mongo_root()->error());
-        return;
-    }
-    
-    if (! $self->mongo_root()->add_collection_shard("__tsds_temp_space", "__workspace", "{'_id': 1}")){
-        $self->error("Error sharding temp space collection: " . $self->mongo_root()->error());
-        return;
-    }
 
     # find all .json files we'll need to create databases for
     my $ret = opendir( my $fh, $self->{'install_dir'} );
