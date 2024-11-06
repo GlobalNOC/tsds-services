@@ -83,6 +83,8 @@ sub get_measurement_types {
         next if ($type eq 'admin' ||
                  $type eq 'config' ||
                  $type eq 'test' ||
+		 $type eq 'local' ||
+		 $type eq 'tsds_version' ||
                  $type eq 'tsds_reports');
 
         next if ( defined($databases) and (! (grep $_ eq $type, @$databases)) );
