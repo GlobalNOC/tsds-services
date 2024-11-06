@@ -1181,38 +1181,32 @@ sub _query_database {
 
     my $meta_where_fields = clone( $where_fields );
 
-    # only look at measurements that were active at some point
-    # during this timeframe
-    my $time_or_clause = $self->_generate_time_clause($start, $end);
-
-    if (exists $meta_where_fields->{'$and'}){
-        push(@{$meta_where_fields->{'$and'}}, {'$or' => $time_or_clause});
+	# Parse and set the query time period for MongoDB
+    my $time_clause = $self->_generate_time_clause($start, $end);
+    if (exists $meta_where_fields->{'$and'}) {
+        push(@{$meta_where_fields->{'$and'}}, @$time_clause);
     }
     else {
-        $meta_where_fields->{'$and'} = [{'$or' => $time_or_clause}];
+        $meta_where_fields->{'$and'} = $time_clause;
     }
 
-    # parse any metadata constraints defined for this network
+    # Parse any metadata constraints for the query
     if (defined($self->{'constraints_file'})) {
-        my $constraints = GRNOC::TSDS::Constraints->new( config_file => $self->{'constraints_file'} );
 
+        my $constraints = GRNOC::TSDS::Constraints->new( config_file => $self->{'constraints_file'} );
         if ($db_name ne $self->temp_database() && ! grep({$_ eq $db_name} @{$constraints->get_databases()})){
-	    $self->error("Not permitted to run query on $db_name");
-	    return;
-	}
+            $self->error("Not permitted to run query on $db_name");
+            return;
+        }
 
         my $constraint_query = $constraints->parse_constraints( database => $db_name );
-
         if ( $constraint_query ) {
-   
-     	    if (exists $meta_where_fields->{'$and'}){
-	    
-	        push(@{$meta_where_fields->{'$and'}}, @{$constraint_query->{'$and'}} );
-	    }
-	    else {
-	    
-	        $meta_where_fields->{'$and'} = $constraint_query->{'$and'};
-	    }
+            if (exists $meta_where_fields->{'$and'}) { 
+                push(@{$meta_where_fields->{'$and'}}, @{$constraint_query->{'$and'}} );
+            }
+            else {
+                $meta_where_fields->{'$and'} = $constraint_query->{'$and'};
+            }
         }
     }
 
@@ -1741,14 +1735,10 @@ sub _generate_time_clause {
     my $start_name = $args{'start_name'} || 'start';
     my $end_name   = $args{'end_name'} || 'end';
 
-    return [
-	{'$and' => [{$start_name => {'$lte' => $end}},
-		    {$end_name   => undef}]
-	},
-	{'$and' => [{$start_name => {'$lte' => $end}},
-		    {$end_name => {'$gte' => $start}}]
-	}
-	];
+    my $start_clause = {$start_name => {'$lte' => $end}};
+    my $end_clause   = {'$or' => [{$end_name => undef}, {$end_name => {'$gte' => $start}}]};
+
+    return [$start_clause, $end_clause];
 }
 
 sub _get_last_non_null_timestamp {
