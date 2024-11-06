@@ -1,3 +1,9 @@
+## GRNOC TSDS Services 1.8.4 -- Nov 2024
+
+### Bug Fixes:
+
+* Ignore admin databases from mongo
+
 ## GRNOC TSDS Services 1.8.3 -- Nov 2024
 
 * Optimizes performance for queries by speeding up time-range queries to MongoDB
