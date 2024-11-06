@@ -445,13 +445,19 @@ sub _execute_mongo {
     # default to root in the execute mongo case since
     my $database = defined($args{'database'}) ? $args{'database'} : "admin";
 
-    my $line = "mongo".
-               "  --host $self->{'host'}".
-               "  --port $self->{'port'}".
-               "  --username '$self->{'user'}'".
-               "  --password '$self->{'password'}'".
-               "  $database".
-               "  --eval 'JSON.stringify($command);'";
+    my $line = "";
+    if ($self->{'config'}->mongodb_uri) {
+        my $host = $self->{'config'}->mongodb_uri;
+        $line = "mongo '$host' $database --eval 'JSON.stringify($command);'";
+    } else {
+        $line = "mongo".
+                "  --host $self->{'host'}".
+                "  --port $self->{'port'}".
+                "  --username '$self->{'user'}'".
+                "  --password '$self->{'password'}'".
+                "  $database".
+                "  --eval 'JSON.stringify($command);'";
+    }
 
     my $output = `$line`;
 
