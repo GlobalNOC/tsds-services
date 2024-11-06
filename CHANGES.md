@@ -1,3 +1,7 @@
+## GRNOC TSDS Services 1.8.2 -- Nov 2024
+
+* Optimizes performance for queries by speeding up time-range queries to MongoDB
+
 ## GRNOC TSDS Services 1.8.2 -- Oct 2024
 
 ### Features:
