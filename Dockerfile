@@ -1,4 +1,4 @@
-FROM oraclelinux:8
+FROM oraclelinux:8 AS rpmbuild
 
 # set working directory
 WORKDIR /app
@@ -40,11 +40,12 @@ COPY . /app
 # build & install rpm
 RUN make rpm
 
+
 FROM oraclelinux:8
 
-COPY conf/mongodb-org-3.6.repo /etc/yum.repos.d/mongodb-org-3.6.repo
+COPY --from=rpmbuild /root/rpmbuild/RPMS/x86_64/grnoc-tsds-services*x86_64.rpm /root/
 
-COPY --from=0 /root/rpmbuild/RPMS/x86_64/grnoc-tsds-services*x86_64.rpm /root/
+COPY conf/mongodb-org-3.6.repo /etc/yum.repos.d/mongodb-org-3.6.repo
 
 RUN dnf install -y \
     https://build.grnoc.iu.edu/repo/rhel/8/x86_64/globalnoc-release-8-1.el8.noarch.rpm \
@@ -60,7 +61,6 @@ RUN dnf makecache
 
 RUN dnf install httpd mod_perl mod_perl-devel mongodb-org-shell
 RUN dnf install -y /root/grnoc-tsds-services*x86_64.rpm
-
 
 # setup apache config
 RUN rm /etc/httpd/conf.d/welcome.conf

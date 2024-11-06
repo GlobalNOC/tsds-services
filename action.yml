@@ -2,5 +2,5 @@ name: tsds-services
 description: Build tsds-services
 runs:
   using: docker
-  image: Dockerfile
-  args:  []
+  image: Dockerfile.rpm
+  args: []
