@@ -17,11 +17,9 @@ jobs:
           echo $TAG
           TAG=$(grep "our \$VERSION" lib/GRNOC/TSDS.pm)
           echo $TAG
-          TAG=$(grep " VERSION" lib/GRNOC/TSDS.pm)
+          TAG=$(grep "our \$VERSION" lib/GRNOC/TSDS.pm | awk '{print \$4}')
           echo $TAG
-          TAG=$(grep "VERSION" lib/GRNOC/TSDS.pm | awk '{print $$4}')
-          echo $TAG
-          TAG=$(grep "VERSION" lib/GRNOC/TSDS.pm | awk '{print $$4}' | sed "s/['|;]//g")
+          TAG=$(grep "our \$VERSION" lib/GRNOC/TSDS.pm | awk '{print \$4}' | sed "s/['|;]//g")
           echo $TAG
       # - name: Build tsds-services
       #   uses: ./
