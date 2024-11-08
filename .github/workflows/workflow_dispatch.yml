@@ -44,12 +44,6 @@ jobs:
             type=ref,event=branch
             type=ref,event=pr
             type=sha
-#       - name: Save image tag
-#         id: set_image_name
-#         run: |
-#           TAG=$(echo $DOCKER_METADATA_OUTPUT_TAGS | cut -d ' ' -f1)
-#           echo $TAG
-#           echo "tag=$TAG" >> $GITHUB_OUTPUT
       - name: Build and push image
         uses: docker/build-push-action@v4.0.0
         with:
