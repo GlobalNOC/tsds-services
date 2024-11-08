@@ -12,27 +12,29 @@ jobs:
       - name: Copy repository to /github/workspace
         uses: actions/checkout@v3
       - name: Lookup version number
+        id: version
         run: |
-          TAG=$(grep "VERSION" lib/GRNOC/TSDS.pm)
-          echo $TAG
-          TAG=$(grep "our \$VERSION" lib/GRNOC/TSDS.pm)
-          echo $TAG
-          TAG=$(grep "our \$VERSION" lib/GRNOC/TSDS.pm | awk '{print $4}')
-          echo $TAG
-          TAG=$(grep "our \$VERSION" lib/GRNOC/TSDS.pm | awk '{print $4}' | sed "s/['|;]//g")
-          echo $TAG
-      # - name: Build tsds-services
-      #   uses: ./
-      # - name: Archive RPM
-      #   uses: actions/upload-artifact@v2
-      #   with:
-      #     name: grnoc-tsds-services-${{ env.version }}-1.x86_64.rpm
-      #     path: grnoc-tsds-services-*.el8.x86_64.rpm
+          VERSION_NUMBER=$(grep "our \$VERSION" lib/GRNOC/TSDS.pm | awk '{print $4}' | sed "s/['|;]//g")
+          echo "number=$VERSION_NUMBER" >> $GITHUB_OUTPUT
+      - name: Build tsds-services
+        uses: ./
+      - name: Archive RPM
+        uses: actions/upload-artifact@v2
+        with:
+          name: grnoc-tsds-services-${{ steps.version.outputs.number }}-1.el8.x86_64.rpm
+          path: grnoc-tsds-services-${{ steps.version.outputs.number }}-1.el8.x86_64.rpm
 
-  # tsds_container:
-  #   runs-on: self-hosted
-  #   name: Build container
-  #   steps:
+#   tsds_container:
+#     runs-on: self-hosted
+#     name: Build container
+#     steps:
+#       - name: Copy repository to /github/workspace
+#         uses: actions/checkout@v3
+#       - name: Lookup version number
+#         id: version
+#         run: |
+#           VERSION_NUMBER=$(grep "our \$VERSION" lib/GRNOC/TSDS.pm | awk '{print $4}' | sed "s/['|;]//g")
+#           echo "number=$VERSION_NUMBER" >> $GITHUB_OUTPUT
   #     - name: Login to Docker
   #       uses: docker/login-action@v2.1.0
   #       with:
