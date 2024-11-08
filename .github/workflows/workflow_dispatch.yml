@@ -1,8 +1,6 @@
 on:
   workflow_dispatch:
 
-env:
-  version: 0.0.0
 
 jobs:
   tsds_rpm:
@@ -24,46 +22,38 @@ jobs:
           name: grnoc-tsds-services-${{ steps.version.outputs.number }}-1.el8.x86_64.rpm
           path: grnoc-tsds-services-${{ steps.version.outputs.number }}-1.el8.x86_64.rpm
 
-#   tsds_container:
-#     runs-on: self-hosted
-#     name: Build container
-#     steps:
-#       - name: Copy repository to /github/workspace
-#         uses: actions/checkout@v3
-#       - name: Lookup version number
-#         id: version
+  tsds_container:
+    runs-on: self-hosted
+    name: Build container
+    steps:
+      - name: Login to Docker
+        uses: docker/login-action@v2.1.0
+        with:
+          registry: ${{ vars.REPOSITORY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Configure Docker metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        env: 
+          IMAGE_NAME: ${{ vars.REPOSITORY }}/${{ github.repository }}
+          REGISTRY: ${{ vars.REPOSITORY }}
+        with:
+          images: ${{ vars.REPOSITORY }}/${{ github.repository }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha
+#       - name: Save image tag
+#         id: set_image_name
 #         run: |
-#           VERSION_NUMBER=$(grep "our \$VERSION" lib/GRNOC/TSDS.pm | awk '{print $4}' | sed "s/['|;]//g")
-#           echo "number=$VERSION_NUMBER" >> $GITHUB_OUTPUT
-  #     - name: Login to Docker
-  #       uses: docker/login-action@v2.1.0
-  #       with:
-  #         registry: ${{ vars.REPOSITORY }}
-  #         username: ${{ github.actor }}
-  #         password: ${{ secrets.GITHUB_TOKEN }}
-          
-  #     - name: Configure Docker metadata
-  #       id: meta
-  #       uses: docker/metadata-action@v4
-  #       env: 
-  #         IMAGE_NAME: ${{ vars.REPOSITORY }}/${{ github.repository }}
-  #         REGISTRY: ${{ vars.REPOSITORY }}
-  #       with:
-  #         images: ${{ vars.REPOSITORY }}/${{ github.repository }}
-  #         tags: |
-  #           type=raw,value=${{ env.version }}
-
-  #     - name: Save image tag
-  #       id: set_image_name
-  #       run: |
-  #         TAG=$(echo $DOCKER_METADATA_OUTPUT_TAGS | cut -d ' ' -f1)
-  #         echo $TAG
-  #         echo "tag=$TAG" >> $GITHUB_OUTPUT
-
-  #     - name: Build and push image
-  #       uses: docker/build-push-action@v4.0.0
-  #       with:
-  #         context: .
-  #         push: true
-  #         tags: ${{ steps.meta.outputs.tags }}
-  #         labels: ${{ steps.meta.outputs.labels }}
+#           TAG=$(echo $DOCKER_METADATA_OUTPUT_TAGS | cut -d ' ' -f1)
+#           echo $TAG
+#           echo "tag=$TAG" >> $GITHUB_OUTPUT
+      - name: Build and push image
+        uses: docker/build-push-action@v4.0.0
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
