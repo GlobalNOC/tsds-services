@@ -15,9 +15,9 @@ jobs:
         run: |
           TAG=$(grep "VERSION" lib/GRNOC/TSDS.pm)
           echo $TAG
-          TAG=$(grep "\$VERSION" lib/GRNOC/TSDS.pm)
+          TAG=$(grep "our \$VERSION" lib/GRNOC/TSDS.pm)
           echo $TAG
-          TAG=$(grep "$$VERSION" lib/GRNOC/TSDS.pm)
+          TAG=$(grep " VERSION" lib/GRNOC/TSDS.pm)
           echo $TAG
           TAG=$(grep "VERSION" lib/GRNOC/TSDS.pm | awk '{print $$4}')
           echo $TAG
