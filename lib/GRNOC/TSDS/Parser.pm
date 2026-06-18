@@ -4,8 +4,6 @@ package GRNOC::TSDS::Parser;
 use strict;
 use warnings;
 
-use experimental qw( switch );
-
 use Carp;
 use Marpa::R2;
 use Tie::IxHash;
@@ -14,7 +12,7 @@ use Time::HiRes qw(gettimeofday tv_interval);
 use Clone qw(clone);
 use Math::Round qw( nlowmult );
 use Data::Dumper;
-use Sys::Hostname;
+use Digest::MD5 qw(md5_hex);
 use List::Util qw(min max);
 use Scalar::Util;
 use POSIX;
@@ -63,7 +61,7 @@ sub new {
         bnf_file      => BNF_FILE,
         temp_table    => '__workspace',
         temp_database => '__tsds_temp_space',
-        temp_id       => Sys::Hostname::hostname . $$,
+        query_id      => undef,  # Will be set per-query in evaluate() to avoid race conditions
 	@_
     };
 
@@ -159,12 +157,12 @@ sub temp_database {
     return $self->{'temp_database'};
 }
 
-sub temp_id {
+sub query_id {
     my $self = shift;
     my $name = shift;
 
-    $self->{'temp_id'} = $name if ($name);
-    return $self->{'temp_id'};
+    $self->{'query_id'} = $name if ($name);
+    return $self->{'query_id'};
 }
 
 sub bnf {
@@ -189,6 +187,16 @@ sub evaluate {
     my $self  = shift;
     my $query = shift;
     my %args  = @_;
+
+    # Generate unique query_id to isolate concurrent queries sharing the MongoDB temp table.
+    # The Parser singleton persists per-process (MPM prefork), but different processes
+    # run concurrently. Hash of time+PID+random ensures global uniqueness.
+    my ($seconds, $microseconds) = gettimeofday();
+    my $random = rand();
+    my $unique_string = join('_', $seconds, $microseconds, $$, $random);
+    my $query_id = md5_hex($unique_string);
+
+    log_info("Query starting with query_id: $query_id");
 
     # set a flag to let queries know whether they should force
     # some sort of constraint or not
@@ -218,15 +226,15 @@ sub evaluate {
     # if there are problems
     my $res;
     eval {
-        $res = $self->_process_tokens($tokens, 0, $query);
+        $res = $self->_process_tokens($tokens, 0, $query, $query_id);
     };
     if ($@){
         $self->error($@);
     }
 
-    # If we used a temporary table, clean it out
+    # If we used a temporary table, clean it out by deleting docs with our query_id
     if ($self->_used_temp_table()){
-        $self->_clean_temp_table();
+        $self->_clean_temp_table($query_id);
     }
 
     if (defined($token_start) && defined($self->{'query_total'}) && defined($query)) {
@@ -281,7 +289,7 @@ sub tokenize {
             $string_at = $1;
             $string_at =~ s/\\\\/\\/g;
         }
-     
+
         $error  = "Syntax error in query: " . $string_before . "*HERE*>>>" . substr($string_at, 0, 1) . "<<<*HERE*" . substr($string_at, 1) . "\n";
     }
     # In this case we probably have an entire missing section vs having a section
@@ -311,9 +319,9 @@ sub tokenize {
         $self->error($error);
         return;
     }
-    
+
     my $tokens = ${$value};
-    
+
     return $tokens;
 }
 
@@ -332,6 +340,7 @@ sub _process_tokens {
     my $tokens      = shift;
     my $is_subquery = shift;
     my $text_query  = shift;
+    my $query_id    = shift;  # The query_id for THIS query execution (prevents concurrent query interference)
 
     my $query_time_start = [gettimeofday];
 
@@ -350,7 +359,7 @@ sub _process_tokens {
     my $with_details     = $self->_get_with_details($tokens);
 
     my ($where_fields, $where_names) = $self->_get_where($tokens);
-    
+
     my $having_fields    = $self->_get_having($tokens, $get_fields);
 
     my $between_fields   = $self->_get_between($tokens);
@@ -372,7 +381,7 @@ sub _process_tokens {
         # the subquery will be stored in a temp table in mongo and it will return the
         # field mappings from the last query. This is to get around the fact that you cannot
         # store certain characters as mongo fields so it arbitrarily assigns them new ones
-        $doc_symbols = $self->_process_tokens($inner_query, 1, $text_query);
+        $doc_symbols = $self->_process_tokens($inner_query, 1, $text_query, $query_id);
         $from_field  = $self->temp_database();
 
         return if (! defined $doc_symbols);
@@ -422,9 +431,10 @@ sub _process_tokens {
             limit          => $limit,
             offset         => $offset,
             symbols        => $doc_symbols,
-	    text_query     => $text_query
+	    text_query     => $text_query,
+	    query_id       => $query_id
         );
-   
+
     return if (! defined $inner_result);
 
     # apply the specified by grouping or the default
@@ -450,7 +460,7 @@ sub _process_tokens {
     # If we have a "having" clause we need to write out the initial results to a temporary
     # database and execute another query against that using the having as the "where" clause
     if ((keys %$having_fields) > 0){
-        my $temp_result = $self->_write_temp_table($final_results);
+        my $temp_result = $self->_write_temp_table($final_results, $query_id);
         return if (! defined $temp_result);
 
         $final_results = $self->_query_database(
@@ -464,7 +474,8 @@ sub _process_tokens {
             need_all       => $need_all,
             limit          => $limit,
             offset         => $offset,
-            symbols        => $temp_result
+            symbols        => $temp_result,
+            query_id       => $query_id
         );
 
         return if (! defined $final_results);
@@ -503,7 +514,7 @@ sub _process_tokens {
     # if we're a subquery, write our answer back to a temp table in mongo
     # so the outer queries can use that
     if ($is_subquery){
-        my $temp_result = $self->_write_temp_table($final_results);
+        my $temp_result = $self->_write_temp_table($final_results, $query_id);
         log_debug("Inner query completed in " . tv_interval($query_time_start, [gettimeofday]) . " seconds");
         return $temp_result;
     }
@@ -526,20 +537,19 @@ sub _process_tokens {
 sub _write_temp_table {
     my $self    = shift;
     my $results = shift;
+    my $query_id = shift;  # The query_id to use for this batch of results
 
-    # make sure we get rid of everything already in there
-    # if applicable
-    $self->_clean_temp_table() or return;
-    
     # flag that something during this evaluation used a temp table
     # so we know whether or not we have to clean up at the end
     $self->_used_temp_table(1);
 
-    # make sure that it will clean up after itself if something goes wrong or
-    # we don't re-enter here
+    # Get temp collection with PRIMARY read preference to ensure read-after-write consistency
+    # We write to primary, so we must read from primary to avoid replication lag issues
     my $temp_collection = $self->mongo_rw()->get_collection($self->temp_database(),
 							    $self->temp_table());
-    
+    # Clone collection with primary read preference
+    $temp_collection = $temp_collection->clone(read_preference => MongoDB::ReadPreference->new(mode => 'primary'));
+
 
     if (! $temp_collection){
 	$self->error($self->mongo_rw()->error());
@@ -551,33 +561,49 @@ sub _write_temp_table {
     foreach my $result (@$results){
 	$self->_symbolize($result, \%symbols) or return;
 
-        # flag this doc as belonging to this process
-        $result->{'__tsds_temp_id'} = $self->temp_id();
+        # flag this doc as belonging to this process - use the passed-in query_id!
+        $result->{'__tsds_temp_id'} = $query_id;
 
+	my $insert_result;
 	eval {
-	    my $res    = $temp_collection->insert_one($result);
-	    my $doc_id = $res->{'value'};
+	    $insert_result = $temp_collection->insert_one($result);
 	};
 
 	if ($@){
-	    $self->error("Error while inserting into temp table.");
+	    $self->error("Error while inserting into temp table: $@");
+	    return;
+	}
+
+	if (!$insert_result || !$insert_result->acknowledged) {
+	    $self->error("MongoDB insert not acknowledged for query_id=$query_id");
 	    return;
 	}
     }
 
+    log_debug("Temp table write complete: query_id=$query_id, documents=" . scalar(@$results));
     log_debug("Symbols generated are: ", {filter => \&Data::Dumper::Dumper,
 					  value  => \%symbols});
+
+    # Verify write by immediately checking if docs exist
+    my $verify_count = $temp_collection->count({"__tsds_temp_id" => $query_id});
+    log_info("Temp table write verification: query_id=$query_id, wrote=" . scalar(@$results) . ", verified=$verify_count");
+    if ($verify_count != scalar(@$results)) {
+        log_error("WRITE VERIFICATION FAILED! Expected " . scalar(@$results) . " but found $verify_count for query_id=$query_id");
+    }
 
     return \%symbols;
 }
 
 sub _clean_temp_table {
     my $self = shift;
+    my $query_id = shift;  # Accept query_id as parameter
 
+    # Use PRIMARY read preference for temp table operations
     my $temp_collection = $self->mongo_rw()->get_collection($self->temp_database(),
                                                             $self->temp_table());
+    $temp_collection = $temp_collection->clone(read_preference => MongoDB::ReadPreference->new(mode => 'primary'));
 
-    my $res = $temp_collection->delete_many({"__tsds_temp_id" => $self->temp_id()});    
+    my $res = $temp_collection->delete_many({"__tsds_temp_id" => $query_id});
 
     $self->_used_temp_table(0);
 
@@ -818,7 +844,7 @@ sub _get_having {
     my ($parsed_having, $where_names) = $self->_where_helper($having_fields);
 
     return if ($self->error());
-    
+
     log_debug("Parsed having fields: ", {filter => \&Data::Dumper::Dumper,
                                          value  => $parsed_having});
 
@@ -1044,7 +1070,7 @@ sub _get_by {
 
     log_debug("Raw by fields: ", {filter => \&Data::Dumper::Dumper,
 				  value  => $by_fields});
-    
+
     # Figure out if grouping by time is a part of this
     # We don't actually need it to remain in the group by
     for (my $i = @$by_fields - 1; $i >= 0; $i--){
@@ -1091,6 +1117,7 @@ sub _query_database {
     my $offset          = $args{'offset'};
     my $doc_symbols     = $args{'symbols'};
     my $text_query      = $args{'text_query'};
+    my $query_id        = $args{'query_id'};  # The query_id for this query execution
 
     my $queried_field_names = $self->_get_field_names( $fields );
 
@@ -1183,13 +1210,12 @@ sub _query_database {
 
 	# Parse and set the query time period for MongoDB
     my $time_clause = $self->_generate_time_clause($start, $end);
-    if (exists $meta_where_fields->{'$and'}) {
+    if (exists $meta_where_fields->{'$and'}){
         push(@{$meta_where_fields->{'$and'}}, @$time_clause);
     }
     else {
         $meta_where_fields->{'$and'} = $time_clause;
     }
-
     # Parse any metadata constraints for the query
     if (defined($self->{'constraints_file'})) {
 
@@ -1238,9 +1264,9 @@ sub _query_database {
             log_info("No limiting fields found, exiting query.");
             return [];
         }
-	
+
         my @or;
-	
+
         foreach my $point (@$limit_result){
             my @and;
             my $value = $point->{'_id'};
@@ -1251,7 +1277,7 @@ sub _query_database {
 	    
             push(@or, {'$and' => \@and});
         }
-	
+
         if (exists $meta_where_fields->{'$and'}){
             push(@{$meta_where_fields->{'$and'}}, {'$or' => \@or});
         }
@@ -1369,11 +1395,11 @@ sub _query_database {
 
         foreach my $part (@$parts){
             my @field_data = $self->_get_base_field_extent($part);
-            
+
             my $name      = $field_data[0];
             my $extent    = $field_data[1];
             my $histogram = $field_data[2];
-            
+
             # is this an outer temp db query?
             if ( $db_name eq $self->temp_database() ) {
                 $data_field_map->{$self->temp_table()}{$name} = 1;
@@ -1382,16 +1408,16 @@ sub _query_database {
 
             # dont need to worry about meta fields for data queries
             next if ( $self->_is_meta_field( $part ) );
-            
+
             # did they ask for a > 1 resolution, ie some amount of aggregation
             if ($extent > 1){
-                
+
                 # what is the best data aggregate to use for this field?
                 my $aggregate = $self->_get_best_aggregate( extent => $extent,
                                                             aggregates => $aggregates );
-                
+
                 $data_field_map->{$aggregate}{$name} = 1;
-                
+
                 # determine if we need to include a histogram in our query results for this value
                 if( $histogram ){
                     $data_field_hist_map->{$aggregate}{$name} = 1;
@@ -1413,7 +1439,7 @@ sub _query_database {
                     $end   = $ceiled;
                 }
             }
-            
+
             # regular get request, so use highest res data for this field
             else {
                 $data_field_map->{DATA()}{$name} = 1;
@@ -1430,10 +1456,17 @@ sub _query_database {
     log_debug("Data field mapping: ", {filter => \&Data::Dumper::Dumper,
                                        value  => $data_field_map
               });
-    
+
     log_debug("Data histogram mapping: ", {filter => \&Data::Dumper::Dumper,
                                            value  => $data_field_hist_map
               });
+
+    # Safety check: if querying temp database and data_field_map is empty,
+    # ensure we at least query the temp table
+    if ($db_name eq $self->temp_database() && keys(%$data_field_map) == 0) {
+        log_warn("Temp database query but data_field_map is empty! Adding temp_table to ensure query executes.");
+        $data_field_map->{$self->temp_table()}{'__fallback'} = 1;
+    }
 
     my $fetch_start = [gettimeofday];
 
@@ -1448,6 +1481,13 @@ sub _query_database {
     foreach my $data_source ( keys( %$data_field_map ) ) {
 
         my $collection = $database->get_collection( $data_source );
+
+        # Force PRIMARY read preference for temp table to ensure read-after-write consistency
+        # Writes go to primary, so reads must come from primary to avoid replication lag
+        if ($db_name eq $self->temp_database()) {
+            $collection = $collection->clone(read_preference => MongoDB::ReadPreference->new(mode => 'primary'));
+            log_debug("Using PRIMARY read preference for temp table query");
+        }
 
         # which field(s) are using this aggregate collection?
         my @ds_fields = keys( %{$data_field_map->{$data_source}} );
@@ -1497,10 +1537,22 @@ sub _query_database {
 
             # Make sure when doing a query into a temp database that we add our
             # processes ID to the where clause
-            if ($where_fields && ! exists $where_fields->{'$and'}){
-                $where_fields = {'$and' => [$where_fields]};
+            # Check if where_fields is empty or just contains empty hash
+            if (!$where_fields || (ref $where_fields eq 'HASH' && keys %$where_fields == 0)){
+                # No where clause, just use query_id
+                $where_fields = {'__tsds_temp_id' => $query_id};
+                log_debug("Temp table query (no where clause): query_id=$query_id");
             }
-            push(@{$where_fields->{'$and'}}, {'__tsds_temp_id' => $self->temp_id()});
+            elsif (! exists $where_fields->{'$and'}){
+                # Has where clause but no $and yet, wrap it
+                $where_fields = {'$and' => [$where_fields, {'__tsds_temp_id' => $query_id}]};
+                log_debug("Temp table query (with where clause): query_id=$query_id");
+            }
+            else {
+                # Already has $and, just add query_id to it
+                push(@{$where_fields->{'$and'}}, {'__tsds_temp_id' => $query_id});
+                log_debug("Temp table query (with \$and clause): query_id=$query_id");
+            }
 
             log_debug("Where query after being symbolized: ", {filter => \&Data::Dumper::Dumper,
                                                                value  => $where_fields});
@@ -1550,6 +1602,8 @@ sub _query_database {
 	    else {
 
 		$cursor = $collection->find($where_fields)->fields(\%queried_names);
+		my $temp_count = $collection->count($where_fields);
+		log_info("Temp table read: query_id=$query_id, found $temp_count documents matching where clause");
 	    }
         };
         if ( $@ ) {
@@ -1574,7 +1628,7 @@ sub _query_database {
 	    # foreach my $aggregate ( sort { $a->{'interval'} <=> $b->{'interval'} } @$aggregates ) {
 
 	    #     next if ( !$aggregate->{'interval'} );
-		
+
 	    #     $collection = $database->get_collection( DATA . '_' . $aggregate->{'interval'} );
 
 	    #     eval {
@@ -1681,9 +1735,9 @@ sub _query_database {
                                                    aggregate_interval => $aggregate_interval,
                                                    meta_merge_docs => \%meta_merge_docs );
 
-            
+
             foreach my $fixed_doc (@$fixed_docs){
-                
+
                 push( @docs, $fixed_doc );
             }        
         }
@@ -1902,9 +1956,9 @@ sub _get_meta_limit_result {
             if (exists $limit_query->{$by_field}){
                 my $new_field = [{$by_field => {'$exists' => 1}},
                                  {$by_field => $limit_query->{$by_field}}];
-                
+
                 delete $limit_query->{$by_field};
-                
+
                 if (exists $limit_query->{'$and'}){
                     push(@{$limit_query->{'$and'}}, @$new_field);
                 }
@@ -1947,17 +2001,17 @@ sub _get_meta_limit_result {
         # Default sort ordering to the "by" clause elements
         my $sort  = {'$sort'  => {'_id' => 1}};
         my $group = {'_id'    => $group_clause};
-       
+
         # If we had explicit order by fields, use those instead
         if (@$order_fields){
             $sort = {};
             foreach my $item (@$order_fields){
                 my $name  = $item->[0];
                 my $dir   = $item->[1];
-		
+
 		# need this field projected to be able to sort on it
 		$project_fields{$name} = 1;             
-   
+
                 if (! defined $dir || $dir  =~ /asc/i){
                     $dir = 1;
                 }
@@ -1993,7 +2047,7 @@ sub _get_meta_limit_result {
 						    }
 						   }
 						  ])->all();
-	
+
 
 	my $total_raw = 0;
 	my $total_count = 0;
@@ -2328,7 +2382,7 @@ sub _apply_by {
             else { 
                 $value = $self->_find_value($token, $doc) || "";
             }
-            
+
             $group_value .= $value;	    
 	}
 
@@ -2398,7 +2452,7 @@ sub _apply_by {
                     $doc->{$group_all_key} = [$self->_find_value($group_all_key, $doc)];
                 }
             }
-                
+
             if (! defined $first){
                 $first = $doc;
                 next;            
@@ -2559,7 +2613,7 @@ sub _apply_aggregation_functions {
                 # if we need to recurse into anything else
                 if (ref $name eq 'ARRAY'){
                     my $copy = clone($get_field);
-                  
+
                     # remove old reference from front of list
                     my $copy_datum = shift @$copy;
 
@@ -2572,7 +2626,7 @@ sub _apply_aggregation_functions {
                         $data = $self->_apply_aggregation_functions([$original_group], [[$arg]], $with_details, $time_range);
                         return if (! defined $data);
                         $data = $data->[0];
-                        
+
                         # remap the field from its aggregation function to its
                         # final data name from inner call
                         my $rename = (keys %$data)[0];
@@ -2586,55 +2640,52 @@ sub _apply_aggregation_functions {
 
                     $get_field = $copy;
                 }
-               
-                given ($name){
 
-                    when (/^average$/) {
-                        $aggregate_result = $self->_apply_average($get_field, $data);
-                    }
-                    when (/^percentile$/) {
-                        $aggregate_result = $self->_apply_percentile($get_field, $data);
-                    }
-                    when (/^count$/) {
-                        $aggregate_result = $self->_apply_count($get_field, $data);
-                    }
-                    when (/^min$/) {
-                        $aggregate_result = $self->_apply_min($get_field, $data);
-                    }
-                    when (/^max$/) {
-                        $aggregate_result = $self->_apply_max($get_field, $data);
-                    }
-                    when (/^sum$/) {
-                        $aggregate_result = $self->_apply_sum($get_field, $data);
-                    }
-                    when (/^histogram$/) {
-                        $aggregate_result = $self->_apply_histogram($get_field, $data);
-                    }
-                    when (/^extrapolate$/) {
-                        $aggregate_result = $self->_apply_extrapolate($get_field, $data, $time_range);
-                    }
-                    when (/^all$/) {
-                        $aggregate_result = $self->_apply_all($get_field, $data);
-                    }
-                    when (/^aggregate$/){
-                        $aggregate_result = $self->_apply_aggregate($get_field, $data);
-                    }
-                    default {
-                        $aggregate_result = $self->_apply_default($get_field, $data);
-                    }
+                if ($name =~ /^average$/) {
+                    $aggregate_result = $self->_apply_average($get_field, $data);
+                }
+                elsif ($name =~ /^percentile$/) {
+                    $aggregate_result = $self->_apply_percentile($get_field, $data);
+                }
+                elsif ($name =~ /^count$/) {
+                    $aggregate_result = $self->_apply_count($get_field, $data);
+                }
+                elsif ($name =~ /^min$/) {
+                    $aggregate_result = $self->_apply_min($get_field, $data);
+                }
+                elsif ($name =~ /^max$/) {
+                    $aggregate_result = $self->_apply_max($get_field, $data);
+                }
+                elsif ($name =~ /^sum$/) {
+                    $aggregate_result = $self->_apply_sum($get_field, $data);
+                }
+                elsif ($name =~ /^histogram$/) {
+                    $aggregate_result = $self->_apply_histogram($get_field, $data);
+                }
+                elsif ($name =~ /^extrapolate$/) {
+                    $aggregate_result = $self->_apply_extrapolate($get_field, $data, $time_range);
+                }
+                elsif ($name =~ /^all$/) {
+                    $aggregate_result = $self->_apply_all($get_field, $data);
+                }
+                elsif ($name =~ /^aggregate$/) {
+                    $aggregate_result = $self->_apply_aggregate($get_field, $data);
+                }
+                else {
+                    $aggregate_result = $self->_apply_default($get_field, $data);
                 }
             }        
-            
+
 	    return if (! defined $aggregate_result);
-            
+
 	    foreach my $output_field (keys %$aggregate_result){
 		$group_result{$output_field} = $aggregate_result->{$output_field};
 	    }
 	}
-        
+
 	push(@results, \%group_result);
     }
-    
+
     return \@results;
 }
 
@@ -3001,11 +3052,11 @@ sub __update_bucket {
 
     # we're looking at a retention aggregation
     if ( ref( $value ) ) {
-	
+
 	# we can be looking at either the raw histogram records or the result of a aggregate(..., histogram) result
 	$local_max = $value->{'max'} if (exists $value->{'max'});
 	$local_min = $value->{'min'} if (exists $value->{'min'});
-	
+
 	# 2 possibilities here - the whole thing can be the histogram such as in the case of an inner
 	# query doing aggregate(....,histogram), or it might be stored under ->hist if this is the inner query.
 	# TODO: would be nice to standardize this more, or add abstraction here. Seems a little hacky
@@ -3015,14 +3066,14 @@ sub __update_bucket {
 	elsif (exists $value->{'hist'}){
 	    push( @{$bucket_data->{'hists'}}, $value->{'hist'});
 	}
-	
+
 	if (exists $value->{'avg'} && defined $value->{'avg'}){
 	    $bucket_data->{'total'} += $value->{'avg'};
 	    push( @{$bucket_data->{'bucket'}}, $value->{'avg'} );	    
 	}
 
     }
-    
+
     # we're looking at raw highres data
     else {
 	if ( !defined( $value ) ) {
@@ -3091,7 +3142,7 @@ sub __process_bucket {
 	push(@$aggregated, [$extent_start, $value]);
     }
     elsif ( $function == AGGREGATE_HIST ) {
-	
+
 	foreach my $hist ( @$hists ) {
 	    
 	    push( @$aggregated, [$extent_start, $hist] );
@@ -3457,26 +3508,24 @@ sub _apply_math {
 	}
 
 
-        given ($operator){
-            when (/^\/$/) {
-                if ($operand == 0){
-                    $value = undef;
-                }
-                else {
-                    $value = $value / $operand;
-                }
+        if ($operator =~ /^\/$/) {
+            if ($operand == 0){
+                $value = undef;
             }
-            when (/^\*$/) {
-                $value = $value * $operand;
-            }
-            when (/^\+$/) {
-                $value = $value + $operand;
-            }
-            when (/^\-$/) {
-                $value = $value - $operand;
+            else {
+                $value = $value / $operand;
             }
         }
-        
+        elsif ($operator =~ /^\*$/) {
+            $value = $value * $operand;
+        }
+        elsif ($operator =~ /^\+$/) {
+            $value = $value + $operand;
+        }
+        elsif ($operator =~ /^\-$/) {
+            $value = $value - $operand;
+        }
+
 
 	if ($is_inner_array){
 	    $values->[$i] = [$original_value->[0],
@@ -3671,9 +3720,9 @@ sub _fix_document {
 
     # We need to unpack the values from their multidimensional array 
     foreach my $measurement (@keys){
-	
+
 	my $effective_start = $data_start;
-	
+
 	my $values = $base_doc->{'values'}{$measurement};
 
 	# See if we can scrape out unneeded parts of the packed
@@ -3703,7 +3752,7 @@ sub _fix_document {
 	    # the block for whatever reason we can set the start equal to it
 	    $effective_start = $start_of_section;
 	}
-	
+
 	my @spliced = @$values[$left_splice .. $right_splice]; 
 	# now we're perl'ing with style. This unpacks the remaining
 	# 3d array into a 1d flat array
@@ -3807,10 +3856,10 @@ sub _get_base_field_extent {
     if ($self->_is_aggregation_function($el->[0])){
         return $self->_get_base_field_extent($el->[1], $extent, $histogram);
     }
-    
+
     return $self->_get_base_field_extent($el->[0], $extent, $histogram);
 }
-    
+
 # check for field math field, ie there might be two fields in a single
 # get token
 sub _get_get_token_fields {
@@ -4010,7 +4059,7 @@ sub _get_preserve_all_fields {
         $found->{$tokens->[1]} = 1;
         return;
     }
-    
+
     foreach my $field (@$tokens){
         $self->_get_preserve_all_fields($field, $found);        
     }
